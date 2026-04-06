@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { DialogProvider } from '@/components/Dialog'
 
 export const metadata: Metadata = {
   title: 'OMS 訂單管理系統',
@@ -9,7 +10,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-TW">
-      <body className="bg-gray-50 text-gray-900">{children}</body>
+      <body className="bg-gray-50 text-gray-900">
+        <DialogProvider>{children}</DialogProvider>
+      </body>
     </html>
   )
 }

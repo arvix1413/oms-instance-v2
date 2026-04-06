@@ -1,4 +1,5 @@
 'use client'
+import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
@@ -9,6 +10,8 @@ type Bom = { id:number; product_sku:string; product_name:string; version:string;
 const emptyItem = (): BomItem => ({ material_code:'', material_name:'', spec:'', unit:'PCS', quantity:'', color:'', lt:'', moq:'', supplier_name:'', supplier_price:0, company_price:0, currency:'VND', remark:'' })
 
 export default function BomPage() {
+  const { toast, confirm: confirmDialog } = useDialog()
+
   const [boms, setBoms] = useState<Bom[]>([])
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<Bom|null>(null)
@@ -43,20 +46,20 @@ export default function BomPage() {
       const payload = { ...form, items: form.items.map(i => ({ ...i, quantity: i.quantity === '' ? null : Number(i.quantity), moq: i.moq === '' ? null : Number(i.moq) })) }
       if (editing) {
         await apiFetch(`/api/bom/${editing.id}`, { method: 'PUT', body: JSON.stringify(payload) })
-        showMsg('BOM 更新成功')
+        toast('BOM 更新成功')
         setEditing(null)
       } else {
         await apiFetch('/api/bom', { method: 'POST', body: JSON.stringify(payload) })
-        showMsg('BOM 建立成功')
+        toast('BOM 建立成功')
         setCreating(false)
       }
       setForm({ product_sku:'', product_name:'', version:'V1', items:[emptyItem()] })
       load()
-    } catch (e:any) { showMsg('錯誤：' + e.message) }
+    } catch (e:any) { toast('錯誤：' + e.message) }
   }
 
   const del = async (id:number) => {
-    if (!confirm('確定刪除此 BOM？')) return
+    if (!await confirmDialog('確定刪除此 BOM？')) return
     await apiFetch(`/api/bom/${id}`, { method: 'DELETE' }); load()
   }
 

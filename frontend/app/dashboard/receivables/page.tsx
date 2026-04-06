@@ -1,4 +1,5 @@
 'use client'
+import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
@@ -17,6 +18,8 @@ const STATUS = {
 }
 
 export default function ReceivablesPage() {
+  const { toast, confirm: confirmDialog } = useDialog()
+
   const [items, setItems] = useState<AR[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<AR | null>(null)
@@ -42,10 +45,10 @@ export default function ReceivablesPage() {
     if (!editing) return
     try {
       await apiFetch(`/api/receivables/${editing.id}/payment`, { method: 'PATCH', body: JSON.stringify(form) })
-      showMsg('已更新收款狀態')
+      toast('已更新收款狀態')
       setEditing(null)
       load()
-    } catch (e: any) { showMsg('錯誤：' + e.message) }
+    } catch (e: any) { toast('錯誤：' + e.message) }
   }
 
   const filtered = items.filter(i => !search ||

@@ -1,4 +1,5 @@
 'use client'
+import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
@@ -31,6 +32,8 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
 }
 
 export default function SuppliersPage() {
+  const { toast, confirm: confirmDialog } = useDialog()
+
   const [items, setItems] = useState<Supplier[]>([])
   const [editing, setEditing] = useState<Partial<Supplier>|null>(null)
   const [detail, setDetail] = useState<Supplier|null>(null)
@@ -47,11 +50,11 @@ export default function SuppliersPage() {
     try {
       if (editing.id) await apiFetch(`/api/suppliers/${editing.id}`,{method:'PUT',body:JSON.stringify(editing)})
       else await apiFetch('/api/suppliers',{method:'POST',body:JSON.stringify(editing)})
-      showMsg('儲存成功'); setEditing(null); load()
-    } catch(e:any){ showMsg('錯誤：'+e.message, false) }
+      toast('儲存成功'); setEditing(null); load()
+    } catch(e:any){ toast('錯誤：'+e.message, false) }
   }
   const del = async (id:number) => {
-    if (!confirm('確定刪除？')) return
+    if (!await confirmDialog('確定刪除？')) return
     await apiFetch(`/api/suppliers/${id}`,{method:'DELETE'}); load()
   }
 

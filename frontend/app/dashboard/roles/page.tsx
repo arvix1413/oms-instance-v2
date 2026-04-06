@@ -1,4 +1,5 @@
 'use client'
+import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { getUser } from '@/lib/permissions'
@@ -28,6 +29,8 @@ const PERM_GROUPS = [
 
 export default function RolesPage() {
   const router = useRouter()
+  const { toast, confirm: confirmDialog } = useDialog()
+
   const [permMap, setPermMap] = useState<PermMap>({})
   const [allPerms, setAllPerms] = useState<PermDef[]>([])
   const [loading, setLoading] = useState(true)
@@ -50,7 +53,7 @@ export default function RolesPage() {
       setPermMap(data.permissions)
       setAllPerms(data.allPermissions)
     } catch (e: any) {
-      showMsg('載入失敗：' + e.message, false)
+      toast('載入失敗：' + e.message, false)
     } finally { setLoading(false) }
   }
 
@@ -69,13 +72,13 @@ export default function RolesPage() {
       })
       setPermMap(prev => ({ ...prev, [role]: { ...prev[role], [permission]: !current } }))
     } catch (e: any) {
-      showMsg('更新失敗：' + e.message, false)
+      toast('更新失敗：' + e.message, false)
     } finally { setSaving(null) }
   }
 
   const saveNewRole = async () => {
-    if (!newRole.name || !newRole.label) return showMsg('請填寫角色代碼和名稱', false)
-    if (SYSTEM_ROLES.includes(newRole.name)) return showMsg('不能使用系統保留角色名稱', false)
+    if (!newRole.name || !newRole.label) return toast('請填寫角色代碼和名稱', 'error')
+    if (SYSTEM_ROLES.includes(newRole.name)) return toast('不能使用系統保留角色名稱', 'error')
     try {
       // Save all selected permissions for the new role
       for (const [perm, allowed] of Object.entries(newRole.perms)) {
@@ -86,11 +89,11 @@ export default function RolesPage() {
           })
         }
       }
-      showMsg(`角色「${newRole.label}」建立成功`)
+      toast(`角色「${newRole.label}」建立成功`)
       setCreating(false)
       setNewRole({ name: '', label: '', perms: {} })
       load()
-    } catch (e: any) { showMsg('建立失敗：' + e.message, false) }
+    } catch (e: any) { toast('建立失敗：' + e.message, false) }
   }
 
   const editableRoles = Object.keys(permMap).filter(r => r !== 'admin')

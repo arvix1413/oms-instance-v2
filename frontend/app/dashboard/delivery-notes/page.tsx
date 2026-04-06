@@ -1,4 +1,5 @@
 'use client'
+import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
@@ -13,6 +14,8 @@ const STATUS_MAP: Record<string,{label:string;badge:string}> = {
 }
 
 export default function DeliveryNotesPage() {
+  const { toast, confirm: confirmDialog } = useDialog()
+
   const [items, setItems] = useState<DN[]>([])
   const [creating, setCreating] = useState(false)
   const [viewing, setViewing] = useState<DN|null>(null)
@@ -28,17 +31,17 @@ export default function DeliveryNotesPage() {
   const viewDN = async (id:number) => { const d = await apiFetch<DN>(`/api/delivery-notes/${id}`); setViewing(d) }
   const changeStatus = async (id:number, status:string) => {
     await apiFetch(`/api/delivery-notes/${id}/status`,{method:'PATCH',body:JSON.stringify({status})})
-    showMsg('狀態已更新'); load(); if(viewing?.id===id) viewDN(id)
+    toast('狀態已更新'); load(); if(viewing?.id===id) viewDN(id)
   }
   const del = async (id:number) => {
-    if (!confirm('確定刪除？')) return
+    if (!await confirmDialog('確定刪除？')) return
     await apiFetch(`/api/delivery-notes/${id}`,{method:'DELETE'}); load()
   }
   const save = async () => {
     try {
       await apiFetch('/api/delivery-notes',{method:'POST',body:JSON.stringify(form)})
-      showMsg('出貨單建立成功'); setCreating(false); setForm({customer_name:'',delivery_date:'',remark:'',items:[emptyItem()]}); load()
-    } catch(e:any){ showMsg('錯誤：'+e.message) }
+      toast('出貨單建立成功'); setCreating(false); setForm({customer_name:'',delivery_date:'',remark:'',items:[emptyItem()]}); load()
+    } catch(e:any){ toast('錯誤：'+e.message) }
   }
 
   const printDN = (dn: DN) => {

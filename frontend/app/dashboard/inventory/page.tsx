@@ -1,4 +1,5 @@
 'use client'
+import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
@@ -41,6 +42,8 @@ function DetailModal({ item, onClose, onEdit }: { item: Inv; onClose: () => void
 }
 
 export default function InventoryPage() {
+  const { toast, confirm: confirmDialog } = useDialog()
+
   const [items, setItems] = useState<Inv[]>([])
   const [editing, setEditing] = useState<Partial<Inv>|null>(null)
   const [detail, setDetail] = useState<Inv|null>(null)
@@ -57,11 +60,11 @@ export default function InventoryPage() {
     try {
       if (editing.id) await apiFetch(`/api/inventory/${editing.id}`,{method:'PUT',body:JSON.stringify(editing)})
       else await apiFetch('/api/inventory',{method:'POST',body:JSON.stringify(editing)})
-      showMsg('儲存成功'); setEditing(null); load()
-    } catch(e:any){ showMsg('錯誤：'+e.message) }
+      toast('儲存成功'); setEditing(null); load()
+    } catch(e:any){ toast('錯誤：'+e.message) }
   }
   const del = async (id:number) => {
-    if (!confirm('確定刪除？')) return
+    if (!await confirmDialog('確定刪除？')) return
     await apiFetch(`/api/inventory/${id}`,{method:'DELETE'}); load()
   }
 

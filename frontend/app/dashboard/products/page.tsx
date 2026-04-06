@@ -1,4 +1,5 @@
 'use client'
+import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch, API, getToken } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
@@ -7,6 +8,8 @@ type Product = { id: number; sku: string; name: string; category: string; descri
 const empty = (): Partial<Product> => ({ sku:'', name:'', category:'', description:'', image_url:'', price:0, stock:0, unit:'PCS', status:'active' })
 
 export default function ProductsPage() {
+  const { toast, confirm: confirmDialog } = useDialog()
+
   const [products, setProducts] = useState<Product[]>([])
   const [editing, setEditing] = useState<Partial<Product> | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -37,12 +40,12 @@ export default function ProductsPage() {
       } else {
         await apiFetch('/api/products', { method: 'POST', body: JSON.stringify(editing) })
       }
-      showMsg('儲存成功'); setEditing(null); load()
-    } catch (e: any) { showMsg('錯誤：' + e.message) }
+      toast('儲存成功'); setEditing(null); load()
+    } catch (e: any) { toast('錯誤：' + e.message) }
   }
 
   const del = async (id: number) => {
-    if (!confirm('確定刪除？')) return
+    if (!await confirmDialog('確定刪除？')) return
     await apiFetch(`/api/products/${id}`, { method: 'DELETE' })
     load()
   }

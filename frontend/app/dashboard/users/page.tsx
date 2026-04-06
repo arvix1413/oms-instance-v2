@@ -1,4 +1,5 @@
 'use client'
+import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { ROLE_LABELS, ROLE_COLORS, PERMISSIONS, getUser, type Role } from '@/lib/permissions'
@@ -10,6 +11,8 @@ const empty = (): Partial<User> & { password?: string } => ({ email:'', name:'',
 
 export default function UsersPage() {
   const router = useRouter()
+  const { toast, confirm: confirmDialog } = useDialog()
+
   const [users, setUsers] = useState<User[]>([])
   const [editing, setEditing] = useState<(Partial<User> & { password?: string }) | null>(null)
   const [loading, setLoading] = useState(true)
@@ -39,11 +42,11 @@ export default function UsersPage() {
       if (editing.id) {
         await apiFetch(`/api/users/${editing.id}`, { method: 'PUT', body: JSON.stringify(editing) })
       } else {
-        if (!editing.password) { showMsg('新用戶需要設定密碼', 'error'); return }
+        if (!editing.password) { toast('新用戶需要設定密碼', 'error'); return }
         await apiFetch('/api/users', { method: 'POST', body: JSON.stringify(editing) })
       }
-      showMsg('儲存成功'); setEditing(null); load()
-    } catch (e: any) { showMsg('錯誤：' + e.message, 'error') }
+      toast('儲存成功'); setEditing(null); load()
+    } catch (e: any) { toast('錯誤：' + e.message, 'error') }
   }
 
   // Quick role change directly from table
@@ -53,9 +56,9 @@ export default function UsersPage() {
       const user = users.find(u => u.id === userId)
       if (!user) return
       await apiFetch(`/api/users/${userId}`, { method: 'PUT', body: JSON.stringify({ name: user.name, role: newRole }) })
-      showMsg(`已將 ${user.name} 的角色更新為「${ROLE_LABELS[newRole]}」`)
+      toast(`已將 ${user.name} 的角色更新為「${ROLE_LABELS[newRole]}」`)
       load()
-    } catch (e: any) { showMsg('更新失敗：' + e.message, 'error') }
+    } catch (e: any) { toast('更新失敗：' + e.message, 'error') }
     finally { setChangingRole(null) }
   }
 
@@ -63,8 +66,8 @@ export default function UsersPage() {
     if (!confirm(`確定刪除用戶「${name}」？此操作無法復原。`)) return
     try {
       await apiFetch(`/api/users/${id}`, { method: 'DELETE' })
-      showMsg('用戶已刪除'); load()
-    } catch (e: any) { showMsg('刪除失敗：' + e.message, 'error') }
+      toast('用戶已刪除'); load()
+    } catch (e: any) { toast('刪除失敗：' + e.message, 'error') }
   }
 
   const inp = 'oms-input'

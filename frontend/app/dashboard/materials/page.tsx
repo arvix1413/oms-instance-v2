@@ -1,4 +1,5 @@
 'use client'
+import { useDialog } from '@/components/Dialog'
 import { useEffect, useState, useRef } from 'react'
 import { apiFetch, API, getToken } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
@@ -49,6 +50,8 @@ function DetailModal({ item, onClose, onEdit }: { item: Material; onClose: () =>
 }
 
 export default function MaterialsPage() {
+  const { toast, confirm: confirmDialog } = useDialog()
+
   const [items, setItems] = useState<Material[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [editing, setEditing] = useState<Partial<Material> | null>(null)
@@ -92,12 +95,12 @@ export default function MaterialsPage() {
     try {
       if (editing.id) await apiFetch(`/api/materials/${editing.id}`, { method: 'PUT', body: JSON.stringify(editing) })
       else await apiFetch('/api/materials', { method: 'POST', body: JSON.stringify(editing) })
-      showMsg('儲存成功'); setEditing(null); load()
-    } catch (e: any) { showMsg('錯誤：' + e.message, 'error') }
+      toast('儲存成功'); setEditing(null); load()
+    } catch (e: any) { toast('錯誤：' + e.message, 'error') }
   }
 
   const del = async (id: number) => {
-    if (!confirm('確定刪除？')) return
+    if (!await confirmDialog('確定刪除？')) return
     await apiFetch(`/api/materials/${id}`, { method: 'DELETE' }); load()
   }
 
@@ -129,8 +132,8 @@ export default function MaterialsPage() {
           }
         }).filter(Boolean)
         setImportPreview(parsed)
-        showMsg(`解析完成，共 ${parsed.length} 筆料號，請確認後匯入`, 'info')
-      } catch (e: any) { showMsg('解析失敗：' + e.message, 'error') }
+        toast(`解析完成，共 ${parsed.length} 筆料號，請確認後匯入`, 'info')
+      } catch (e: any) { toast('解析失敗：' + e.message, 'error') }
     }
     reader.readAsBinaryString(file)
     e.target.value = ''
@@ -144,9 +147,9 @@ export default function MaterialsPage() {
         method: 'POST', body: JSON.stringify(importPreview)
       })
       const newSup = result.new_suppliers > 0 ? `，自動建立 ${result.new_suppliers} 個供應商` : ''
-      showMsg(`匯入完成：新增 ${result.success} 筆，更新 ${result.updated} 筆${newSup}${result.errors.length ? `，失敗 ${result.errors.length} 筆` : ''}`, result.errors.length ? 'error' : 'success')
+      toast(`匯入完成：新增 ${result.success} 筆，更新 ${result.updated} 筆${newSup}${result.errors.length ? `，失敗 ${result.errors.length} 筆` : ''}`, result.errors.length ? 'error' : 'success')
       setImportPreview(null); load()
-    } catch (e: any) { showMsg('匯入失敗：' + e.message, 'error') }
+    } catch (e: any) { toast('匯入失敗：' + e.message, 'error') }
     finally { setImporting(false) }
   }
 

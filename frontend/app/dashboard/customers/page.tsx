@@ -1,4 +1,5 @@
 'use client'
+import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
@@ -31,6 +32,8 @@ function DR({ label, value }: { label:string; value?:string|null }) {
 }
 
 export default function CustomersPage() {
+  const { toast, confirm: confirmDialog } = useDialog()
+
   const [items, setItems] = useState<Customer[]>([])
   const [editing, setEditing] = useState<Partial<Customer>|null>(null)
   const [detail, setDetail] = useState<Customer|null>(null)
@@ -47,11 +50,11 @@ export default function CustomersPage() {
     try {
       if (editing.id) await apiFetch(`/api/customers/${editing.id}`,{method:'PUT',body:JSON.stringify(editing)})
       else await apiFetch('/api/customers',{method:'POST',body:JSON.stringify(editing)})
-      showMsg('儲存成功'); setEditing(null); load()
-    } catch(e:any){ showMsg('錯誤：'+e.message, false) }
+      toast('儲存成功'); setEditing(null); load()
+    } catch(e:any){ toast('錯誤：'+e.message, false) }
   }
   const del = async (id:number) => {
-    if (!confirm('確定刪除？')) return
+    if (!await confirmDialog('確定刪除？')) return
     await apiFetch(`/api/customers/${id}`,{method:'DELETE'}); load()
   }
 

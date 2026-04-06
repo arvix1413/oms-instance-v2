@@ -1,4 +1,5 @@
 'use client'
+import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
@@ -23,6 +24,8 @@ function ChevronIcon({ open }: { open: boolean }) {
 }
 
 export default function QuotationsPage() {
+  const { toast, confirm: confirmDialog } = useDialog()
+
   const [items, setItems] = useState<Q[]>([])
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [loadedItems, setLoadedItems] = useState<Record<number, QItem[]>>({})
@@ -51,18 +54,18 @@ export default function QuotationsPage() {
   const changeStatus = async (id:number, status:string, e: React.MouseEvent) => {
     e.stopPropagation()
     await apiFetch(`/api/quotations/${id}/status`,{method:'PATCH',body:JSON.stringify({status})})
-    showMsg('狀態已更新'); load()
+    toast('狀態已更新'); load()
   }
   const del = async (id:number, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!confirm('確定刪除？')) return
+    if (!await confirmDialog('確定刪除？')) return
     await apiFetch(`/api/quotations/${id}`,{method:'DELETE'}); load()
   }
   const save = async () => {
     try {
       await apiFetch('/api/quotations',{method:'POST',body:JSON.stringify(form)})
-      showMsg('報價單建立成功'); setCreating(false); setForm({customer_name:'',currency:'VND',valid_until:'',remark:'',items:[emptyItem()]}); load()
-    } catch(e:any){ showMsg('錯誤：'+e.message) }
+      toast('報價單建立成功'); setCreating(false); setForm({customer_name:'',currency:'VND',valid_until:'',remark:'',items:[emptyItem()]}); load()
+    } catch(e:any){ toast('錯誤：'+e.message) }
   }
 
   const printQuotation = async (id: number, q: Q) => {

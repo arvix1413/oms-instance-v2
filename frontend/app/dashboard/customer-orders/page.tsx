@@ -1,4 +1,5 @@
 'use client'
+import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
@@ -24,6 +25,8 @@ function ChevronIcon({ open }: { open: boolean }) {
 }
 
 export default function CustomerOrdersPage() {
+  const { toast, confirm: confirmDialog } = useDialog()
+
   const [orders, setOrders] = useState<Order[]>([])
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [loadedItems, setLoadedItems] = useState<Record<number, OrderItem[]>>({})
@@ -54,13 +57,13 @@ export default function CustomerOrdersPage() {
   const save = async () => {
     try {
       await apiFetch('/api/customer-orders',{method:'POST',body:JSON.stringify(form)})
-      showMsg('建立成功'); setCreating(false)
+      toast('建立成功'); setCreating(false)
       setForm({po_date:'',po_number:'',customer_name:'',remark:'',items:[emptyItem()]}); load()
-    } catch(e:any){ showMsg('錯誤：'+e.message) }
+    } catch(e:any){ toast('錯誤：'+e.message) }
   }
 
   const del = async (id:number) => {
-    if (!confirm('確定刪除？')) return
+    if (!await confirmDialog('確定刪除？')) return
     await apiFetch(`/api/customer-orders/${id}`,{method:'DELETE'}); load()
   }
 

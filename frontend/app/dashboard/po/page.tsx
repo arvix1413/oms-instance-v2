@@ -1,4 +1,5 @@
 'use client'
+import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
@@ -26,6 +27,8 @@ function ChevronIcon({ open }: { open: boolean }) {
 }
 
 export default function PoPage() {
+  const { toast, confirm: confirmDialog } = useDialog()
+
   const [pos, setPos] = useState<Po[]>([])
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [loadedItems, setLoadedItems] = useState<Record<number, PoItem[]>>({})
@@ -56,13 +59,13 @@ export default function PoPage() {
   const approve = async (id: number, e: React.MouseEvent) => {
     e.stopPropagation()
     await apiFetch(`/api/po/${id}/approve`, { method: 'PATCH' })
-    showMsg('已核准'); load()
+    toast('已核准'); load()
   }
 
   const changeStatus = async (id: number, status: string, e: React.MouseEvent) => {
     e.stopPropagation()
     await apiFetch(`/api/po/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
-    showMsg('狀態已更新'); load()
+    toast('狀態已更新'); load()
     // refresh items if expanded
     if (expanded.has(id)) {
       const data = await apiFetch<Po>(`/api/po/${id}`)
@@ -72,7 +75,7 @@ export default function PoPage() {
 
   const del = async (id: number, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!confirm('確定刪除此採購單？')) return
+    if (!await confirmDialog('確定刪除此採購單？')) return
     await apiFetch(`/api/po/${id}`, { method: 'DELETE' }); load()
   }
 
@@ -93,9 +96,9 @@ export default function PoPage() {
   const save = async () => {
     try {
       await apiFetch('/api/po', { method: 'POST', body: JSON.stringify(form) })
-      showMsg('採購單建立成功'); setCreating(false)
+      toast('採購單建立成功'); setCreating(false)
       setForm({ supplier_name:'', currency:'VND', remark:'', items:[emptyItem()] }); load()
-    } catch (e: any) { showMsg('錯誤：' + e.message) }
+    } catch (e: any) { toast('錯誤：' + e.message) }
   }
 
   const printPo = async (id: number, poNumber: string, supplierName: string) => {
