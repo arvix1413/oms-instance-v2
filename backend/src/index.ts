@@ -530,6 +530,111 @@ app.get('/api/audit-logs', authMiddleware, isAdmin, async c => {
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 
+// ── 應收帳款 (Receivables) ────────────────────────────────────────────────────
+// 來源：出貨單已出貨 → 待收款；可標記已收款
+app.get('/api/receivables', authMiddleware, async c => {
+  try {
+    const rows = await query<any>(`
+      SELECT dn.id, dn.dn_number, dn.customer_name, dn.delivery_date, dn.status,
+             dn.remark, dn.created_at,
+             COALESCE(dn.received_amount, 0) as received_amount,
+             COALESCE(dn.invoice_amount, 0) as invoice_amount,
+             dn.payment_status, dn.payment_date, dn.payment_note,
+             co.po_number as customer_po
+      FROM delivery_notes dn
+      LEFT JOIN customer_orders co ON dn.customer_order_id = co.id
+      WHERE dn.status = 'shipped'
+      ORDER BY dn.delivery_date DESC, dn.created_at DESC
+    `)
+    return c.json(rows)
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+app.patch('/api/receivables/:id/payment', authMiddleware, canWrite, async c => {
+  try {
+    const id = c.req.param('id')
+    const { payment_status, received_amount, payment_date, payment_note } = await c.req.json()
+    await execute(
+      'UPDATE delivery_notes SET payment_status=?, received_amount=?, payment_date=?, payment_note=? WHERE id=?',
+      [payment_status, received_amount||0, payment_date||null, payment_note||'', id]
+    )
+    const row = await queryOne<any>('SELECT dn_number, customer_name FROM delivery_notes WHERE id=?', [id])
+    await audit(c.get('user'), 'PAYMENT', '應收帳款', id, `${row?.dn_number} ${payment_status}`)
+    return c.json({ ok: true })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+
+// ── 應付帳款 (Payables) ───────────────────────────────────────────────────────
+// 來源：採購單已核准/已發送/已收貨 → 待付款；可標記已付款
+app.get('/api/payables', authMiddleware, async c => {
+  try {
+    const rows = await query<any>(`
+      SELECT id, po_number, supplier_name, total_amount, currency, status,
+             COALESCE(paid_amount, 0) as paid_amount,
+             payment_status, payment_date, payment_note, created_at, approved_at
+      FROM purchase_orders
+      WHERE status IN ('approved', 'sent', 'received')
+      ORDER BY created_at DESC
+    `)
+    return c.json(rows)
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+app.patch('/api/payables/:id/payment', authMiddleware, canWrite, async c => {
+  try {
+    const id = c.req.param('id')
+    const { payment_status, paid_amount, payment_date, payment_note } = await c.req.json()
+    await execute(
+      'UPDATE purchase_orders SET payment_status=?, paid_amount=?, payment_date=?, payment_note=? WHERE id=?',
+      [payment_status, paid_amount||0, payment_date||null, payment_note||'', id]
+    )
+    const row = await queryOne<any>('SELECT po_number, supplier_name FROM purchase_orders WHERE id=?', [id])
+    await audit(c.get('user'), 'PAYMENT', '應付帳款', id, `${row?.po_number} ${payment_status}`)
+    return c.json({ ok: true })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+
+// ── 報表 (Reports) ────────────────────────────────────────────────────────────
+app.get('/api/reports', authMiddleware, async c => {
+  try {
+    const url = new URL(c.req.url)
+    const year = url.searchParams.get('year') || new Date().getFullYear().toString()
+
+    // 應收：出貨單已出貨的 invoice_amount，按月
+    const receivables = await query<any>(`
+      SELECT DATE_FORMAT(COALESCE(payment_date, delivery_date, created_at), '%Y-%m') as month,
+             SUM(COALESCE(invoice_amount, 0)) as invoiced,
+             SUM(CASE WHEN payment_status='paid' THEN COALESCE(received_amount, 0) ELSE 0 END) as received,
+             COUNT(*) as count
+      FROM delivery_notes
+      WHERE status='shipped' AND DATE_FORMAT(COALESCE(delivery_date, created_at), '%Y') = ?
+      GROUP BY month ORDER BY month
+    `, [year])
+
+    // 應付：採購單已核准以上，按月
+    const payables = await query<any>(`
+      SELECT DATE_FORMAT(COALESCE(payment_date, approved_at, created_at), '%Y-%m') as month,
+             SUM(total_amount) as total,
+             SUM(CASE WHEN payment_status='paid' THEN COALESCE(paid_amount, 0) ELSE 0 END) as paid,
+             COUNT(*) as count
+      FROM purchase_orders
+      WHERE status IN ('approved','sent','received') AND DATE_FORMAT(created_at, '%Y') = ?
+      GROUP BY month ORDER BY month
+    `, [year])
+
+    // 匯總
+    const summary = await queryOne<any>(`
+      SELECT
+        (SELECT COALESCE(SUM(invoice_amount),0) FROM delivery_notes WHERE status='shipped') as total_invoiced,
+        (SELECT COALESCE(SUM(received_amount),0) FROM delivery_notes WHERE status='shipped' AND payment_status='paid') as total_received,
+        (SELECT COALESCE(SUM(invoice_amount),0) FROM delivery_notes WHERE status='shipped' AND (payment_status IS NULL OR payment_status!='paid')) as total_outstanding_receivable,
+        (SELECT COALESCE(SUM(total_amount),0) FROM purchase_orders WHERE status IN ('approved','sent','received')) as total_payable,
+        (SELECT COALESCE(SUM(paid_amount),0) FROM purchase_orders WHERE payment_status='paid') as total_paid,
+        (SELECT COALESCE(SUM(total_amount),0) FROM purchase_orders WHERE status IN ('approved','sent','received') AND (payment_status IS NULL OR payment_status!='paid')) as total_outstanding_payable
+    `)
+
+    return c.json({ receivables, payables, summary, year })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+
 // ── Stats ─────────────────────────────────────────────────────────────────────
 app.get('/api/stats', authMiddleware, async c => {
   try {

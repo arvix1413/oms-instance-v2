@@ -7,19 +7,16 @@ import { getUser, ROLE_LABELS, type Role } from '@/lib/permissions'
 
 const NAV = [
   { href: '/dashboard', label: '總覽', icon: <IconGrid />, exact: true },
-  { href: '/dashboard/customers', label: '客戶管理', icon: <IconUsers /> },
-  { href: '/dashboard/customer-orders', label: '客戶訂單', icon: <IconClipboard /> },
-  { href: '/dashboard/quotations', label: '報價單', icon: <IconDoc /> },
-  { href: '/dashboard/suppliers', label: '供應商', icon: <IconBuilding /> },
-  { href: '/dashboard/po', label: '採購單', icon: <IconCart /> },
-  { href: '/dashboard/delivery-notes', label: '出貨單', icon: <IconTruck /> },
-  { href: '/dashboard/inventory', label: '庫存管理', icon: <IconWarehouse /> },
-  { href: '/dashboard/materials', label: '料號管理', icon: <IconBox /> },
-  { href: '/dashboard/bom', label: 'BOM 表', icon: <IconList /> },
+  { href: '/dashboard/customers', label: '客戶資料管理', icon: <IconUsers /> },
+  { href: '/dashboard/customer-orders', label: '訂單管理', icon: <IconClipboard /> },
+  { href: '/dashboard/po', label: '採購與供應商管理', icon: <IconCart /> },
+  { href: '/dashboard/receivables', label: '應收帳款管理（收款）', icon: <IconReceive /> },
+  { href: '/dashboard/payables', label: '應付帳款管理（付款）', icon: <IconPay /> },
+  { href: '/dashboard/delivery-notes', label: '出貨與生產進度追蹤', icon: <IconTruck /> },
+  { href: '/dashboard/reports', label: '報表功能', icon: <IconChart /> },
 ]
 const NAV_ADMIN = [
-  { href: '/dashboard/users', label: '用戶管理', icon: <IconUserCog /> },
-  { href: '/dashboard/roles', label: '角色權限', icon: <IconShield /> },
+  { href: '/dashboard/users', label: '使用者帳號與權限管理', icon: <IconUserCog /> },
   { href: '/dashboard/audit-logs', label: '操作日誌', icon: <IconAudit /> },
 ]
 
@@ -36,6 +33,9 @@ function IconWarehouse() { return <svg viewBox="0 0 24 24" fill="none" stroke="c
 function IconUserCog() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> }
 function IconShield() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> }
 function IconAudit() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg> }
+function IconReceive() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4"><path d="M12 2v20M17 7l-5 5-5-5"/><path d="M3 12h18"/></svg> }
+function IconPay() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4"><path d="M12 22V2M7 17l5-5 5 5"/><path d="M3 12h18"/></svg> }
+function IconChart() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> }
 function IconLogout() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> }
 const ROLE_DOT: Record<string, string> = {
   admin: 'bg-red-500', manager: 'bg-violet-500', purchaser: 'bg-blue-500', viewer: 'bg-slate-400'
