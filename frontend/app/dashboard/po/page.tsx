@@ -84,7 +84,8 @@ export default function PoPage() {
       items: p.items.map((item, idx) => {
         if (idx !== i) return item
         const u = { ...item, [field]: val }
-        if (field === 'quantity' || field === 'unit_price') u.total_price = u.quantity * u.unit_price        return u
+        if (field === 'quantity' || field === 'unit_price') u.total_price = u.quantity * u.unit_price
+        return u
       })
     }))
   }
