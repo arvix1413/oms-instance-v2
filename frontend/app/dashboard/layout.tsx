@@ -30,7 +30,6 @@ const NAV: NavEntry[] = [
       { href: '/dashboard/suppliers', label: '供應商管理', icon: <IconBuilding2 /> },
     ]
   },
-  { href: '/dashboard/reports', label: '報表管理', icon: <IconChart /> },
 ]
 const NAV_ADMIN: NavEntry[] = [
   {

@@ -532,20 +532,20 @@ app.get('/api/audit-logs', authMiddleware, isAdmin, async c => {
 })
 
 // ── 應收帳款 (Receivables) ────────────────────────────────────────────────────
-// 來源：出貨單已出貨 → 待收款；可標記已收款
+// 來源：客戶訂單（所有狀態）→ 待收款；可標記已收款
 app.get('/api/receivables', authMiddleware, async c => {
   try {
     const rows = await query<any>(`
-      SELECT dn.id, dn.dn_number, dn.customer_name, dn.delivery_date, dn.status,
-             dn.remark, dn.created_at,
-             COALESCE(dn.received_amount, 0) as received_amount,
-             COALESCE(dn.invoice_amount, 0) as invoice_amount,
-             dn.payment_status, dn.payment_date, dn.payment_note,
+      SELECT co.id, co.po_number as dn_number, co.customer_name,
+             co.po_date as delivery_date, co.status, co.remark, co.created_at,
+             COALESCE(co.received_amount, 0) as received_amount,
+             COALESCE(
+               (SELECT SUM(qty * unit_price) FROM customer_order_items WHERE order_id = co.id), 0
+             ) as invoice_amount,
+             co.payment_status, co.payment_date, co.payment_note,
              co.po_number as customer_po
-      FROM delivery_notes dn
-      LEFT JOIN customer_orders co ON dn.customer_order_id = co.id
-      WHERE dn.status = 'shipped'
-      ORDER BY dn.delivery_date DESC, dn.created_at DESC
+      FROM customer_orders co
+      ORDER BY co.created_at DESC
     `)
     return c.json(rows)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
@@ -555,17 +555,17 @@ app.patch('/api/receivables/:id/payment', authMiddleware, canWrite, async c => {
     const id = c.req.param('id')
     const { payment_status, received_amount, payment_date, payment_note } = await c.req.json()
     await execute(
-      'UPDATE delivery_notes SET payment_status=?, received_amount=?, payment_date=?, payment_note=? WHERE id=?',
+      'UPDATE customer_orders SET payment_status=?, received_amount=?, payment_date=?, payment_note=? WHERE id=?',
       [payment_status, received_amount||0, payment_date||null, payment_note||'', id]
     )
-    const row = await queryOne<any>('SELECT dn_number, customer_name FROM delivery_notes WHERE id=?', [id])
-    await audit(c.get('user'), 'PAYMENT', '應收帳款', id, `${row?.dn_number} ${payment_status}`)
+    const row = await queryOne<any>('SELECT po_number, customer_name FROM customer_orders WHERE id=?', [id])
+    await audit(c.get('user'), 'PAYMENT', '應收帳款', id, `${row?.po_number} ${payment_status}`)
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 
 // ── 應付帳款 (Payables) ───────────────────────────────────────────────────────
-// 來源：採購單已核准/已發送/已收貨 → 待付款；可標記已付款
+// 來源：採購單（所有非草稿狀態）→ 待付款；可標記已付款
 app.get('/api/payables', authMiddleware, async c => {
   try {
     const rows = await query<any>(`
@@ -573,7 +573,7 @@ app.get('/api/payables', authMiddleware, async c => {
              COALESCE(paid_amount, 0) as paid_amount,
              payment_status, payment_date, payment_note, created_at, approved_at
       FROM purchase_orders
-      WHERE status IN ('approved', 'sent', 'received')
+      WHERE status != 'cancelled'
       ORDER BY created_at DESC
     `)
     return c.json(rows)
@@ -599,37 +599,38 @@ app.get('/api/reports', authMiddleware, async c => {
     const url = new URL(c.req.url)
     const year = url.searchParams.get('year') || new Date().getFullYear().toString()
 
-    // 應收：出貨單已出貨的 invoice_amount，按月
+    // 應收：客戶訂單金額，按月（用 po_date 或 created_at）
     const receivables = await query<any>(`
-      SELECT DATE_FORMAT(COALESCE(payment_date, delivery_date, created_at), '%Y-%m') as month,
-             SUM(COALESCE(invoice_amount, 0)) as invoiced,
-             SUM(CASE WHEN payment_status='paid' THEN COALESCE(received_amount, 0) ELSE 0 END) as received,
-             COUNT(*) as count
-      FROM delivery_notes
-      WHERE status='shipped' AND DATE_FORMAT(COALESCE(delivery_date, created_at), '%Y') = ?
+      SELECT DATE_FORMAT(COALESCE(co.po_date, co.created_at), '%Y-%m') as month,
+             SUM(COALESCE(ci.qty * ci.unit_price, 0)) as invoiced,
+             SUM(CASE WHEN co.payment_status='paid' THEN COALESCE(co.received_amount, 0) ELSE 0 END) as received,
+             COUNT(DISTINCT co.id) as count
+      FROM customer_orders co
+      LEFT JOIN customer_order_items ci ON ci.order_id = co.id
+      WHERE DATE_FORMAT(COALESCE(co.po_date, co.created_at), '%Y') = ?
       GROUP BY month ORDER BY month
     `, [year])
 
-    // 應付：採購單已核准以上，按月
+    // 應付：採購單金額，按月
     const payables = await query<any>(`
-      SELECT DATE_FORMAT(COALESCE(payment_date, approved_at, created_at), '%Y-%m') as month,
+      SELECT DATE_FORMAT(created_at, '%Y-%m') as month,
              SUM(total_amount) as total,
              SUM(CASE WHEN payment_status='paid' THEN COALESCE(paid_amount, 0) ELSE 0 END) as paid,
              COUNT(*) as count
       FROM purchase_orders
-      WHERE status IN ('approved','sent','received') AND DATE_FORMAT(created_at, '%Y') = ?
+      WHERE status != 'cancelled' AND DATE_FORMAT(created_at, '%Y') = ?
       GROUP BY month ORDER BY month
     `, [year])
 
     // 匯總
     const summary = await queryOne<any>(`
       SELECT
-        (SELECT COALESCE(SUM(invoice_amount),0) FROM delivery_notes WHERE status='shipped') as total_invoiced,
-        (SELECT COALESCE(SUM(received_amount),0) FROM delivery_notes WHERE status='shipped' AND payment_status='paid') as total_received,
-        (SELECT COALESCE(SUM(invoice_amount),0) FROM delivery_notes WHERE status='shipped' AND (payment_status IS NULL OR payment_status!='paid')) as total_outstanding_receivable,
-        (SELECT COALESCE(SUM(total_amount),0) FROM purchase_orders WHERE status IN ('approved','sent','received')) as total_payable,
-        (SELECT COALESCE(SUM(paid_amount),0) FROM purchase_orders WHERE payment_status='paid') as total_paid,
-        (SELECT COALESCE(SUM(total_amount),0) FROM purchase_orders WHERE status IN ('approved','sent','received') AND (payment_status IS NULL OR payment_status!='paid')) as total_outstanding_payable
+        (SELECT COALESCE(SUM(ci.qty * ci.unit_price), 0) FROM customer_orders co LEFT JOIN customer_order_items ci ON ci.order_id = co.id) as total_invoiced,
+        (SELECT COALESCE(SUM(received_amount), 0) FROM customer_orders WHERE payment_status='paid') as total_received,
+        (SELECT COALESCE(SUM(ci.qty * ci.unit_price), 0) FROM customer_orders co LEFT JOIN customer_order_items ci ON ci.order_id = co.id WHERE co.payment_status IS NULL OR co.payment_status != 'paid') as total_outstanding_receivable,
+        (SELECT COALESCE(SUM(total_amount), 0) FROM purchase_orders WHERE status != 'cancelled') as total_payable,
+        (SELECT COALESCE(SUM(paid_amount), 0) FROM purchase_orders WHERE payment_status='paid') as total_paid,
+        (SELECT COALESCE(SUM(total_amount), 0) FROM purchase_orders WHERE status != 'cancelled' AND (payment_status IS NULL OR payment_status != 'paid')) as total_outstanding_payable
     `)
 
     return c.json({ receivables, payables, summary, year })
