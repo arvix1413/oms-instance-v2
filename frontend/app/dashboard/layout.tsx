@@ -17,8 +17,8 @@ const NAV: NavEntry[] = [
   {
     label: '訂單管理', icon: <IconClipboard />,
     children: [
-      { href: '/dashboard/po', label: '採購', icon: <IconCart /> },
-      { href: '/dashboard/customer-orders', label: '出售', icon: <IconDoc /> },
+      { href: '/dashboard/po', label: '採購單', icon: <IconCart /> },
+      { href: '/dashboard/customer-orders', label: '客戶訂單', icon: <IconDoc /> },
     ]
   },
   {
@@ -33,7 +33,8 @@ const NAV: NavEntry[] = [
   { href: '/dashboard/reports', label: '報表管理', icon: <IconChart /> },
 ]
 const NAV_ADMIN: NavItem[] = [
-  { href: '/dashboard/users', label: '使用者帳號與權限管理', icon: <IconUserCog /> },
+  { href: '/dashboard/roles', label: '角色管理', icon: <IconShield /> },
+  { href: '/dashboard/users', label: '使用者管理', icon: <IconUserCog /> },
   { href: '/dashboard/audit-logs', label: '操作日誌', icon: <IconAudit /> },
 ]
 
