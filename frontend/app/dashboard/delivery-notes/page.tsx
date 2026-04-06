@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 
-type DNItem = { item_name:string; material_code:string; spec:string; unit:string; qty:number; remark:string }
+type DNItem = { item_name:string; material_code:string; spec:string; unit:string; qty:number; remark:string; po_ref:string; thickness:number|string }
 type DN = { id:number; dn_number:string; customer_name:string; delivery_date:string; status:string; remark:string; created_at:string; items?:DNItem[] }
-const emptyItem = (): DNItem => ({ item_name:'', material_code:'', spec:'', unit:'PCS', qty:1, remark:'' })
+const emptyItem = (): DNItem => ({ item_name:'', material_code:'', spec:'', unit:'PCS', qty:1, remark:'', po_ref:'', thickness:'' })
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
   draft:{label:'草稿',badge:'badge-gray'},
   confirmed:{label:'已確認',badge:'badge-blue'},
@@ -40,6 +40,19 @@ export default function DeliveryNotesPage() {
       showMsg('出貨單建立成功'); setCreating(false); setForm({customer_name:'',delivery_date:'',remark:'',items:[emptyItem()]}); load()
     } catch(e:any){ showMsg('錯誤：'+e.message) }
   }
+
+  const printDN = (dn: DN) => {
+    const items = dn.items || []
+    const html = `<html><head><title>出貨單 ${dn.dn_number}</title>
+    <style>body{font-family:sans-serif;font-size:12px;padding:20px}h2{margin-bottom:4px}p{color:#666;margin:0 0 12px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}th{background:#f5f5f5;font-weight:600}.num{text-align:right}</style>
+    </head><body>
+    <h2>出貨單 ${dn.dn_number}</h2>
+    <p>客戶：${dn.customer_name} | 出貨日期：${dn.delivery_date||'—'} | FAN YONG CO., LTD</p>
+    <table><thead><tr><th>PO訂單編號</th><th>品名</th><th>物料編號</th><th>規格</th><th class="num">厚度</th><th>單位</th><th class="num">數量</th><th>備註</th></tr></thead>
+    <tbody>${items.map(i=>`<tr><td>${i.po_ref||''}</td><td>${i.item_name}</td><td>${i.material_code}</td><td>${i.spec}</td><td class="num">${i.thickness??''}</td><td>${i.unit}</td><td class="num">${i.qty?.toLocaleString()}</td><td>${i.remark}</td></tr>`).join('')}
+    </tbody></table></body></html>`
+    const w = window.open('','_blank'); w?.document.write(html); w?.document.close(); w?.print()
+  }
   const addItem = () => setForm(p=>({...p,items:[...p.items,emptyItem()]}))
   const removeItem = (i:number) => setForm(p=>({...p,items:p.items.filter((_,idx)=>idx!==i)}))
   const updateItem = (i:number, f:keyof DNItem, v:any) => setForm(p=>({...p,items:p.items.map((item,idx)=>idx===i?{...item,[f]:v}:item)}))
@@ -70,13 +83,15 @@ export default function DeliveryNotesPage() {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs border-collapse">
-              <thead><tr className="border-b border-slate-200">{['品名','物料編號','規格','單位','數量','備註',''].map(h=><th key={h} className="px-2 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">{h}</th>)}</tr></thead>
+              <thead><tr className="border-b border-slate-200">{['PO訂單編號','品名','物料編號','規格','厚度','單位','數量','備註',''].map(h=><th key={h} className="px-2 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">{h}</th>)}</tr></thead>
               <tbody>
                 {form.items.map((item,i)=>(
                   <tr key={i}>
+                    <td className="border p-1"><input className={inp} value={item.po_ref} placeholder="PO編號" onChange={e=>updateItem(i,'po_ref',e.target.value)} style={{width:90}} /></td>
                     <td className="border p-1"><input className={inp} value={item.item_name} onChange={e=>updateItem(i,'item_name',e.target.value)} /></td>
                     <td className="border p-1"><input className={inp} value={item.material_code} onChange={e=>updateItem(i,'material_code',e.target.value)} style={{width:100}} /></td>
                     <td className="border p-1"><input className={inp} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} style={{width:80}} /></td>
+                    <td className="border p-1"><input type="number" className={inp} value={item.thickness||""} placeholder="厚度" onChange={e=>updateItem(i,'thickness',e.target.value)} style={{width:60}} /></td>
                     <td className="border p-1"><input className={inp} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} style={{width:50}} /></td>
                     <td className="border p-1"><input type="number" className={inp} value={item.qty || ""} onChange={e=>updateItem(i,'qty',Number(e.target.value))} style={{width:70}} /></td>
                     <td className="border p-1"><input className={inp} value={item.remark} onChange={e=>updateItem(i,'remark',e.target.value)} /></td>
@@ -103,6 +118,7 @@ export default function DeliveryNotesPage() {
               </div>
               <div className="flex items-center gap-2">
                 <span className={STATUS_MAP[viewing.status]?.badge}>{STATUS_MAP[viewing.status]?.label}</span>
+                <button onClick={() => printDN(viewing)} className="btn-ghost text-xs">🖨 列印</button>
                 <button onClick={()=>setViewing(null)} className="text-slate-400 hover:text-slate-600 text-xl ml-2 z-10">✕</button>
               </div>
             </div>
@@ -111,15 +127,17 @@ export default function DeliveryNotesPage() {
               {viewing.status==='confirmed' && <button onClick={()=>changeStatus(viewing.id,'shipped')} className="btn-primary">🚚 出貨</button>}
             </div>
             <table className="w-full text-sm border-collapse">
-              <thead><tr className="border-b border-slate-200">{['品名','物料編號','規格','單位','數量','備註'].map(h=><th key={h} className="border border-slate-200 px-3 py-2 text-left text-xs font-medium text-slate-400">{h}</th>)}</tr></thead>
+              <thead><tr className="border-b border-slate-200">{['PO訂單編號','品名','物料編號','規格','厚度','單位','數量','備註'].map(h=><th key={h} className="border border-slate-200 px-3 py-2 text-left text-xs font-medium text-slate-400">{h}</th>)}</tr></thead>
               <tbody>
                 {(viewing.items||[]).map((item,i)=>(
                   <tr key={i} className="hover:bg-slate-50">
+                    <td className="border border-slate-200 px-3 py-2 text-slate-500">{item.po_ref}</td>
                     <td className="border border-slate-200 px-3 py-2 text-slate-600">{item.item_name}</td>
                     <td className="border border-slate-200 px-3 py-2 font-mono text-xs text-blue-600">{item.material_code}</td>
                     <td className="border px-3 py-2 text-slate-500">{item.spec}</td>
+                    <td className="border border-slate-200 px-3 py-2 text-right text-slate-500">{item.thickness ?? '—'}</td>
                     <td className="border border-slate-200 px-3 py-2 text-slate-600">{item.unit}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-right text-slate-600 text-slate-800 font-medium">{item.qty?.toLocaleString()}</td>
+                    <td className="border border-slate-200 px-3 py-2 text-right text-slate-800 font-medium">{item.qty?.toLocaleString()}</td>
                     <td className="border px-3 py-2 text-slate-400">{item.remark}</td>
                   </tr>
                 ))}

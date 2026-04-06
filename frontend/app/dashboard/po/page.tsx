@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 
-type PoItem = { material_code:string; material_name:string; spec:string; unit:string; quantity:number; moq:number; unit_price:number; total_price:number; currency:string; remark:string }
+type PoItem = { material_code:string; material_name:string; spec:string; unit:string; quantity:number; unit_price:number; total_price:number; currency:string; remark:string; po_ref:string; thickness:number|string }
 type Po = { id:number; po_number:string; supplier_name:string; status:string; total_amount:number; currency:string; remark:string; created_at:string; approved_at?:string; items?:PoItem[] }
 
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
@@ -14,7 +14,7 @@ const STATUS_MAP: Record<string,{label:string;badge:string}> = {
   cancelled: { label:'已取消', badge:'badge-red'    },
 }
 
-const emptyItem = (): PoItem => ({ material_code:'', material_name:'', spec:'', unit:'PCS', quantity:1, moq:0, unit_price:0, total_price:0, currency:'VND', remark:'' })
+const emptyItem = (): PoItem => ({ material_code:'', material_name:'', spec:'', unit:'PCS', quantity:1, unit_price:0, total_price:0, currency:'VND', remark:'', po_ref:'', thickness:'' })
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -84,8 +84,7 @@ export default function PoPage() {
       items: p.items.map((item, idx) => {
         if (idx !== i) return item
         const u = { ...item, [field]: val }
-        if (field === 'quantity' || field === 'unit_price') u.total_price = u.quantity * u.unit_price
-        return u
+        if (field === 'quantity' || field === 'unit_price') u.total_price = u.quantity * u.unit_price        return u
       })
     }))
   }
@@ -96,6 +95,21 @@ export default function PoPage() {
       showMsg('採購單建立成功'); setCreating(false)
       setForm({ supplier_name:'', currency:'VND', remark:'', items:[emptyItem()] }); load()
     } catch (e: any) { showMsg('錯誤：' + e.message) }
+  }
+
+  const printPo = async (id: number, poNumber: string, supplierName: string) => {
+    const data = await apiFetch<Po>(`/api/po/${id}`)
+    const items = data.items || []
+    const html = `<html><head><title>採購單 ${poNumber}</title>
+    <style>body{font-family:sans-serif;font-size:12px;padding:20px}h2{margin-bottom:4px}p{color:#666;margin:0 0 12px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}th{background:#f5f5f5;font-weight:600}.num{text-align:right}tfoot td{font-weight:bold;background:#f9f9f9}</style>
+    </head><body>
+    <h2>採購單 ${poNumber}</h2>
+    <p>供應商：${supplierName} | FAN YONG CO., LTD</p>
+    <table><thead><tr><th>PO訂單編號</th><th>料號</th><th>材料名稱</th><th>規格</th><th>厚度</th><th>單位</th><th class="num">數量</th><th class="num">單價</th><th class="num">小計</th><th>幣別</th><th>備註</th></tr></thead>
+    <tbody>${items.map(i=>`<tr><td>${i.po_ref||''}</td><td>${i.material_code}</td><td>${i.material_name}</td><td>${i.spec}</td><td class="num">${i.thickness??''}</td><td>${i.unit}</td><td class="num">${i.quantity.toLocaleString()}</td><td class="num">${i.unit_price.toLocaleString()}</td><td class="num">${i.total_price.toLocaleString()}</td><td>${i.currency}</td><td>${i.remark}</td></tr>`).join('')}
+    </tbody><tfoot><tr><td colspan="8" style="text-align:right">合計</td><td class="num">${items.reduce((s,i)=>s+i.total_price,0).toLocaleString()}</td><td>${items[0]?.currency||''}</td><td></td></tr></tfoot>
+    </table></body></html>`
+    const w = window.open('','_blank'); w?.document.write(html); w?.document.close(); w?.print()
   }
 
   const formTotal = form.items.reduce((s, i) => s + (i.total_price || 0), 0)
@@ -141,18 +155,19 @@ export default function PoPage() {
           <div className="overflow-x-auto rounded-lg border border-slate-200">
             <table className="w-full text-xs">
               <thead><tr className="border-b border-slate-200">
-                {['料號','材料名稱','規格','單位','MOQ','數量','單價','小計','幣別','備註',''].map(h=>(
+                {['PO訂單編號','料號','材料名稱','規格','厚度','單位','數量','單價','小計','幣別','備註',''].map(h=>(
                   <th key={h} className="px-2 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">{h}</th>
                 ))}
               </tr></thead>
               <tbody>
                 {form.items.map((item, i) => (
                   <tr key={i} className="border-b border-slate-100">
+                    <td className="p-1"><input className={inp} style={{width:100}} value={item.po_ref} placeholder="PO編號" onChange={e=>updateItem(i,'po_ref',e.target.value)} /></td>
                     <td className="p-1"><input className={inp} style={{width:90}} value={item.material_code} onChange={e=>updateItem(i,'material_code',e.target.value)} /></td>
                     <td className="p-1"><input className={inp} value={item.material_name} onChange={e=>updateItem(i,'material_name',e.target.value)} /></td>
                     <td className="p-1"><input className={inp} style={{width:80}} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} /></td>
+                    <td className="p-1"><input type="number" className={inp} style={{width:60}} value={item.thickness||""} placeholder="厚度" onChange={e=>updateItem(i,'thickness',e.target.value)} /></td>
                     <td className="p-1"><input className={inp} style={{width:45}} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} /></td>
-                    <td className="p-1"><input type="number" className={inp} style={{width:65}} value={item.moq || ""} placeholder="MOQ" onChange={e=>updateItem(i,'moq',Number(e.target.value))} /></td>
                     <td className="p-1"><input type="number" className={inp} style={{width:65}} value={item.quantity || ""} onChange={e=>updateItem(i,'quantity',Number(e.target.value))} /></td>
                     <td className="p-1"><input type="number" className={inp} style={{width:85}} value={item.unit_price || ""} onChange={e=>updateItem(i,'unit_price',Number(e.target.value))} /></td>
                     <td className="p-1 px-2 text-right text-slate-600 font-medium whitespace-nowrap">{item.total_price.toLocaleString()}</td>
@@ -168,7 +183,7 @@ export default function PoPage() {
               </tbody>
               <tfoot>
                 <tr className="border-t border-slate-200">
-                  <td colSpan={7} className="px-3 py-2 text-right text-[11px] text-slate-400 font-semibold uppercase">合計</td>
+                  <td colSpan={8} className="px-3 py-2 text-right text-[11px] text-slate-400 font-semibold uppercase">合計</td>
                   <td className="px-2 py-2 text-right text-slate-600 font-bold">{formTotal.toLocaleString()}</td>
                   <td colSpan={3} className="px-2 py-2 text-slate-400 text-xs">{form.currency}</td>
                 </tr>
@@ -224,6 +239,7 @@ export default function PoPage() {
                             {p.status === 'draft' && <button onClick={e => approve(p.id, e)} className="btn-ghost text-emerald-600">核准</button>}
                             {p.status === 'approved' && <button onClick={e => changeStatus(p.id,'sent',e)} className="btn-ghost text-blue-600">發送</button>}
                             {p.status === 'sent' && <button onClick={e => changeStatus(p.id,'received',e)} className="btn-ghost text-violet-600">收貨</button>}
+                            <button onClick={e => { e.stopPropagation(); printPo(p.id, p.po_number, p.supplier_name) }} className="btn-ghost">🖨</button>
                             <button onClick={e => del(p.id, e)} className="btn-danger">刪除</button>
                           </div>
                         </td>
@@ -239,7 +255,7 @@ export default function PoPage() {
                                   <table className="w-full text-xs" style={{minWidth:700}}>
                                     <thead>
                                       <tr className="border-b border-slate-100">
-                                        {['料號','材料名稱','規格','單位','MOQ','數量','單價','小計','幣別','備註'].map(h=>(
+                                        {['PO訂單編號','料號','材料名稱','規格','厚度','單位','數量','單價','小計','幣別','備註'].map(h=>(
                                           <th key={h} className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
                                         ))}
                                       </tr>
@@ -247,11 +263,12 @@ export default function PoPage() {
                                     <tbody>
                                       {items.map((item, i) => (
                                         <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                                          <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.po_ref}</td>
                                           <td className="px-3 py-2 font-mono text-blue-600 whitespace-nowrap">{item.material_code}</td>
                                           <td className="px-3 py-2 text-slate-600 whitespace-nowrap">{item.material_name}</td>
                                           <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.spec}</td>
+                                          <td className="px-3 py-2 text-right text-slate-500 whitespace-nowrap">{item.thickness ?? '—'}</td>
                                           <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.unit}</td>
-                                          <td className="px-3 py-2 text-right text-slate-500 whitespace-nowrap">{item.moq ? item.moq.toLocaleString() : '—'}</td>
                                           <td className="px-3 py-2 text-right text-slate-600 font-medium whitespace-nowrap">{item.quantity.toLocaleString()}</td>
                                           <td className="px-3 py-2 text-right text-slate-600 whitespace-nowrap">{item.unit_price.toLocaleString()}</td>
                                           <td className="px-3 py-2 text-right text-slate-800 font-semibold whitespace-nowrap">{item.total_price.toLocaleString()}</td>
@@ -262,7 +279,7 @@ export default function PoPage() {
                                     </tbody>
                                     <tfoot>
                                       <tr className="border-t border-slate-200">
-                                        <td colSpan={7} className="px-3 py-2 text-right text-[10px] text-slate-300 font-semibold uppercase">合計</td>
+                                        <td colSpan={8} className="px-3 py-2 text-right text-[10px] text-slate-300 font-semibold uppercase">合計</td>
                                         <td className="px-3 py-2 text-right text-slate-600 font-bold">{items.reduce((s,i)=>s+i.total_price,0).toLocaleString()}</td>
                                         <td colSpan={2} className="px-3 py-2 text-slate-400 text-xs">{items[0]?.currency}</td>
                                       </tr>

@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 
-type QItem = { item_name:string; material_code:string; spec:string; unit:string; qty:number; unit_price:number; total_price:number; remark:string }
+type QItem = { item_name:string; material_code:string; spec:string; unit:string; qty:number; unit_price:number; total_price:number; remark:string; moq:number|string }
 type Q = { id:number; quotation_number:string; customer_name:string; status:string; total_amount:number; currency:string; valid_until:string; remark:string; created_at:string; items?:QItem[] }
-const emptyItem = (): QItem => ({ item_name:'', material_code:'', spec:'', unit:'PCS', qty:1, unit_price:0, total_price:0, remark:'' })
+const emptyItem = (): QItem => ({ item_name:'', material_code:'', spec:'', unit:'PCS', qty:1, unit_price:0, total_price:0, remark:'', moq:'' })
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
   draft:    { label:'草稿',   badge:'badge-gray'  },
   sent:     { label:'已發送', badge:'badge-blue'  },
@@ -64,6 +64,21 @@ export default function QuotationsPage() {
       showMsg('報價單建立成功'); setCreating(false); setForm({customer_name:'',currency:'VND',valid_until:'',remark:'',items:[emptyItem()]}); load()
     } catch(e:any){ showMsg('錯誤：'+e.message) }
   }
+
+  const printQuotation = async (id: number, q: Q) => {
+    const data = await apiFetch<Q>(`/api/quotations/${id}`)
+    const items = data.items || []
+    const html = `<html><head><title>報價單 ${q.quotation_number}</title>
+    <style>body{font-family:sans-serif;font-size:12px;padding:20px}h2{margin-bottom:4px}p{color:#666;margin:0 0 12px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}th{background:#f5f5f5;font-weight:600}.num{text-align:right}tfoot td{font-weight:bold;background:#f9f9f9}</style>
+    </head><body>
+    <h2>報價單 ${q.quotation_number}</h2>
+    <p>客戶：${q.customer_name} | 有效期：${q.valid_until||'—'} | FAN YONG CO., LTD</p>
+    <table><thead><tr><th>品名</th><th>物料編號</th><th>規格</th><th>單位</th><th class="num">數量</th><th class="num">MOQ</th><th class="num">單價</th><th class="num">小計</th><th>備註</th></tr></thead>
+    <tbody>${items.map(i=>`<tr><td>${i.item_name}</td><td>${i.material_code}</td><td>${i.spec}</td><td>${i.unit}</td><td class="num">${i.qty?.toLocaleString()}</td><td class="num">${i.moq??''}</td><td class="num">${i.unit_price?.toLocaleString()}</td><td class="num">${i.total_price?.toLocaleString()}</td><td>${i.remark}</td></tr>`).join('')}
+    </tbody><tfoot><tr><td colspan="7" style="text-align:right">合計</td><td class="num">${items.reduce((s,i)=>s+i.total_price,0).toLocaleString()} ${q.currency}</td><td></td></tr></tfoot>
+    </table></body></html>`
+    const w = window.open('','_blank'); w?.document.write(html); w?.document.close(); w?.print()
+  }
   const addItem = () => setForm(p=>({...p,items:[...p.items,emptyItem()]}))
   const removeItem = (i:number) => setForm(p=>({...p,items:p.items.filter((_,idx)=>idx!==i)}))
   const updateItem = (i:number, f:keyof QItem, v:any) => setForm(p=>({...p,items:p.items.map((item,idx)=>{
@@ -113,7 +128,7 @@ export default function QuotationsPage() {
           <div className="overflow-x-auto rounded-lg border border-slate-200">
             <table className="w-full text-xs">
               <thead><tr className="border-b border-slate-200">
-                {['品名','物料編號','規格','單位','數量','單價','小計','備註',''].map(h=>(
+                {['品名','物料編號','規格','單位','數量','MOQ','單價','小計','備註',''].map(h=>(
                   <th key={h} className="px-2 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">{h}</th>
                 ))}
               </tr></thead>
@@ -125,6 +140,7 @@ export default function QuotationsPage() {
                     <td className="p-1"><input className={inp} style={{width:80}} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} /></td>
                     <td className="p-1"><input className={inp} style={{width:45}} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} /></td>
                     <td className="p-1"><input type="number" className={inp} style={{width:65}} value={item.qty || ""} onChange={e=>updateItem(i,'qty',Number(e.target.value))} /></td>
+                    <td className="p-1"><input type="number" className={inp} style={{width:65}} value={item.moq||""} placeholder="MOQ" onChange={e=>updateItem(i,'moq',e.target.value)} /></td>
                     <td className="p-1"><input type="number" className={inp} style={{width:85}} value={item.unit_price || ""} onChange={e=>updateItem(i,'unit_price',Number(e.target.value))} /></td>
                     <td className="p-1 px-2 text-right text-slate-600 font-medium whitespace-nowrap">{item.total_price.toLocaleString()}</td>
                     <td className="p-1"><input className={inp} value={item.remark} onChange={e=>updateItem(i,'remark',e.target.value)} /></td>
@@ -134,7 +150,7 @@ export default function QuotationsPage() {
               </tbody>
               <tfoot>
                 <tr className="border-t border-slate-200">
-                  <td colSpan={6} className="px-3 py-2 text-right text-[11px] text-slate-400 font-semibold uppercase">合計</td>
+                  <td colSpan={7} className="px-3 py-2 text-right text-[11px] text-slate-400 font-semibold uppercase">合計</td>
                   <td className="px-2 py-2 text-right text-slate-600 font-bold">{formTotal.toLocaleString()}</td>
                   <td colSpan={2} className="px-2 py-2 text-slate-400 text-xs">{form.currency}</td>
                 </tr>
@@ -190,6 +206,7 @@ export default function QuotationsPage() {
                               <button onClick={e=>changeStatus(q.id,'accepted',e)} className="btn-ghost text-emerald-600">接受</button>
                               <button onClick={e=>changeStatus(q.id,'rejected',e)} className="btn-danger">拒絕</button>
                             </>}
+                            <button onClick={e=>{ e.stopPropagation(); printQuotation(q.id, q) }} className="btn-ghost">🖨</button>
                             <button onClick={e=>del(q.id,e)} className="btn-danger">刪除</button>
                           </div>
                         </td>
@@ -204,7 +221,7 @@ export default function QuotationsPage() {
                                 <div className="overflow-x-auto">
                                   <table className="w-full text-xs" style={{minWidth:600}}>
                                     <thead><tr className="border-b border-slate-100">
-                                      {['品名','物料編號','規格','單位','數量','單價','小計','備註'].map(h=>(
+                                      {['品名','物料編號','規格','單位','數量','MOQ','單價','小計','備註'].map(h=>(
                                         <th key={h} className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
                                       ))}
                                     </tr></thead>
@@ -216,6 +233,7 @@ export default function QuotationsPage() {
                                           <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.spec}</td>
                                           <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.unit}</td>
                                           <td className="px-3 py-2 text-right text-slate-600 font-medium whitespace-nowrap">{item.qty?.toLocaleString()}</td>
+                                          <td className="px-3 py-2 text-right text-slate-500 whitespace-nowrap">{item.moq ?? '—'}</td>
                                           <td className="px-3 py-2 text-right text-slate-600 whitespace-nowrap">{item.unit_price?.toLocaleString()}</td>
                                           <td className="px-3 py-2 text-right text-slate-800 font-semibold whitespace-nowrap">{item.total_price?.toLocaleString()}</td>
                                           <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.remark}</td>
@@ -224,7 +242,7 @@ export default function QuotationsPage() {
                                     </tbody>
                                     <tfoot>
                                       <tr className="border-t border-slate-200">
-                                        <td colSpan={6} className="px-3 py-2 text-right text-[10px] text-slate-300 font-semibold uppercase">合計</td>
+                                        <td colSpan={7} className="px-3 py-2 text-right text-[10px] text-slate-300 font-semibold uppercase">合計</td>
                                         <td className="px-3 py-2 text-right text-slate-600 font-bold">{qItems.reduce((s,i)=>s+i.total_price,0).toLocaleString()}</td>
                                         <td className="px-3 py-2 text-slate-400 text-xs">{q.currency}</td>
                                       </tr>

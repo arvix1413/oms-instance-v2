@@ -213,12 +213,28 @@ app.post('/api/bom', authMiddleware, canWrite, async c => {
     const bomId = r.insertId
     if (b.items?.length) {
       for (const item of b.items) {
-        await execute('INSERT INTO bom_items (bom_id,material_code,material_name,spec,unit,quantity,supplier_name,supplier_price,company_price,currency,remark) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
-          [bomId,item.material_code,item.material_name,item.spec||'',item.unit||'PCS',item.quantity||1,item.supplier_name||'',item.supplier_price||0,item.company_price||0,item.currency||'VND',item.remark||''])
+        await execute('INSERT INTO bom_items (bom_id,material_code,material_name,spec,unit,quantity,supplier_name,supplier_price,company_price,currency,remark,color,lt,moq) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          [bomId,item.material_code,item.material_name,item.spec||'',item.unit||'PCS',item.quantity||null,item.supplier_name||'',item.supplier_price||0,item.company_price||0,item.currency||'VND',item.remark||'',item.color||'',item.lt||'',item.moq||null])
       }
     }
     await audit(u, 'CREATE', 'BOM', bomId, `${b.product_sku} ${b.product_name}`)
     return c.json({ id: bomId }, 201)
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+app.put('/api/bom/:id', authMiddleware, canWrite, async c => {
+  try {
+    const id = c.req.param('id'); const b = await c.req.json(); const u = c.get('user')
+    await execute('UPDATE bom SET product_sku=?,product_name=?,version=? WHERE id=?',
+      [b.product_sku,b.product_name,b.version||'V1',id])
+    await execute('DELETE FROM bom_items WHERE bom_id=?', [id])
+    if (b.items?.length) {
+      for (const item of b.items) {
+        await execute('INSERT INTO bom_items (bom_id,material_code,material_name,spec,unit,quantity,supplier_name,supplier_price,company_price,currency,remark,color,lt,moq) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          [id,item.material_code,item.material_name,item.spec||'',item.unit||'PCS',item.quantity||null,item.supplier_name||'',item.supplier_price||0,item.company_price||0,item.currency||'VND',item.remark||'',item.color||'',item.lt||'',item.moq||null])
+      }
+    }
+    await audit(u, 'UPDATE', 'BOM', id, `${b.product_sku} ${b.product_name}`)
+    return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 app.delete('/api/bom/:id', authMiddleware, canApprove, async c => {
@@ -250,8 +266,8 @@ app.post('/api/po', authMiddleware, canWrite, async c => {
     if (b.items?.length) {
       for (const item of b.items) {
         const tp = (item.quantity||0)*(item.unit_price||0)
-        await execute('INSERT INTO po_items (po_id,material_code,material_name,spec,unit,quantity,moq,unit_price,total_price,currency,remark) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
-          [poId,item.material_code,item.material_name,item.spec||'',item.unit||'PCS',item.quantity,item.moq||0,item.unit_price||0,tp,item.currency||'VND',item.remark||''])
+        await execute('INSERT INTO po_items (po_id,material_code,material_name,spec,unit,quantity,unit_price,total_price,currency,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+          [poId,item.material_code,item.material_name,item.spec||'',item.unit||'PCS',item.quantity,item.unit_price||0,tp,item.currency||'VND',item.remark||'',item.po_ref||'',item.thickness||null])
       }
     }
     await audit(u, 'CREATE', '採購單', poId, poNum)
@@ -337,8 +353,8 @@ app.post('/api/quotations', authMiddleware, canWrite, async c => {
     const qId = r.insertId
     if (b.items?.length) {
       for (const item of b.items) {
-        await execute('INSERT INTO quotation_items (quotation_id,item_name,material_code,spec,unit,qty,unit_price,total_price,remark) VALUES (?,?,?,?,?,?,?,?,?)',
-          [qId,item.item_name,item.material_code||'',item.spec||'',item.unit||'PCS',item.qty,item.unit_price||0,(item.qty||0)*(item.unit_price||0),item.remark||''])
+        await execute('INSERT INTO quotation_items (quotation_id,item_name,material_code,spec,unit,qty,unit_price,total_price,remark,moq) VALUES (?,?,?,?,?,?,?,?,?,?)',
+          [qId,item.item_name,item.material_code||'',item.spec||'',item.unit||'PCS',item.qty,item.unit_price||0,(item.qty||0)*(item.unit_price||0),item.remark||'',item.moq||null])
       }
     }
     await audit(u, 'CREATE', '報價單', qId, `${qNum} / ${b.customer_name}`)
@@ -378,8 +394,8 @@ app.post('/api/delivery-notes', authMiddleware, canWrite, async c => {
     const dnId = r.insertId
     if (b.items?.length) {
       for (const item of b.items) {
-        await execute('INSERT INTO delivery_note_items (dn_id,item_name,material_code,spec,unit,qty,remark) VALUES (?,?,?,?,?,?,?)',
-          [dnId,item.item_name,item.material_code||'',item.spec||'',item.unit||'PCS',item.qty,item.remark||''])
+        await execute('INSERT INTO delivery_note_items (dn_id,item_name,material_code,spec,unit,qty,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?)',
+          [dnId,item.item_name,item.material_code||'',item.spec||'',item.unit||'PCS',item.qty,item.remark||'',item.po_ref||'',item.thickness||null])
       }
     }
     await audit(u, 'CREATE', '出貨單', dnId, `${dnNum} / ${b.customer_name}`)
