@@ -32,9 +32,14 @@ const NAV: NavEntry[] = [
   },
   { href: '/dashboard/reports', label: '報表管理', icon: <IconChart /> },
 ]
-const NAV_ADMIN: NavItem[] = [
-  { href: '/dashboard/roles', label: '角色管理', icon: <IconShield /> },
-  { href: '/dashboard/users', label: '使用者管理', icon: <IconUserCog /> },
+const NAV_ADMIN: NavEntry[] = [
+  {
+    label: '使用者帳號與權限管理', icon: <IconUserCog />,
+    children: [
+      { href: '/dashboard/roles', label: '角色管理', icon: <IconShield /> },
+      { href: '/dashboard/users', label: '使用者管理', icon: <IconUserCog /> },
+    ]
+  },
   { href: '/dashboard/audit-logs', label: '操作日誌', icon: <IconAudit /> },
 ]
 
@@ -74,7 +79,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // Auto-open group if current path matches a child
   useEffect(() => {
-    NAV.forEach(n => {
+    const allNavs = [...NAV, ...NAV_ADMIN]
+    allNavs.forEach(n => {
       if (isGroup(n)) {
         const hasActive = n.children.some(c => pathname === c.href || pathname.startsWith(c.href + '/'))
         if (hasActive) setOpenGroups(prev => new Set([...Array.from(prev), n.label]))
@@ -161,12 +167,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="pt-3 pb-1 px-3">
                 <span className="text-[10px] font-semibold text-slate-300 uppercase tracking-widest">系統管理</span>
               </div>
-              {NAV_ADMIN.map(n => (
-                <Link key={n.href} href={n.href} className={linkClass(isActive(n.href))}>
-                  <span className={isActive(n.href) ? 'text-blue-600' : 'text-slate-400'}>{n.icon}</span>
-                  {n.label}
-                </Link>
-              ))}
+              {NAV_ADMIN.map(n => {
+                if (isGroup(n)) {
+                  const open = openGroups.has(n.label)
+                  const hasActive = n.children.some(c => isActive(c.href))
+                  return (
+                    <div key={n.label}>
+                      <button onClick={() => toggleGroup(n.label)}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 ${hasActive ? 'text-blue-700' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}>
+                        <span className={hasActive ? 'text-blue-600' : 'text-slate-400'}>{n.icon}</span>
+                        <span className="flex-1 text-left">{n.label}</span>
+                        <span className={hasActive ? 'text-blue-400' : 'text-slate-300'}><IconChevron open={open} /></span>
+                      </button>
+                      {open && (
+                        <div className="ml-3 pl-3 border-l border-slate-100 mt-0.5 space-y-0.5">
+                          {n.children.map(c => (
+                            <Link key={c.href} href={c.href} className={linkClass(isActive(c.href))}>
+                              <span className={isActive(c.href) ? 'text-blue-600' : 'text-slate-400'}>{c.icon}</span>
+                              {c.label}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                }
+                const item = n as NavItem
+                return (
+                  <Link key={item.href} href={item.href} className={linkClass(isActive(item.href))}>
+                    <span className={isActive(item.href) ? 'text-blue-600' : 'text-slate-400'}>{item.icon}</span>
+                    {item.label}
+                  </Link>
+                )
+              })}
             </>
           )}
         </nav>

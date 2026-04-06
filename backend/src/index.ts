@@ -511,22 +511,23 @@ app.put('/api/role-permissions', authMiddleware, isAdmin, async c => {
 app.get('/api/audit-logs', authMiddleware, isAdmin, async c => {
   try {
     const url = new URL(c.req.url)
-    const limit = parseInt(url.searchParams.get('limit') || '100')
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 500)
     const offset = parseInt(url.searchParams.get('offset') || '0')
     const resource = url.searchParams.get('resource') || ''
     const user_email = url.searchParams.get('user_email') || ''
-    let sql = 'SELECT * FROM audit_logs'
     const params: any[] = []
     const where: string[] = []
     if (resource) { where.push('resource=?'); params.push(resource) }
     if (user_email) { where.push('user_email LIKE ?'); params.push(`%${user_email}%`) }
-    if (where.length) sql += ' WHERE ' + where.join(' AND ')
-    sql += ' ORDER BY created_at DESC LIMIT ? OFFSET ?'
-    params.push(limit, offset)
-    const logs = await query(sql, params)
-    const countSql = 'SELECT COUNT(*) as cnt FROM audit_logs' + (where.length ? ' WHERE ' + where.join(' AND ') : '')
-    const total = await queryOne<any>(countSql, params.slice(0, -2))
-    return c.json({ logs, total: total?.cnt || 0 })
+    const whereClause = where.length ? ' WHERE ' + where.join(' AND ') : ''
+    // Embed LIMIT/OFFSET directly to avoid mysql2 prepared statement issues
+    const sql = `SELECT * FROM audit_logs${whereClause} ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`
+    const countSql = `SELECT COUNT(*) as cnt FROM audit_logs${whereClause}`
+    const [logs, totalRow] = await Promise.all([
+      query(sql, params),
+      queryOne<any>(countSql, params)
+    ])
+    return c.json({ logs, total: totalRow?.cnt || 0 })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 
