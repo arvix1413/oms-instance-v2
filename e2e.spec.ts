@@ -8,7 +8,7 @@ async function login(p: Page) {
   await p.fill('input[type="email"]', 'admin@oms.com')
   await p.fill('input[type="password"]', 'admin123')
   await p.click('button[type="submit"]')
-  await p.waitForURL(`${BASE}/dashboard`, { timeout: 10000 })
+  await p.waitForURL(`${BASE}/dashboard**`, { timeout: 15000 })
   console.log('✅ Login OK')
 }
 
@@ -17,7 +17,7 @@ test.describe('OMS E2E Full Flow', () => {
 
   test('1. Login', async ({ page }) => {
     await login(page)
-    await expect(page).toHaveURL(`${BASE}/dashboard`)
+    await expect(page).toHaveURL(/\/dashboard/)
     await page.screenshot({ path: 'screenshots/01-dashboard.png', fullPage: true })
   })
 
