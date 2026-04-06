@@ -1,0 +1,289 @@
+'use client'
+import { useEffect, useState } from 'react'
+import { apiFetch } from '@/lib/api'
+import { usePagination, Pagination } from '@/lib/usePagination'
+
+type PoItem = { material_code:string; material_name:string; spec:string; unit:string; quantity:number; moq:number; unit_price:number; total_price:number; currency:string; remark:string }
+type Po = { id:number; po_number:string; supplier_name:string; status:string; total_amount:number; currency:string; remark:string; created_at:string; approved_at?:string; items?:PoItem[] }
+
+const STATUS_MAP: Record<string,{label:string;badge:string}> = {
+  draft:     { label:'草稿',   badge:'badge-gray'   },
+  approved:  { label:'已核准', badge:'badge-green'  },
+  sent:      { label:'已發送', badge:'badge-blue'   },
+  received:  { label:'已收貨', badge:'badge-purple' },
+  cancelled: { label:'已取消', badge:'badge-red'    },
+}
+
+const emptyItem = (): PoItem => ({ material_code:'', material_name:'', spec:'', unit:'PCS', quantity:1, moq:0, unit_price:0, total_price:0, currency:'VND', remark:'' })
+
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}>
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  )
+}
+
+export default function PoPage() {
+  const [pos, setPos] = useState<Po[]>([])
+  const [expanded, setExpanded] = useState<Set<number>>(new Set())
+  const [loadedItems, setLoadedItems] = useState<Record<number, PoItem[]>>({})
+  const [creating, setCreating] = useState(false)
+  const [form, setForm] = useState({ supplier_name:'', currency:'VND', remark:'', items:[emptyItem()] })
+  const [loading, setLoading] = useState(true)
+  const [msg, setMsg] = useState('')
+  const [search, setSearch] = useState('')
+
+  const load = () => apiFetch<Po[]>('/api/po').then(setPos).finally(() => setLoading(false))
+  useEffect(() => { load() }, [])
+  const showMsg = (m:string) => { setMsg(m); setTimeout(() => setMsg(''), 3000) }
+
+  const toggleExpand = async (id: number) => {
+    const next = new Set(expanded)
+    if (next.has(id)) {
+      next.delete(id)
+    } else {
+      next.add(id)
+      if (!loadedItems[id]) {
+        const data = await apiFetch<Po>(`/api/po/${id}`)
+        setLoadedItems(p => ({ ...p, [id]: data.items || [] }))
+      }
+    }
+    setExpanded(next)
+  }
+
+  const approve = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation()
+    await apiFetch(`/api/po/${id}/approve`, { method: 'PATCH' })
+    showMsg('已核准'); load()
+  }
+
+  const changeStatus = async (id: number, status: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    await apiFetch(`/api/po/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
+    showMsg('狀態已更新'); load()
+    // refresh items if expanded
+    if (expanded.has(id)) {
+      const data = await apiFetch<Po>(`/api/po/${id}`)
+      setLoadedItems(p => ({ ...p, [id]: data.items || [] }))
+    }
+  }
+
+  const del = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!confirm('確定刪除此採購單？')) return
+    await apiFetch(`/api/po/${id}`, { method: 'DELETE' }); load()
+  }
+
+  const addItem = () => setForm(p => ({ ...p, items: [...p.items, emptyItem()] }))
+  const removeItem = (i: number) => setForm(p => ({ ...p, items: p.items.filter((_, idx) => idx !== i) }))
+  const updateItem = (i: number, field: keyof PoItem, val: any) => {
+    setForm(p => ({
+      ...p,
+      items: p.items.map((item, idx) => {
+        if (idx !== i) return item
+        const u = { ...item, [field]: val }
+        if (field === 'quantity' || field === 'unit_price') u.total_price = u.quantity * u.unit_price
+        return u
+      })
+    }))
+  }
+
+  const save = async () => {
+    try {
+      await apiFetch('/api/po', { method: 'POST', body: JSON.stringify(form) })
+      showMsg('採購單建立成功'); setCreating(false)
+      setForm({ supplier_name:'', currency:'VND', remark:'', items:[emptyItem()] }); load()
+    } catch (e: any) { showMsg('錯誤：' + e.message) }
+  }
+
+  const formTotal = form.items.reduce((s, i) => s + (i.total_price || 0), 0)
+  const filteredPos = pos.filter(p => !search || p.po_number.toLowerCase().includes(search.toLowerCase()) || p.supplier_name.toLowerCase().includes(search.toLowerCase()))
+  const { page, setPage, totalPages, paged, total } = usePagination(filteredPos, 20)
+  const inp = 'oms-input text-xs py-1.5'
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-xl font-bold text-slate-800">採購單管理</h1>
+          <p className="text-xs text-slate-400 mt-0.5">點擊採購單列展開查看料號明細</p>
+        </div>
+        <button onClick={() => setCreating(true)} className="btn-primary">+ 建立採購單</button>
+      </div>
+
+      {msg && <div className="mb-4 px-4 py-2.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">{msg}</div>}
+
+      {creating && (
+        <div className="oms-card p-6 mb-5">
+          <h2 className="text-sm font-semibold text-slate-800 mb-4">建立採購單</h2>
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            <div>
+              <label className="block text-[11px] text-slate-500 mb-1.5">供應商 *</label>
+              <input className={inp} value={form.supplier_name} onChange={e=>setForm(p=>({...p,supplier_name:e.target.value}))} />
+            </div>
+            <div>
+              <label className="block text-[11px] text-slate-500 mb-1.5">幣別</label>
+              <select className={inp} value={form.currency} onChange={e=>setForm(p=>({...p,currency:e.target.value}))}>
+                <option>VND</option><option>TWD</option><option>CNY</option><option>USD</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] text-slate-500 mb-1.5">備註</label>
+              <input className={inp} value={form.remark} onChange={e=>setForm(p=>({...p,remark:e.target.value}))} />
+            </div>
+          </div>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-600">採購明細</span>
+            <button onClick={addItem} className="btn-ghost text-blue-600">+ 新增料號</button>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-slate-200">
+            <table className="w-full text-xs">
+              <thead><tr className="border-b border-slate-200">
+                {['料號','材料名稱','規格','單位','MOQ','數量','單價','小計','幣別','備註',''].map(h=>(
+                  <th key={h} className="px-2 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">{h}</th>
+                ))}
+              </tr></thead>
+              <tbody>
+                {form.items.map((item, i) => (
+                  <tr key={i} className="border-b border-slate-100">
+                    <td className="p-1"><input className={inp} style={{width:90}} value={item.material_code} onChange={e=>updateItem(i,'material_code',e.target.value)} /></td>
+                    <td className="p-1"><input className={inp} value={item.material_name} onChange={e=>updateItem(i,'material_name',e.target.value)} /></td>
+                    <td className="p-1"><input className={inp} style={{width:80}} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} /></td>
+                    <td className="p-1"><input className={inp} style={{width:45}} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} /></td>
+                    <td className="p-1"><input type="number" className={inp} style={{width:65}} value={item.moq || ""} placeholder="MOQ" onChange={e=>updateItem(i,'moq',Number(e.target.value))} /></td>
+                    <td className="p-1"><input type="number" className={inp} style={{width:65}} value={item.quantity || ""} onChange={e=>updateItem(i,'quantity',Number(e.target.value))} /></td>
+                    <td className="p-1"><input type="number" className={inp} style={{width:85}} value={item.unit_price || ""} onChange={e=>updateItem(i,'unit_price',Number(e.target.value))} /></td>
+                    <td className="p-1 px-2 text-right text-slate-600 font-medium whitespace-nowrap">{item.total_price.toLocaleString()}</td>
+                    <td className="p-1">
+                      <select className={inp} style={{width:55}} value={item.currency} onChange={e=>updateItem(i,'currency',e.target.value)}>
+                        <option>VND</option><option>TWD</option><option>CNY</option><option>USD</option>
+                      </select>
+                    </td>
+                    <td className="p-1"><input className={inp} value={item.remark} onChange={e=>updateItem(i,'remark',e.target.value)} /></td>
+                    <td className="p-1 text-center"><button onClick={() => removeItem(i)} className="text-slate-300 hover:text-red-600 transition-colors">✕</button></td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-slate-200">
+                  <td colSpan={7} className="px-3 py-2 text-right text-[11px] text-slate-400 font-semibold uppercase">合計</td>
+                  <td className="px-2 py-2 text-right text-slate-600 font-bold">{formTotal.toLocaleString()}</td>
+                  <td colSpan={3} className="px-2 py-2 text-slate-400 text-xs">{form.currency}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <div className="flex gap-2 mt-4">
+            <button onClick={save} className="btn-primary">建立採購單</button>
+            <button onClick={() => setCreating(false)} className="btn-ghost border border-slate-200">取消</button>
+          </div>
+        </div>
+      )}
+
+      <div className="mb-4"><input className="oms-input w-64" placeholder="搜尋採購單號或供應商..." value={search} onChange={e=>setSearch(e.target.value)} /></div>
+
+      <div className="oms-card overflow-hidden">
+        {loading ? <div className="flex justify-center py-16"><div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" /></div> : (
+          <>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200">
+                  <th className="w-8" />
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">採購單號</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">供應商</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider">金額</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">幣別</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">狀態</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">建立時間</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paged.map(p => {
+                  const isOpen = expanded.has(p.id)
+                  const items = loadedItems[p.id] || []
+                  const sm = STATUS_MAP[p.status] || { label: p.status, badge: 'badge-gray' }
+                  return (
+                    <>
+                      <tr key={p.id}
+                        className={`border-b border-slate-100 cursor-pointer transition-colors ${isOpen ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
+                        onClick={() => toggleExpand(p.id)}>
+                        <td className="pl-4 py-3">
+                          <span className="text-slate-500"><ChevronIcon open={isOpen} /></span>
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-blue-600">{p.po_number}</td>
+                        <td className="px-4 py-3 text-slate-800 font-medium max-w-[200px] truncate">{p.supplier_name}</td>
+                        <td className="px-4 py-3 text-right text-slate-600 font-medium">{p.total_amount.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-slate-400 text-xs">{p.currency}</td>
+                        <td className="px-4 py-3"><span className={sm.badge}>{sm.label}</span></td>
+                        <td className="px-4 py-3 text-slate-300 text-xs">{p.created_at?.slice(0,10)}</td>
+                        <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center gap-1">
+                            {p.status === 'draft' && <button onClick={e => approve(p.id, e)} className="btn-ghost text-emerald-600">核准</button>}
+                            {p.status === 'approved' && <button onClick={e => changeStatus(p.id,'sent',e)} className="btn-ghost text-blue-600">發送</button>}
+                            {p.status === 'sent' && <button onClick={e => changeStatus(p.id,'received',e)} className="btn-ghost text-violet-600">收貨</button>}
+                            <button onClick={e => del(p.id, e)} className="btn-danger">刪除</button>
+                          </div>
+                        </td>
+                      </tr>
+                      {isOpen && (
+                        <tr key={`${p.id}-items`} className="border-b border-slate-100">
+                          <td colSpan={8} className="px-0 py-0">
+                            <div className="bg-slate-50/50 border-t border-slate-100">
+                              {items.length === 0 ? (
+                                <div className="px-8 py-4 text-xs text-slate-400">載入中...</div>
+                              ) : (
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-xs" style={{minWidth:700}}>
+                                    <thead>
+                                      <tr className="border-b border-slate-100">
+                                        {['料號','材料名稱','規格','單位','MOQ','數量','單價','小計','幣別','備註'].map(h=>(
+                                          <th key={h} className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
+                                        ))}
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {items.map((item, i) => (
+                                        <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                                          <td className="px-3 py-2 font-mono text-blue-600 whitespace-nowrap">{item.material_code}</td>
+                                          <td className="px-3 py-2 text-slate-600 whitespace-nowrap">{item.material_name}</td>
+                                          <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.spec}</td>
+                                          <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.unit}</td>
+                                          <td className="px-3 py-2 text-right text-slate-500 whitespace-nowrap">{item.moq ? item.moq.toLocaleString() : '—'}</td>
+                                          <td className="px-3 py-2 text-right text-slate-600 font-medium whitespace-nowrap">{item.quantity.toLocaleString()}</td>
+                                          <td className="px-3 py-2 text-right text-slate-600 whitespace-nowrap">{item.unit_price.toLocaleString()}</td>
+                                          <td className="px-3 py-2 text-right text-slate-800 font-semibold whitespace-nowrap">{item.total_price.toLocaleString()}</td>
+                                          <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.currency}</td>
+                                          <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.remark}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                    <tfoot>
+                                      <tr className="border-t border-slate-200">
+                                        <td colSpan={7} className="px-3 py-2 text-right text-[10px] text-slate-300 font-semibold uppercase">合計</td>
+                                        <td className="px-3 py-2 text-right text-slate-600 font-bold">{items.reduce((s,i)=>s+i.total_price,0).toLocaleString()}</td>
+                                        <td colSpan={2} className="px-3 py-2 text-slate-400 text-xs">{items[0]?.currency}</td>
+                                      </tr>
+                                    </tfoot>
+                                  </table>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  )
+                })}
+                {paged.length === 0 && <tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400">尚無採購單</td></tr>}
+              </tbody>
+            </table>
+            <Pagination page={page} totalPages={totalPages} setPage={setPage} total={total} />
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
