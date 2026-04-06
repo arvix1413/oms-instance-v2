@@ -9,3 +9,12 @@ dist/
 .env.server
 .DS_Store
 uploads/
+screenshots/
+test-results/
+d1-mysql-import.sql
+alter-tables.sql
+*.xlsx
+*.jpeg
+*.jpg
+*.png
+playwright-report/
