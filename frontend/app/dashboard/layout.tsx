@@ -5,17 +5,34 @@ import { usePathname, useRouter } from 'next/navigation'
 import { getToken, clearToken } from '@/lib/api'
 import { getUser, ROLE_LABELS, type Role } from '@/lib/permissions'
 
-const NAV = [
-  { href: '/dashboard', label: '總覽', icon: <IconGrid />, exact: true },
+type NavItem = { href: string; label: string; icon: React.ReactNode }
+type NavGroup = { label: string; icon: React.ReactNode; children: NavItem[] }
+type NavEntry = NavItem | NavGroup
+
+const isGroup = (n: NavEntry): n is NavGroup => 'children' in n
+
+const NAV: NavEntry[] = [
+  { href: '/dashboard', label: '總覽', icon: <IconGrid />, exact: true } as any,
   { href: '/dashboard/customers', label: '客戶資料管理', icon: <IconUsers /> },
-  { href: '/dashboard/customer-orders', label: '訂單管理', icon: <IconClipboard /> },
-  { href: '/dashboard/po', label: '採購與供應商管理', icon: <IconCart /> },
-  { href: '/dashboard/receivables', label: '應收帳款管理（收款）', icon: <IconReceive /> },
-  { href: '/dashboard/payables', label: '應付帳款管理（付款）', icon: <IconPay /> },
-  { href: '/dashboard/delivery-notes', label: '出貨與生產進度追蹤', icon: <IconTruck /> },
-  { href: '/dashboard/reports', label: '報表功能', icon: <IconChart /> },
+  {
+    label: '訂單管理', icon: <IconClipboard />,
+    children: [
+      { href: '/dashboard/po', label: '採購', icon: <IconCart /> },
+      { href: '/dashboard/customer-orders', label: '出售', icon: <IconDoc /> },
+    ]
+  },
+  {
+    label: '採購和供應商管理', icon: <IconBuilding />,
+    children: [
+      { href: '/dashboard/inventory', label: '庫存管理', icon: <IconWarehouse /> },
+      { href: '/dashboard/materials', label: '料號管理', icon: <IconBox /> },
+      { href: '/dashboard/bom', label: 'BOM 表', icon: <IconList /> },
+      { href: '/dashboard/suppliers', label: '供應商管理', icon: <IconBuilding2 /> },
+    ]
+  },
+  { href: '/dashboard/reports', label: '報表管理', icon: <IconChart /> },
 ]
-const NAV_ADMIN = [
+const NAV_ADMIN: NavItem[] = [
   { href: '/dashboard/users', label: '使用者帳號與權限管理', icon: <IconUserCog /> },
   { href: '/dashboard/audit-logs', label: '操作日誌', icon: <IconAudit /> },
 ]
@@ -36,6 +53,8 @@ function IconAudit() { return <svg viewBox="0 0 24 24" fill="none" stroke="curre
 function IconReceive() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4"><path d="M12 2v20M17 7l-5 5-5-5"/><path d="M3 12h18"/></svg> }
 function IconPay() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4"><path d="M12 22V2M7 17l5-5 5 5"/><path d="M3 12h18"/></svg> }
 function IconChart() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> }
+function IconBuilding2() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4"><rect x="2" y="7" width="20" height="14" rx="1"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> }
+function IconChevron({ open }: { open: boolean }) { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`w-3 h-3 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}><polyline points="9 18 15 12 9 6"/></svg> }
 function IconLogout() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> }
 const ROLE_DOT: Record<string, string> = {
   admin: 'bg-red-500', manager: 'bg-violet-500', purchaser: 'bg-blue-500', viewer: 'bg-slate-400'
@@ -45,11 +64,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(['訂單管理', '採購和供應商管理']))
 
   useEffect(() => {
     if (!getToken()) { router.replace('/login'); return }
     setUser(getUser())
   }, [router])
+
+  // Auto-open group if current path matches a child
+  useEffect(() => {
+    NAV.forEach(n => {
+      if (isGroup(n)) {
+        const hasActive = n.children.some(c => pathname === c.href || pathname.startsWith(c.href + '/'))
+        if (hasActive) setOpenGroups(prev => new Set([...Array.from(prev), n.label]))
+      }
+    })
+  }, [pathname])
 
   const logout = () => { clearToken(); localStorage.removeItem('oms_user'); window.location.href = '/login' }
   const role = user?.role as Role
@@ -57,6 +87,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(href + '/')
+
+  const toggleGroup = (label: string) => {
+    setOpenGroups(prev => {
+      const arr = Array.from(prev)
+      const next = arr.includes(label) ? arr.filter(x => x !== label) : [...arr, label]
+      return new Set(next)
+    })
+  }
+
+  const linkClass = (active: boolean) =>
+    `flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 ${
+      active ? 'bg-blue-50 text-blue-700' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+    }`
 
   return (
     <div className="flex h-screen bg-slate-50 text-slate-800">
@@ -75,17 +118,42 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
-          {NAV.map(n => (
-            <Link key={n.href} href={n.href}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 ${
-                isActive(n.href, n.exact)
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
-              }`}>
-              <span className={isActive(n.href, n.exact) ? 'text-blue-600' : 'text-slate-400'}>{n.icon}</span>
-              {n.label}
-            </Link>
-          ))}
+          {NAV.map(n => {
+            if (isGroup(n)) {
+              const open = openGroups.has(n.label)
+              const hasActive = n.children.some(c => isActive(c.href))
+              return (
+                <div key={n.label}>
+                  <button
+                    onClick={() => toggleGroup(n.label)}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 ${
+                      hasActive ? 'text-blue-700' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                    }`}>
+                    <span className={hasActive ? 'text-blue-600' : 'text-slate-400'}>{n.icon}</span>
+                    <span className="flex-1 text-left">{n.label}</span>
+                    <span className={hasActive ? 'text-blue-400' : 'text-slate-300'}><IconChevron open={open} /></span>
+                  </button>
+                  {open && (
+                    <div className="ml-3 pl-3 border-l border-slate-100 mt-0.5 space-y-0.5">
+                      {n.children.map(c => (
+                        <Link key={c.href} href={c.href} className={linkClass(isActive(c.href))}>
+                          <span className={isActive(c.href) ? 'text-blue-600' : 'text-slate-400'}>{c.icon}</span>
+                          {c.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            }
+            const item = n as any
+            return (
+              <Link key={item.href} href={item.href} className={linkClass(isActive(item.href, item.exact))}>
+                <span className={isActive(item.href, item.exact) ? 'text-blue-600' : 'text-slate-400'}>{item.icon}</span>
+                {item.label}
+              </Link>
+            )
+          })}
 
           {isAdmin && (
             <>
@@ -93,12 +161,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <span className="text-[10px] font-semibold text-slate-300 uppercase tracking-widest">系統管理</span>
               </div>
               {NAV_ADMIN.map(n => (
-                <Link key={n.href} href={n.href}
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 ${
-                    isActive(n.href)
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
-                  }`}>
+                <Link key={n.href} href={n.href} className={linkClass(isActive(n.href))}>
                   <span className={isActive(n.href) ? 'text-blue-600' : 'text-slate-400'}>{n.icon}</span>
                   {n.label}
                 </Link>
