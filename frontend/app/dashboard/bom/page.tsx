@@ -9,13 +9,22 @@ type BomItem = { material_code:string; material_name:string; spec:string; unit:s
 type Bom = { id:number; product_sku:string; product_name:string; version:string; status:string; created_at:string; items?:BomItem[] }
 const emptyItem = (): BomItem => ({ material_code:'', material_name:'', spec:'', unit:'PCS', quantity:'', color:'', lt:'', moq:'', supplier_name:'', supplier_price:0, company_price:0, currency:'VND', remark:'' })
 
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}>
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  )
+}
+
 export default function BomPage() {
   const { toast, confirm: confirmDialog } = useDialog()
-
   const [boms, setBoms] = useState<Bom[]>([])
-  const [creating, setCreating] = useState(false)
+  const [expanded, setExpanded] = useState<Set<number>>(new Set())
+  const [loadedItems, setLoadedItems] = useState<Record<number, BomItem[]>>({})
   const [editing, setEditing] = useState<Bom|null>(null)
-  const [viewing, setViewing] = useState<Bom|null>(null)
+  const [creating, setCreating] = useState(false)
   const [form, setForm] = useState({ product_sku:'', product_name:'', version:'V1', items:[emptyItem()] })
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -23,12 +32,22 @@ export default function BomPage() {
   const load = () => apiFetch<Bom[]>('/api/bom').then(setBoms).finally(() => setLoading(false))
   useEffect(() => { load() }, [])
 
-  const viewBom = async (id:number) => {
-    const data = await apiFetch<Bom>(`/api/bom/${id}`)
-    setViewing(data)
+  const toggleExpand = async (id: number) => {
+    const next = new Set(expanded)
+    if (next.has(id)) {
+      next.delete(id)
+    } else {
+      next.add(id)
+      if (!loadedItems[id]) {
+        const data = await apiFetch<Bom>(`/api/bom/${id}`)
+        setLoadedItems(p => ({ ...p, [id]: data.items || [] }))
+      }
+    }
+    setExpanded(next)
   }
 
-  const startEdit = async (id:number) => {
+  const startEdit = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation()
     const data = await apiFetch<Bom>(`/api/bom/${id}`)
     setEditing(data)
     setForm({
@@ -40,6 +59,7 @@ export default function BomPage() {
   }
 
   const save = async () => {
+    if (!form.product_sku) { toast('請填寫產品 SKU', 'error'); return }
     try {
       const payload = { ...form, items: form.items.map(i => ({ ...i, quantity: i.quantity === '' ? null : Number(i.quantity), moq: i.moq === '' ? null : Number(i.moq) })) }
       if (editing) {
@@ -53,10 +73,11 @@ export default function BomPage() {
       }
       setForm({ product_sku:'', product_name:'', version:'V1', items:[emptyItem()] })
       load()
-    } catch (e:any) { toast('錯誤：' + e.message) }
+    } catch (e:any) { toast('錯誤：' + e.message, 'error') }
   }
 
-  const del = async (id:number) => {
+  const del = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation()
     if (!await confirmDialog('確定刪除此 BOM？')) return
     await apiFetch(`/api/bom/${id}`, { method: 'DELETE' }); load()
   }
@@ -75,8 +96,8 @@ export default function BomPage() {
     } : item) }))
   }
 
-  const printBom = (bom: Bom) => {
-    const items = bom.items || []
+  const printBom = (bom: Bom, items: BomItem[], e: React.MouseEvent) => {
+    e.stopPropagation()
     const html = `<html><head><title>BOM - ${bom.product_name}</title>
     <style>body{font-family:sans-serif;font-size:12px;padding:20px}h2{margin-bottom:4px}p{color:#666;margin:0 0 12px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}th{background:#f5f5f5;font-weight:600}tr:nth-child(even){background:#fafafa}.num{text-align:right}</style>
     </head><body>
@@ -102,15 +123,15 @@ export default function BomPage() {
         </div>
         <div className="p-6">
           <div className="grid grid-cols-3 gap-4 mb-5">
-            <div><label className="block text-xs font-medium text-slate-600 mb-1.5">產品 SKU *</label>
+            <div><label className="block text-xs font-medium text-slate-600 mb-1.5">產品 SKU *（唯一）</label>
               <input className="oms-input" value={form.product_sku} onChange={e=>setForm(p=>({...p,product_sku:e.target.value}))} /></div>
-            <div><label className="block text-xs font-medium text-slate-600 mb-1.5">產品名稱 *</label>
+            <div><label className="block text-xs font-medium text-slate-600 mb-1.5">產品名稱</label>
               <input className="oms-input" value={form.product_name} onChange={e=>setForm(p=>({...p,product_name:e.target.value}))} /></div>
             <div><label className="block text-xs font-medium text-slate-600 mb-1.5">版本</label>
               <input className="oms-input" value={form.version} onChange={e=>setForm(p=>({...p,version:e.target.value}))} /></div>
           </div>
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-semibold text-slate-700">BOM 明細</span>
+            <span className="text-sm font-semibold text-slate-700">BOM 明細（所需原材料）</span>
             <button onClick={addItem} className="btn-ghost">+ 新增料號</button>
           </div>
           <div className="border border-slate-200 rounded-lg overflow-x-auto">
@@ -164,56 +185,12 @@ export default function BomPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-slate-800">BOM 表管理</h1>
-          <p className="text-xs text-slate-500 mt-0.5">產品物料清單</p>
+          <p className="text-xs text-slate-500 mt-0.5">點擊任意列展開查看材料明細</p>
         </div>
         <button onClick={() => setCreating(true)} className="btn-primary">+ 建立 BOM</button>
       </div>
-      {isOpen && <FormModal />}
 
-      {viewing && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl p-6 max-w-5xl w-full max-h-[80vh] overflow-auto">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h2 className="text-base font-bold text-slate-800">{viewing.product_name}</h2>
-                <div className="text-xs text-slate-500 mt-0.5">SKU: {viewing.product_sku} · 版本: {viewing.version}</div>
-              </div>
-              <div className="flex gap-2 items-center">
-                <button onClick={() => printBom(viewing)} className="btn-ghost text-xs">🖨 列印</button>
-                <button onClick={() => setViewing(null)} className="text-slate-400 hover:text-slate-600 text-xl ml-2">✕</button>
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
-                <thead><tr className="bg-slate-50 border-b border-slate-200">
-                  {['料號','材料名稱','規格','顏色','單位','數量','MOQ','LT','供應商','供應商單價','公司售價','幣別','備註'].map(h=>(
-                    <th key={h} className="px-3 py-2 text-left text-xs font-semibold text-slate-500 whitespace-nowrap">{h}</th>
-                  ))}
-                </tr></thead>
-                <tbody>
-                  {(viewing.items||[]).map((item,i) => (
-                    <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
-                      <td className="px-3 py-2 font-mono text-xs text-blue-600">{item.material_code}</td>
-                      <td className="px-3 py-2 text-slate-700">{item.material_name}</td>
-                      <td className="px-3 py-2 text-slate-500">{item.spec}</td>
-                      <td className="px-3 py-2 text-slate-600">{item.color}</td>
-                      <td className="px-3 py-2 text-slate-600">{item.unit}</td>
-                      <td className="px-3 py-2 text-right text-slate-700 font-medium">{item.quantity ?? '—'}</td>
-                      <td className="px-3 py-2 text-right text-slate-600">{item.moq ?? '—'}</td>
-                      <td className="px-3 py-2 text-slate-500">{item.lt}</td>
-                      <td className="px-3 py-2 text-slate-500">{item.supplier_name}</td>
-                      <td className="px-3 py-2 text-right text-slate-600">{Number(item.supplier_price).toLocaleString()}</td>
-                      <td className="px-3 py-2 text-right text-slate-800 font-semibold">{Number(item.company_price).toLocaleString()}</td>
-                      <td className="px-3 py-2 text-slate-500">{item.currency}</td>
-                      <td className="px-3 py-2 text-slate-400">{item.remark}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
+      {isOpen && <FormModal />}
 
       <div className="mb-4">
         <input className="oms-input w-64" placeholder="搜尋產品 SKU 或名稱..." value={search} onChange={e=>setSearch(e.target.value)} />
@@ -224,28 +201,91 @@ export default function BomPage() {
           <div className="flex justify-center py-16"><div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" /></div>
         ) : (
           <>
-            <table className="oms-table">
-              <thead><tr>
-                <th>產品 SKU</th><th>產品名稱</th><th>版本</th><th>狀態</th><th>建立時間</th><th>操作</th>
-              </tr></thead>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200">
+                  <th className="w-8" />
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">產品 SKU</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">產品名稱</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">版本</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">狀態</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">建立時間</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">操作</th>
+                </tr>
+              </thead>
               <tbody>
-                {paged.map(b => (
-                  <tr key={b.id}>
-                    <td className="font-mono text-xs text-blue-600">{b.product_sku}</td>
-                    <td className="font-medium">{b.product_name}</td>
-                    <td>{b.version}</td>
-                    <td><span className={b.status==='active'?'badge-green':'badge-gray'}>{b.status==='active'?'啟用':'停用'}</span></td>
-                    <td className="text-slate-400 text-xs">{b.created_at?.slice(0,10)}</td>
-                    <td>
-                      <div className="flex gap-2">
-                        <button onClick={() => viewBom(b.id)} className="btn-ghost">詳情</button>
-                        <button onClick={() => startEdit(b.id)} className="btn-ghost text-blue-600">編輯</button>
-                        <button onClick={() => del(b.id)} className="btn-danger">刪除</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {paged.length === 0 && <tr><td colSpan={6} className="text-center py-12 text-slate-400">尚無 BOM 表</td></tr>}
+                {paged.map(b => {
+                  const isExpanded = expanded.has(b.id)
+                  const items = loadedItems[b.id] || []
+                  return (
+                    <>
+                      <tr key={b.id}
+                        className={`border-b border-slate-100 cursor-pointer transition-colors ${isExpanded ? 'bg-blue-50/40' : 'hover:bg-slate-50'}`}
+                        onClick={() => toggleExpand(b.id)}>
+                        <td className="pl-4 py-3">
+                          <span className="text-slate-400"><ChevronIcon open={isExpanded} /></span>
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-blue-600 font-semibold">{b.product_sku}</td>
+                        <td className="px-4 py-3 font-medium text-slate-800">{b.product_name}</td>
+                        <td className="px-4 py-3 text-slate-500">{b.version}</td>
+                        <td className="px-4 py-3"><span className={b.status==='active'?'badge-green':'badge-gray'}>{b.status==='active'?'啟用':'停用'}</span></td>
+                        <td className="px-4 py-3 text-slate-400 text-xs">{b.created_at?.slice(0,10)}</td>
+                        <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                          <div className="flex gap-2">
+                            {isExpanded && items.length > 0 && (
+                              <button onClick={e => printBom(b, items, e)} className="btn-ghost">🖨</button>
+                            )}
+                            <button onClick={e => startEdit(b.id, e)} className="btn-ghost text-blue-600">編輯</button>
+                            <button onClick={e => del(b.id, e)} className="btn-danger">刪除</button>
+                          </div>
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr key={`${b.id}-items`} className="border-b border-slate-100">
+                          <td colSpan={7} className="px-0 py-0">
+                            <div className="bg-blue-50/30 border-t border-blue-100">
+                              {items.length === 0 ? (
+                                <div className="px-8 py-4 text-xs text-slate-400">載入中...</div>
+                              ) : (
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-xs" style={{minWidth:800}}>
+                                    <thead>
+                                      <tr className="border-b border-blue-100">
+                                        {['料號','材料名稱','規格','顏色','單位','數量','MOQ','LT','供應商','供應商單價','公司售價','幣別','備註'].map(h=>(
+                                          <th key={h} className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
+                                        ))}
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {items.map((item, i) => (
+                                        <tr key={i} className="border-b border-blue-50 last:border-0 hover:bg-blue-50/50">
+                                          <td className="px-3 py-2 font-mono text-blue-600 whitespace-nowrap">{item.material_code}</td>
+                                          <td className="px-3 py-2 text-slate-700 whitespace-nowrap">{item.material_name}</td>
+                                          <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.spec}</td>
+                                          <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.color}</td>
+                                          <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.unit}</td>
+                                          <td className="px-3 py-2 text-right font-medium whitespace-nowrap">{item.quantity ?? '—'}</td>
+                                          <td className="px-3 py-2 text-right text-slate-500 whitespace-nowrap">{item.moq ?? '—'}</td>
+                                          <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.lt}</td>
+                                          <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.supplier_name}</td>
+                                          <td className="px-3 py-2 text-right text-slate-600 whitespace-nowrap">{Number(item.supplier_price).toLocaleString()}</td>
+                                          <td className="px-3 py-2 text-right font-semibold text-slate-800 whitespace-nowrap">{Number(item.company_price).toLocaleString()}</td>
+                                          <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.currency}</td>
+                                          <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.remark}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  )
+                })}
+                {paged.length === 0 && <tr><td colSpan={7} className="text-center py-12 text-slate-400">尚無 BOM 表</td></tr>}
               </tbody>
             </table>
             <Pagination page={page} totalPages={totalPages} setPage={setPage} total={total} />
