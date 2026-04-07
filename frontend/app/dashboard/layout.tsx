@@ -15,25 +15,37 @@ const NAV: NavEntry[] = [
   { href: '/dashboard', label: '總覽', icon: <IconGrid />, exact: true } as any,
   { href: '/dashboard/customers', label: '客戶資料管理', icon: <IconUsers /> },
   {
-    label: '訂單管理', icon: <IconClipboard />,
+    label: '銷售管理', icon: <IconDoc />,
     children: [
-      { href: '/dashboard/po', label: '採購單', icon: <IconCart /> },
-      { href: '/dashboard/customer-orders', label: '客戶訂單', icon: <IconDoc /> },
+      { href: '/dashboard/customer-orders', label: '客戶訂單', icon: <IconClipboard /> },
+      { href: '/dashboard/quotations', label: '報價單', icon: <IconDoc /> },
+      { href: '/dashboard/delivery-notes', label: '出貨單', icon: <IconTruck /> },
     ]
   },
   {
-    label: '採購和供應商管理', icon: <IconBuilding />,
+    label: '採購管理', icon: <IconCart />,
     children: [
+      { href: '/dashboard/po', label: '採購單', icon: <IconCart /> },
       { href: '/dashboard/goods-receipts', label: '進貨單', icon: <IconTruck /> },
-      { href: '/dashboard/production', label: '生產單', icon: <IconFactory /> },
-      { href: '/dashboard/inventory', label: '庫存管理', icon: <IconWarehouse /> },
-      { href: '/dashboard/stock-ledger', label: '庫存流水', icon: <IconList /> },
-      { href: '/dashboard/stock-adjustments', label: '庫存調整', icon: <IconAdjust /> },
-      { href: '/dashboard/materials', label: '料號管理', icon: <IconBox /> },
-      { href: '/dashboard/bom', label: 'BOM 表', icon: <IconList /> },
-      { href: '/dashboard/suppliers', label: '供應商管理', icon: <IconBuilding2 /> },
     ]
   },
+  {
+    label: '生產管理', icon: <IconFactory />,
+    children: [
+      { href: '/dashboard/production', label: '生產單', icon: <IconFactory /> },
+      { href: '/dashboard/bom', label: 'BOM 表', icon: <IconList /> },
+    ]
+  },
+  {
+    label: '倉庫管理', icon: <IconWarehouse />,
+    children: [
+      { href: '/dashboard/materials', label: '料號管理', icon: <IconBox /> },
+      { href: '/dashboard/inventory', label: '庫存查詢', icon: <IconWarehouse /> },
+      { href: '/dashboard/stock-ledger', label: '庫存流水', icon: <IconList /> },
+      { href: '/dashboard/stock-adjustments', label: '庫存調整', icon: <IconAdjust /> },
+    ]
+  },
+  { href: '/dashboard/suppliers', label: '供應商管理', icon: <IconBuilding2 /> },
 ]
 const NAV_ADMIN: NavEntry[] = [
   {
@@ -75,7 +87,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
-  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(['訂單管理', '採購和供應商管理']))
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(['銷售管理', '採購管理']))
 
   useEffect(() => {
     if (!getToken()) { router.replace('/login'); return }
