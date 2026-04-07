@@ -221,6 +221,9 @@ app.post('/api/bom', authMiddleware, canWrite, async c => {
   try {
     const b = await c.req.json()
     if (!b.product_sku || !b.product_name) return c.json({ error: 'product_sku and product_name required' }, 400)
+    // Check SKU uniqueness
+    const existing = await queryOne<any>('SELECT id FROM bom WHERE product_sku=?', [b.product_sku])
+    if (existing) return c.json({ error: `SKU「${b.product_sku}」已存在，請使用不同的 SKU` }, 409)
     const u = c.get('user')
     const r = await execute('INSERT INTO bom (product_sku,product_name,version,status,created_by,created_at) VALUES (?,?,?,?,?,?)',
       [b.product_sku,b.product_name,b.version||'V1','active',u.userId,now8()])
