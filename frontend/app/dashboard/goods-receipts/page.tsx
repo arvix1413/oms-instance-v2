@@ -6,7 +6,7 @@ import { usePagination, Pagination } from '@/lib/usePagination'
 
 type GRItem = { po_item_id?: number; material_code: string; material_name: string; spec: string; unit: string; ordered_qty: number; received_qty: number; unit_price: number; currency: string; batch_no: string; remark: string }
 type GR = { id: number; gr_number: string; po_number: string; supplier_name: string; status: string; received_date: string; remark: string; created_at: string; items?: GRItem[] }
-type PO = { id: number; po_number: string; supplier_name: string; supplier_id: number; items?: any[] }
+type PO = { id: number; po_number: string; supplier_name: string; supplier_id: number; status: string; items?: any[] }
 
 const emptyItem = (): GRItem => ({ material_code: '', material_name: '', spec: '', unit: 'PCS', ordered_qty: 0, received_qty: 0, unit_price: 0, currency: 'VND', batch_no: '', remark: '' })
 
