@@ -10,10 +10,13 @@ type BOM = { id: number; product_sku: string; product_name: string; items?: any[
 type CustomerOrder = { id: number; po_number: string; customer_name: string }
 
 const STATUS_MAP: Record<string, { label: string; badge: string }> = {
-  draft: { label: '草稿', badge: 'badge-gray' },
-  in_progress: { label: '生產中', badge: 'badge-blue' },
-  completed: { label: '已完成', badge: 'badge-green' },
-  cancelled: { label: '已取消', badge: 'badge-red' },
+  draft:       { label: '待確認',   badge: 'badge-gray'   },
+  confirmed:   { label: '已建立',   badge: 'badge-blue'   },
+  shortage:    { label: '缺料',     badge: 'badge-red'    },
+  ready:       { label: '材料齊',   badge: 'badge-yellow' },
+  in_progress: { label: '生產中',   badge: 'badge-purple' },
+  completed:   { label: '完工',     badge: 'badge-green'  },
+  cancelled:   { label: '作廢',     badge: 'badge-gray'   },
 }
 
 const emptyMat = (): ProdMat => ({ material_code: '', material_name: '', spec: '', unit: 'PCS', planned_qty: 0, issued_qty: 0, batch_no: '', remark: '' })
@@ -61,8 +64,15 @@ export default function ProductionPage() {
   }
 
   const changeStatus = async (id: number, status: string, producedQty?: number) => {
-    const labels: Record<string, string> = { in_progress: '開始生產', completed: '完成生產（將扣減材料庫存）', cancelled: '取消生產單' }
-    if (!await confirmDialog(`確定${labels[status] || status}？`)) return
+    const labels: Record<string, string> = {
+      confirmed:   '確認建立此生產單？',
+      shortage:    '標記為缺料狀態？',
+      ready:       '確認材料已齊備？',
+      in_progress: '開始生產（將進入生產中狀態）？',
+      completed:   '確認完工？完工後將扣減材料庫存',
+      cancelled:   '確定作廢此生產單？此操作不可撤銷',
+    }
+    if (!await confirmDialog(labels[status] || `確定切換狀態為 ${status}？`)) return
     try {
       await apiFetch(`/api/production/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, produced_qty: producedQty }) })
       toast('狀態已更新'); load()
@@ -172,10 +182,29 @@ export default function ProductionPage() {
                 <h2 className="text-base font-bold">{viewing.prod_number}</h2>
                 <div className="text-xs text-slate-500">{viewing.product_name} | 計劃：{viewing.planned_qty} | 已產：{viewing.produced_qty}</div>
               </div>
-              <div className="flex gap-2 items-center">
+              <div className="flex gap-2 items-center flex-wrap">
                 <span className={STATUS_MAP[viewing.status]?.badge}>{STATUS_MAP[viewing.status]?.label}</span>
-                {viewing.status === 'draft' && <button onClick={() => changeStatus(viewing.id, 'in_progress')} className="btn-primary">▶ 開始生產</button>}
-                {viewing.status === 'in_progress' && <button onClick={() => changeStatus(viewing.id, 'completed', viewing.planned_qty)} className="btn-primary">✓ 完成生產</button>}
+                {viewing.status === 'draft' && (
+                  <button onClick={() => changeStatus(viewing.id, 'confirmed')} className="btn-primary">✓ 確認建立</button>
+                )}
+                {viewing.status === 'confirmed' && (
+                  <>
+                    <button onClick={() => changeStatus(viewing.id, 'shortage')} className="btn-ghost text-red-600">⚠ 標記缺料</button>
+                    <button onClick={() => changeStatus(viewing.id, 'ready')} className="btn-primary">✓ 材料齊備</button>
+                  </>
+                )}
+                {viewing.status === 'shortage' && (
+                  <button onClick={() => changeStatus(viewing.id, 'ready')} className="btn-primary">✓ 材料已補齊</button>
+                )}
+                {viewing.status === 'ready' && (
+                  <button onClick={() => changeStatus(viewing.id, 'in_progress')} className="btn-primary">▶ 開始生產</button>
+                )}
+                {viewing.status === 'in_progress' && (
+                  <button onClick={() => changeStatus(viewing.id, 'completed', viewing.planned_qty)} className="btn-primary">✓ 完工</button>
+                )}
+                {!['completed', 'cancelled'].includes(viewing.status) && (
+                  <button onClick={() => changeStatus(viewing.id, 'cancelled')} className="btn-danger">✕ 作廢</button>
+                )}
                 <button onClick={() => setViewing(null)} className="text-slate-400 hover:text-slate-600 text-xl ml-2">✕</button>
               </div>
             </div>
@@ -222,10 +251,13 @@ export default function ProductionPage() {
                     <td className="text-slate-400 text-xs">{p.planned_start} ~ {p.planned_end}</td>
                     <td><span className={STATUS_MAP[p.status]?.badge}>{STATUS_MAP[p.status]?.label}</span></td>
                     <td>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         <button onClick={() => viewProd(p.id)} className="btn-ghost">詳情</button>
-                        {p.status === 'draft' && <button onClick={() => changeStatus(p.id, 'in_progress')} className="btn-ghost text-blue-600">開始</button>}
-                        {p.status === 'in_progress' && <button onClick={() => changeStatus(p.id, 'completed', p.planned_qty)} className="btn-ghost text-emerald-600">完成</button>}
+                        {p.status === 'draft' && <button onClick={() => changeStatus(p.id, 'confirmed')} className="btn-ghost text-blue-600">確認</button>}
+                        {p.status === 'confirmed' && <button onClick={() => changeStatus(p.id, 'ready')} className="btn-ghost text-emerald-600">材料齊</button>}
+                        {p.status === 'shortage' && <button onClick={() => changeStatus(p.id, 'ready')} className="btn-ghost text-emerald-600">補齊</button>}
+                        {p.status === 'ready' && <button onClick={() => changeStatus(p.id, 'in_progress')} className="btn-ghost text-blue-600">開始</button>}
+                        {p.status === 'in_progress' && <button onClick={() => changeStatus(p.id, 'completed', p.planned_qty)} className="btn-ghost text-emerald-600">完工</button>}
                         {p.status === 'draft' && <button onClick={() => del(p.id)} className="btn-danger">刪除</button>}
                       </div>
                     </td>

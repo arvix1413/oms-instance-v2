@@ -765,7 +765,7 @@ app.patch('/api/production/:id/status', authMiddleware, canWrite, async c => {
     if (status === 'completed') {
       updates.actual_end = now8().slice(0,10)
       if (produced_qty) updates.produced_qty = produced_qty
-      // Issue materials from stock
+      // Issue materials from stock only on completion
       const mats = await query<any>('SELECT * FROM production_materials WHERE prod_id=?', [id])
       for (const mat of mats) {
         const qty = mat.issued_qty || mat.planned_qty
