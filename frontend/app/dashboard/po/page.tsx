@@ -103,6 +103,43 @@ export default function PoPage() {
     toast('已核准'); load()
   }
 
+  const confirmReceipt = async (po: Po, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!await confirmDialog('確認收貨？', '將建立進貨單並更新材料庫存')) return
+    try {
+      const items = loadedItems[po.id] || []
+      if (items.length === 0) {
+        const data = await apiFetch<Po>(`/api/po/${po.id}`)
+        const poItems = data.items || []
+        await apiFetch('/api/goods-receipts', {
+          method: 'POST',
+          body: JSON.stringify({
+            po_id: po.id, po_number: po.po_number,
+            supplier_name: po.supplier_name,
+            received_date: new Date().toISOString().slice(0,10),
+            items: poItems.map(i => ({ ...i, po_item_id: i.id, ordered_qty: i.quantity, received_qty: i.quantity }))
+          })
+        })
+      } else {
+        await apiFetch('/api/goods-receipts', {
+          method: 'POST',
+          body: JSON.stringify({
+            po_id: po.id, po_number: po.po_number,
+            supplier_name: po.supplier_name,
+            received_date: new Date().toISOString().slice(0,10),
+            items: items.map(i => ({ ...i, po_item_id: (i as any).id, ordered_qty: i.quantity, received_qty: i.quantity }))
+          })
+        })
+      }
+      // Auto-confirm the goods receipt to update stock
+      const grs = await apiFetch<any[]>('/api/goods-receipts')
+      const latest = grs[0]
+      if (latest) await apiFetch(`/api/goods-receipts/${latest.id}/confirm`, { method: 'PATCH' })
+      await apiFetch(`/api/po/${po.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: 'received' }) })
+      toast('收貨完成，庫存已更新'); load()
+    } catch (e: any) { toast('收貨失敗：' + e.message, 'error') }
+  }
+
   const changeStatus = async (id: number, status: string, e: React.MouseEvent) => {
     e.stopPropagation()
     await apiFetch(`/api/po/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
@@ -302,7 +339,7 @@ export default function PoPage() {
                           <div className="flex items-center gap-1">
                             {p.status === 'draft' && <button onClick={e => approve(p.id, e)} className="btn-ghost text-emerald-600">核准</button>}
                             {p.status === 'approved' && <button onClick={e => changeStatus(p.id,'sent',e)} className="btn-ghost text-blue-600">發送</button>}
-                            {p.status === 'sent' && <button onClick={e => changeStatus(p.id,'received',e)} className="btn-ghost text-violet-600">收貨</button>}
+                            {p.status === 'sent' && <button onClick={e => confirmReceipt(p, e)} className="btn-ghost text-violet-600">確認收貨</button>}
                             <button onClick={e => { e.stopPropagation(); printPo(p.id, p.po_number, p.supplier_name) }} className="btn-ghost">🖨</button>
                             <button onClick={e => del(p.id, e)} className="btn-danger">刪除</button>
                           </div>
