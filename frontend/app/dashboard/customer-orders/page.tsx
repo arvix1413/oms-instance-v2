@@ -158,7 +158,7 @@ export default function CustomerOrdersPage() {
                           <span className="text-slate-500"><ChevronIcon open={isOpen} /></span>
                         </td>
                         <td className="px-4 py-3 font-mono text-xs text-blue-600">{o.po_number}</td>
-                        <td className="px-4 py-3 text-slate-800 font-medium max-w-[220px] truncate">{o.customer_name}</td>
+                        <td className="px-4 py-3 text-slate-800 font-medium max-w-[220px] truncate" title={o.customer_name}>{o.customer_name}</td>
                         <td className="px-4 py-3 text-slate-400 text-xs">{o.po_date}</td>
                         <td className="px-4 py-3">
                           <span className={STATUS_BADGE[o.status] || 'badge-gray'}>
@@ -188,7 +188,7 @@ export default function CustomerOrdersPage() {
                                     <tbody>
                                       {items.map((item, i) => (
                                         <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                                          <td className="px-3 py-2 text-slate-600 whitespace-nowrap max-w-[160px] truncate">{item.item_name}</td>
+                                          <td className="px-3 py-2 text-slate-600 whitespace-nowrap max-w-[160px] truncate" title={item.item_name}>{item.item_name}</td>
                                           <td className="px-3 py-2 font-mono text-blue-600 whitespace-nowrap">{item.material_code}</td>
                                           <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.spec}</td>
                                           <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.thickness ?? '—'}</td>

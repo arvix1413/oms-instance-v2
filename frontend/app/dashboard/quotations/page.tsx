@@ -194,7 +194,7 @@ export default function QuotationsPage() {
                         onClick={() => toggleExpand(q.id)}>
                         <td className="pl-4 py-3"><span className="text-slate-500"><ChevronIcon open={isOpen} /></span></td>
                         <td className="px-4 py-3 font-mono text-xs text-blue-600">{q.quotation_number}</td>
-                        <td className="px-4 py-3 text-slate-800 font-medium max-w-[200px] truncate">{q.customer_name}</td>
+                        <td className="px-4 py-3 text-slate-800 font-medium max-w-[200px] truncate" title={q.customer_name}>{q.customer_name}</td>
                         <td className="px-4 py-3 text-right text-slate-600 font-medium">{q.total_amount?.toLocaleString()}</td>
                         <td className="px-4 py-3 text-slate-400 text-xs">{q.currency}</td>
                         <td className="px-4 py-3 text-slate-400 text-xs">{q.valid_until}</td>

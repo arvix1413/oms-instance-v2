@@ -127,7 +127,7 @@ export default function CustomersPage() {
                   {paged.map(c=>(
                     <tr key={c.id}>
                       <td><span className="font-mono text-xs text-blue-600">{c.customer_code}</span></td>
-                      <td><span className="text-slate-800 font-medium">{c.customer_name}</span></td>
+                      <td><span className="text-slate-800 font-medium block max-w-[200px] truncate" title={c.customer_name}>{c.customer_name}</span></td>
                       <td>{c.contact}</td>
                       <td>{c.phone}</td>
                       <td>{c.payment_terms}</td>

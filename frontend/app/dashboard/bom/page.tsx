@@ -267,14 +267,14 @@ export default function BomPage() {
                                       {items.map((item, i) => (
                                         <tr key={i} className="border-b border-blue-50 last:border-0 hover:bg-blue-50/50">
                                           <td className="px-3 py-2 font-mono text-blue-600 whitespace-nowrap">{item.material_code}</td>
-                                          <td className="px-3 py-2 text-slate-700 whitespace-nowrap">{item.material_name}</td>
-                                          <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.spec}</td>
+                                          <td className="px-3 py-2 text-slate-700 whitespace-nowrap max-w-[160px] truncate" title={item.material_name}>{item.material_name}</td>
+                                          <td className="px-3 py-2 text-slate-500 whitespace-nowrap max-w-[120px] truncate" title={item.spec}>{item.spec}</td>
                                           <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.color}</td>
                                           <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.unit}</td>
                                           <td className="px-3 py-2 text-right font-medium whitespace-nowrap">{item.quantity ?? '—'}</td>
                                           <td className="px-3 py-2 text-right text-slate-500 whitespace-nowrap">{item.moq ?? '—'}</td>
                                           <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.lt}</td>
-                                          <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.supplier_name}</td>
+                                          <td className="px-3 py-2 text-slate-500 whitespace-nowrap max-w-[180px] truncate" title={item.supplier_name}>{item.supplier_name}</td>
                                           <td className="px-3 py-2 text-right text-slate-600 whitespace-nowrap">{Number(item.supplier_price).toLocaleString()}</td>
                                           <td className="px-3 py-2 text-right font-semibold text-slate-800 whitespace-nowrap">{Number(item.company_price).toLocaleString()}</td>
                                           <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.currency}</td>

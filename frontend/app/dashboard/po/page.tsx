@@ -306,7 +306,7 @@ export default function PoPage() {
                           <span className="text-slate-500"><ChevronIcon open={isOpen} /></span>
                         </td>
                         <td className="px-4 py-3 font-mono text-xs text-blue-600">{p.po_number}</td>
-                        <td className="px-4 py-3 text-slate-800 font-medium max-w-[200px] truncate">{p.supplier_name}</td>
+                        <td className="px-4 py-3 text-slate-800 font-medium max-w-[200px] truncate" title={p.supplier_name}>{p.supplier_name}</td>
                         <td className="px-4 py-3 text-right text-slate-600 font-medium">{p.total_amount.toLocaleString()}</td>
                         <td className="px-4 py-3 text-slate-400 text-xs">{p.currency}</td>
                         <td className="px-4 py-3"><span className={sm.badge}>{sm.label}</span></td>
@@ -342,8 +342,8 @@ export default function PoPage() {
                                         <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
                                           <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.po_ref}</td>
                                           <td className="px-3 py-2 font-mono text-blue-600 whitespace-nowrap">{item.material_code}</td>
-                                          <td className="px-3 py-2 text-slate-600 whitespace-nowrap">{item.material_name}</td>
-                                          <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.spec}</td>
+                                          <td className="px-3 py-2 text-slate-600 whitespace-nowrap max-w-[160px] truncate" title={item.material_name}>{item.material_name}</td>
+                                          <td className="px-3 py-2 text-slate-400 whitespace-nowrap max-w-[120px] truncate" title={item.spec}>{item.spec}</td>
                                           <td className="px-3 py-2 text-right text-slate-500 whitespace-nowrap">{item.thickness ?? '—'}</td>
                                           <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.unit}</td>
                                           <td className="px-3 py-2 text-right text-slate-600 font-medium whitespace-nowrap">{item.quantity.toLocaleString()}</td>

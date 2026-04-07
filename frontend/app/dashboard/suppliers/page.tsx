@@ -151,7 +151,7 @@ export default function SuppliersPage() {
                   {paged.map(s=>(
                     <tr key={s.id}>
                       <td><span className="font-mono text-xs text-blue-600">{s.supplier_code || '—'}</span></td>
-                      <td><span className="text-slate-800 font-medium">{s.name}</span></td>
+                      <td><span className="text-slate-800 font-medium block max-w-[220px] truncate" title={s.name}>{s.name}</span></td>
                       <td>{s.contact}</td>
                       <td>{s.phone}</td>
                       <td>{s.main_items}</td>

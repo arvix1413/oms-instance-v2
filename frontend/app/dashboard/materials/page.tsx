@@ -293,12 +293,12 @@ export default function MaterialsPage() {
                         {m.image_url ? <img src={m.image_url} alt="" className="w-9 h-9 object-cover rounded-lg border border-slate-200" onError={e=>{(e.target as HTMLImageElement).style.display='none'}} /> : <div className="w-9 h-9 bg-white/5 rounded-lg flex items-center justify-center text-slate-300 text-xs">無</div>}
                       </td>
                       <td className="px-3 py-2 font-mono text-xs text-blue-600 sticky left-[52px] bg-white whitespace-nowrap">{m.material_code}</td>
-                      <td className="px-3 py-2 text-slate-800 font-medium whitespace-nowrap max-w-[180px] truncate">{m.material_name}</td>
+                      <td className="px-3 py-2 text-slate-800 font-medium whitespace-nowrap max-w-[180px] truncate" title={m.material_name}>{m.material_name}</td>
                       <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{m.category}</td>
                       <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{m.product_category}</td>
                       <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{m.spec}</td>
                       <td className="px-3 py-2 text-slate-600 whitespace-nowrap">{m.unit}</td>
-                      <td className="px-3 py-2 text-slate-500 whitespace-nowrap max-w-[150px] truncate">{m.supplier_name || <span className="text-slate-300 text-xs">未指定</span>}</td>
+                      <td className="px-3 py-2 text-slate-500 whitespace-nowrap max-w-[150px] truncate" title={m.supplier_name || ''}>{m.supplier_name || <span className="text-slate-300 text-xs">未指定</span>}</td>
                       <td className="px-3 py-2 text-right text-slate-600 whitespace-nowrap">{m.supplier_price?.toLocaleString()}</td>
                       <td className="px-3 py-2 text-right text-slate-800 font-medium whitespace-nowrap">{m.company_price?.toLocaleString()}</td>
                       <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{m.currency}</td>
