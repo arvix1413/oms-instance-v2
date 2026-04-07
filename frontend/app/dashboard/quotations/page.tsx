@@ -32,12 +32,10 @@ export default function QuotationsPage() {
   const [creating, setCreating] = useState(false)
   const [form, setForm] = useState({ customer_name:'', currency:'VND', valid_until:'', remark:'', items:[emptyItem()] })
   const [loading, setLoading] = useState(true)
-  const [msg, setMsg] = useState('')
   const [search, setSearch] = useState('')
 
   const load = () => apiFetch<Q[]>('/api/quotations').then(setItems).finally(()=>setLoading(false))
   useEffect(()=>{ load() },[])
-  const showMsg = (m:string) => { setMsg(m); setTimeout(()=>setMsg(''),3000) }
 
   const toggleExpand = async (id: number) => {
     const next = new Set(expanded)
@@ -105,7 +103,6 @@ export default function QuotationsPage() {
         </div>
         <button onClick={()=>setCreating(true)} className="btn-primary">+ 新增報價單</button>
       </div>
-      {msg && <div className="mb-4 px-4 py-2.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">{msg}</div>}
 
       {creating && (
         <div className="oms-card p-6 mb-5">

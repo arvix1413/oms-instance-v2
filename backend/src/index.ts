@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
@@ -140,7 +141,20 @@ app.delete('/api/customers/:id', authMiddleware, canApprove, async c => {
 
 // ── Materials ────────────────────────────────────────────────────────────────
 app.get('/api/materials', authMiddleware, async c => {
-  const rows = await query('SELECT m.*, s.name as supplier_name, s.supplier_code FROM materials m LEFT JOIN suppliers s ON m.supplier_id=s.id ORDER BY m.created_at DESC')
+  const url = new URL(c.req.url)
+  const supplierId = url.searchParams.get('supplier_id')
+  const supplierName = url.searchParams.get('supplier_name')
+  let sql = 'SELECT m.*, COALESCE(s.name, m.supplier_name) as supplier_name, s.supplier_code FROM materials m LEFT JOIN suppliers s ON m.supplier_id=s.id'
+  const params: any[] = []
+  if (supplierId) {
+    sql += ' WHERE m.supplier_id=? OR s.id=?'
+    params.push(supplierId, supplierId)
+  } else if (supplierName) {
+    sql += ' WHERE m.supplier_name=? OR s.name=?'
+    params.push(supplierName, supplierName)
+  }
+  sql += ' ORDER BY m.created_at DESC'
+  const rows = await query(sql, params.length ? params : undefined)
   return c.json(rows)
 })
 app.post('/api/materials', authMiddleware, canWrite, async c => {

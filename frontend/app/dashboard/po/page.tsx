@@ -26,21 +26,62 @@ function ChevronIcon({ open }: { open: boolean }) {
   )
 }
 
+type Supplier = { id: number; name: string; currency: string; supplier_code: string }
+type Material = { id: number; material_code: string; material_name: string; spec: string; unit: string; supplier_price: number; currency: string }
+
 export default function PoPage() {
   const { toast, confirm: confirmDialog } = useDialog()
 
   const [pos, setPos] = useState<Po[]>([])
+  const [suppliers, setSuppliers] = useState<Supplier[]>([])
+  const [supplierMaterials, setSupplierMaterials] = useState<Material[]>([])
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [loadedItems, setLoadedItems] = useState<Record<number, PoItem[]>>({})
   const [creating, setCreating] = useState(false)
-  const [form, setForm] = useState({ supplier_name:'', currency:'VND', remark:'', items:[emptyItem()] })
+  const [form, setForm] = useState({ supplier_id: '', supplier_name:'', currency:'VND', remark:'', items:[emptyItem()] })
   const [loading, setLoading] = useState(true)
-  const [msg, setMsg] = useState('')
   const [search, setSearch] = useState('')
 
   const load = () => apiFetch<Po[]>('/api/po').then(setPos).finally(() => setLoading(false))
-  useEffect(() => { load() }, [])
-  const showMsg = (m:string) => { setMsg(m); setTimeout(() => setMsg(''), 3000) }
+  useEffect(() => {
+    load()
+    apiFetch<Supplier[]>('/api/suppliers').then(setSuppliers).catch(() => {})
+  }, [])
+
+  const onSelectSupplier = async (supplierId: string) => {
+    const sup = suppliers.find(s => String(s.id) === supplierId)
+    setForm(p => ({ ...p, supplier_id: supplierId, supplier_name: sup?.name || '', currency: sup?.currency || 'VND', items: [emptyItem()] }))
+    if (supplierId && sup) {
+      try {
+        // Try by supplier_id first, fallback to supplier_name
+        const mats = await apiFetch<Material[]>(`/api/materials?supplier_id=${supplierId}`)
+        if (mats.length > 0) {
+          setSupplierMaterials(mats)
+        } else {
+          const byName = await apiFetch<Material[]>(`/api/materials?supplier_name=${encodeURIComponent(sup.name)}`)
+          setSupplierMaterials(byName)
+        }
+      } catch { setSupplierMaterials([]) }
+    } else {
+      setSupplierMaterials([])
+    }
+  }
+
+  const selectMaterial = (i: number, mat: Material) => {
+    setForm(p => ({
+      ...p,
+      items: p.items.map((item, idx) => idx !== i ? item : {
+        ...item,
+        material_code: mat.material_code,
+        material_name: mat.material_name,
+        spec: mat.spec || '',
+        unit: mat.unit || 'PCS',
+        unit_price: mat.supplier_price || 0,
+        currency: mat.currency || form.currency,
+        total_price: (item.quantity || 0) * (mat.supplier_price || 0),
+      })
+    }))
+  }
 
   const toggleExpand = async (id: number) => {
     const next = new Set(expanded)
@@ -131,16 +172,19 @@ export default function PoPage() {
         <button onClick={() => setCreating(true)} className="btn-primary">+ 建立採購單</button>
       </div>
 
-      {msg && <div className="mb-4 px-4 py-2.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">{msg}</div>}
-
       {creating && (
         <div className="oms-card p-6 mb-5">
           <h2 className="text-sm font-semibold text-slate-800 mb-4">建立採購單</h2>
           <div className="grid grid-cols-3 gap-3 mb-4">
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">供應商 *</label>
-              <input className={inp} value={form.supplier_name} onChange={e=>setForm(p=>({...p,supplier_name:e.target.value}))} />
-            </div>
+              <select className={inp} value={form.supplier_id}
+                onChange={e => onSelectSupplier(e.target.value)}>
+                <option value="">-- 選擇供應商 --</option>
+                {suppliers.map(s => (
+                  <option key={s.id} value={String(s.id)}>{s.name}{s.supplier_code ? ` (${s.supplier_code})` : ''}</option>
+                ))}
+              </select>            </div>
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">幣別</label>
               <select className={inp} value={form.currency} onChange={e=>setForm(p=>({...p,currency:e.target.value}))}>
@@ -167,7 +211,23 @@ export default function PoPage() {
                 {form.items.map((item, i) => (
                   <tr key={i} className="border-b border-slate-100">
                     <td className="p-1"><input className={inp} style={{width:100}} value={item.po_ref} placeholder="PO編號" onChange={e=>updateItem(i,'po_ref',e.target.value)} /></td>
-                    <td className="p-1"><input className={inp} style={{width:90}} value={item.material_code} onChange={e=>updateItem(i,'material_code',e.target.value)} /></td>
+                    <td className="p-1">
+                      {supplierMaterials.length > 0 ? (
+                        <select className={inp} style={{width:130}} value={item.material_code}
+                          onChange={e => {
+                            const mat = supplierMaterials.find(m => m.material_code === e.target.value)
+                            if (mat) selectMaterial(i, mat)
+                            else updateItem(i, 'material_code', e.target.value)
+                          }}>
+                          <option value="">-- 選擇料號 --</option>
+                          {supplierMaterials.map(m => (
+                            <option key={m.id} value={m.material_code}>{m.material_code} - {m.material_name}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input className={inp} style={{width:90}} value={item.material_code} onChange={e=>updateItem(i,'material_code',e.target.value)} />
+                      )}
+                    </td>
                     <td className="p-1"><input className={inp} value={item.material_name} onChange={e=>updateItem(i,'material_name',e.target.value)} /></td>
                     <td className="p-1"><input className={inp} style={{width:80}} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} /></td>
                     <td className="p-1"><input type="number" className={inp} style={{width:60}} value={item.thickness||""} placeholder="厚度" onChange={e=>updateItem(i,'thickness',e.target.value)} /></td>

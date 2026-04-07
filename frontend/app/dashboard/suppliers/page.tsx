@@ -3,6 +3,7 @@ import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
+import { validate } from '@/lib/validate'
 
 type Supplier = { id: number; supplier_code: string; name: string; tax_id: string; contact: string; phone: string; email: string; address: string; main_items: string; payment_terms: string; currency: string; status: string }
 const empty = (): Partial<Supplier> => ({ supplier_code:'', name:'', tax_id:'', contact:'', phone:'', email:'', address:'', main_items:'', payment_terms:'', currency:'VND', status:'active' })
@@ -38,20 +39,24 @@ export default function SuppliersPage() {
   const [editing, setEditing] = useState<Partial<Supplier>|null>(null)
   const [detail, setDetail] = useState<Supplier|null>(null)
   const [loading, setLoading] = useState(true)
-  const [msg, setMsg] = useState<{text:string;ok:boolean}|null>(null)
   const [search, setSearch] = useState('')
 
   const load = () => apiFetch<Supplier[]>('/api/suppliers').then(setItems).finally(()=>setLoading(false))
   useEffect(()=>{ load() },[])
-  const showMsg = (text:string, ok=true) => { setMsg({text,ok}); setTimeout(()=>setMsg(null),3000) }
 
   const save = async () => {
     if (!editing) return
+    const err = validate(editing, [
+      { field: 'name', label: '供應商名稱', required: true },
+      { field: 'email', label: 'Email', email: true },
+      { field: 'phone', label: '電話', phone: true },
+    ])
+    if (err) { toast(err, 'error'); return }
     try {
       if (editing.id) await apiFetch(`/api/suppliers/${editing.id}`,{method:'PUT',body:JSON.stringify(editing)})
       else await apiFetch('/api/suppliers',{method:'POST',body:JSON.stringify(editing)})
       toast('儲存成功'); setEditing(null); load()
-    } catch(e:any){ toast('錯誤：'+e.message, false) }
+    } catch(e:any){ toast('錯誤：'+e.message, 'error') }
   }
   const del = async (id:number) => {
     if (!await confirmDialog('確定刪除？')) return
@@ -72,12 +77,6 @@ export default function SuppliersPage() {
           <span className="text-base leading-none">+</span> 新增供應商
         </button>
       </div>
-
-      {msg && (
-        <div className={`mb-4 px-4 py-2.5 rounded-lg text-xs font-medium ${msg.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
-          {msg.text}
-        </div>
-      )}
 
       {detail && (
         <Modal title="供應商詳情" onClose={()=>setDetail(null)}>

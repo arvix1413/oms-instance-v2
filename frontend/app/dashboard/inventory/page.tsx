@@ -48,12 +48,10 @@ export default function InventoryPage() {
   const [editing, setEditing] = useState<Partial<Inv>|null>(null)
   const [detail, setDetail] = useState<Inv|null>(null)
   const [loading, setLoading] = useState(true)
-  const [msg, setMsg] = useState('')
   const [search, setSearch] = useState('')
 
   const load = () => apiFetch<Inv[]>('/api/inventory').then(setItems).finally(()=>setLoading(false))
   useEffect(()=>{ load() },[])
-  const showMsg = (m:string) => { setMsg(m); setTimeout(()=>setMsg(''),3000) }
 
   const save = async () => {
     if (!editing) return
@@ -85,8 +83,6 @@ export default function InventoryPage() {
         <div className="oms-card p-4"><div className="text-xs text-slate-400 mb-1">期末庫存總量</div><div className="text-2xl font-bold text-green-600">{totalClosing.toLocaleString()}</div></div>
         <div className="oms-card p-4"><div className="text-xs text-slate-400 mb-1">低庫存警示</div><div className="text-2xl font-bold text-red-500">{items.filter(i=>i.closing_balance<=0).length}</div></div>
       </div>
-
-      {msg && <div className="mb-4 px-4 py-2.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">{msg}</div>}
       {detail && <DetailModal item={detail} onClose={()=>setDetail(null)} onEdit={()=>{ setEditing(detail); setDetail(null) }} />}
 
       {editing && (

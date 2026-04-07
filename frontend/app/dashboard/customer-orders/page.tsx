@@ -33,12 +33,10 @@ export default function CustomerOrdersPage() {
   const [creating, setCreating] = useState(false)
   const [form, setForm] = useState({ po_date:'', po_number:'', customer_name:'', remark:'', items:[emptyItem()] })
   const [loading, setLoading] = useState(true)
-  const [msg, setMsg] = useState('')
   const [search, setSearch] = useState('')
 
   const load = () => apiFetch<Order[]>('/api/customer-orders').then(setOrders).finally(()=>setLoading(false))
   useEffect(()=>{ load() },[])
-  const showMsg = (m:string) => { setMsg(m); setTimeout(()=>setMsg(''),3000) }
 
   const toggleExpand = async (id: number) => {
     const next = new Set(expanded)
@@ -84,8 +82,6 @@ export default function CustomerOrdersPage() {
         </div>
         <button onClick={()=>setCreating(true)} className="btn-primary">+ 新增訂單</button>
       </div>
-
-      {msg && <div className="mb-4 px-4 py-2.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">{msg}</div>}
 
       {creating && (
         <div className="oms-card p-6 mb-5">

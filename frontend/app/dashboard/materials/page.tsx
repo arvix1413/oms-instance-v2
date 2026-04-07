@@ -58,7 +58,6 @@ export default function MaterialsPage() {
   const [detail, setDetail] = useState<Material|null>(null)
   const [uploading, setUploading] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [msg, setMsg] = useState<{text:string;type:'success'|'error'|'info'}|null>(null)
   const [importing, setImporting] = useState(false)
   const [importPreview, setImportPreview] = useState<any[]|null>(null)
   const [search, setSearch] = useState('')
@@ -69,7 +68,6 @@ export default function MaterialsPage() {
     load()
     apiFetch<Supplier[]>('/api/suppliers').then(setSuppliers)
   }, [])
-  const showMsg = (text: string, type: 'success'|'error'|'info' = 'success') => { setMsg({text,type}); setTimeout(() => setMsg(null), 5000) }
 
   const filtered = items.filter(m => !search || m.material_code.toLowerCase().includes(search.toLowerCase()) || m.material_name.toLowerCase().includes(search.toLowerCase()))
   const { page, setPage, totalPages, paged, total } = usePagination(filtered, 20)
@@ -176,12 +174,6 @@ export default function MaterialsPage() {
           <button onClick={() => setEditing(empty())} className="btn-primary">+ 新增料號</button>
         </div>
       </div>
-
-      {msg && (
-        <div className={`mb-4 px-4 py-2.5 rounded-lg text-xs font-medium ${msg.type==='success'?'bg-emerald-50 text-emerald-700 border border-emerald-200':msg.type==='error'?'bg-red-50 text-red-600 border border-red-200':'bg-blue-500/10 text-blue-600 border border-blue-500/20'}`}>
-          {msg.text}
-        </div>
-      )}
 
       {detail && <DetailModal item={detail} onClose={()=>setDetail(null)} onEdit={()=>{ setEditing(detail); setDetail(null) }} />}
 

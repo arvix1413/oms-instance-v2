@@ -14,13 +14,10 @@ export default function ProductsPage() {
   const [editing, setEditing] = useState<Partial<Product> | null>(null)
   const [uploading, setUploading] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [msg, setMsg] = useState('')
   const [search, setSearch] = useState('')
 
   const load = () => apiFetch<Product[]>('/api/products').then(setProducts).finally(() => setLoading(false))
   useEffect(() => { load() }, [])
-
-  const showMsg = (m: string) => { setMsg(m); setTimeout(() => setMsg(''), 3000) }
 
   const uploadImage = async (file: File): Promise<string> => {
     setUploading(true)
@@ -60,8 +57,6 @@ export default function ProductsPage() {
         <h1 className="text-xl font-bold text-slate-800">商品管理</h1>
         <button onClick={() => setEditing(empty())} className="btn-primary">+ 新增商品</button>
       </div>
-
-      {msg && <div className="mb-4 px-4 py-2.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">{msg}</div>}
 
       {/* Form */}
       {editing && (

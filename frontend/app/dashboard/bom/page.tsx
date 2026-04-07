@@ -18,12 +18,10 @@ export default function BomPage() {
   const [viewing, setViewing] = useState<Bom|null>(null)
   const [form, setForm] = useState({ product_sku:'', product_name:'', version:'V1', items:[emptyItem()] })
   const [loading, setLoading] = useState(true)
-  const [msg, setMsg] = useState('')
   const [search, setSearch] = useState('')
 
   const load = () => apiFetch<Bom[]>('/api/bom').then(setBoms).finally(() => setLoading(false))
   useEffect(() => { load() }, [])
-  const showMsg = (m:string) => { setMsg(m); setTimeout(() => setMsg(''), 3000) }
 
   const viewBom = async (id:number) => {
     const data = await apiFetch<Bom>(`/api/bom/${id}`)
@@ -170,8 +168,6 @@ export default function BomPage() {
         </div>
         <button onClick={() => setCreating(true)} className="btn-primary">+ 建立 BOM</button>
       </div>
-
-      {msg && <div className="mb-4 px-4 py-2.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">{msg}</div>}
       {isOpen && <FormModal />}
 
       {viewing && (

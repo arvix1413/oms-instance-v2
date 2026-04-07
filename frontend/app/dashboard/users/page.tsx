@@ -5,6 +5,7 @@ import { apiFetch } from '@/lib/api'
 import { ROLE_LABELS, ROLE_COLORS, PERMISSIONS, getUser, type Role } from '@/lib/permissions'
 import { useRouter } from 'next/navigation'
 import { usePagination, Pagination } from '@/lib/usePagination'
+import { validate } from '@/lib/validate'
 
 type User = { id: number; email: string; name: string; role: Role; created_at: string }
 const empty = (): Partial<User> & { password?: string } => ({ email:'', name:'', role:'purchaser', password:'' })
@@ -16,7 +17,6 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [editing, setEditing] = useState<(Partial<User> & { password?: string }) | null>(null)
   const [loading, setLoading] = useState(true)
-  const [msg, setMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
   const [changingRole, setChangingRole] = useState<number | null>(null)
   const [search, setSearch] = useState('')
 
@@ -31,18 +31,18 @@ export default function UsersPage() {
 
   const load = () => apiFetch<User[]>('/api/users').then(setUsers).finally(() => setLoading(false))
 
-  const showMsg = (text: string, type: 'success' | 'error' = 'success') => {
-    setMsg({ text, type })
-    setTimeout(() => setMsg(null), 3000)
-  }
-
   const save = async () => {
     if (!editing) return
+    const err = validate(editing, [
+      { field: 'email', label: 'Email', required: true, email: true },
+      { field: 'name', label: '姓名', required: true },
+      ...(!editing.id ? [{ field: 'password', label: '密碼', required: true, minLen: 6 }] : []),
+    ])
+    if (err) { toast(err, 'error'); return }
     try {
       if (editing.id) {
         await apiFetch(`/api/users/${editing.id}`, { method: 'PUT', body: JSON.stringify(editing) })
       } else {
-        if (!editing.password) { toast('新用戶需要設定密碼', 'error'); return }
         await apiFetch('/api/users', { method: 'POST', body: JSON.stringify(editing) })
       }
       toast('儲存成功'); setEditing(null); load()
@@ -63,7 +63,7 @@ export default function UsersPage() {
   }
 
   const del = async (id: number, name: string) => {
-    if (!confirm(`確定刪除用戶「${name}」？此操作無法復原。`)) return
+    if (!await confirmDialog(`確定刪除用戶「${name}」？`, '此操作無法復原')) return
     try {
       await apiFetch(`/api/users/${id}`, { method: 'DELETE' })
       toast('用戶已刪除'); load()
@@ -102,12 +102,6 @@ export default function UsersPage() {
           </div>
         ))}
       </div>
-
-      {msg && (
-        <div className={`mb-4 p-3 rounded-lg text-sm ${msg.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
-          {msg.text}
-        </div>
-      )}
 
       {/* Create/Edit Form */}
       {editing && (

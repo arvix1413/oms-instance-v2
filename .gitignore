@@ -18,3 +18,4 @@ alter-tables.sql
 *.jpg
 *.png
 playwright-report/
+*.zip

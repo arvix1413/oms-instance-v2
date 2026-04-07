@@ -24,12 +24,10 @@ export default function ReceivablesPage() {
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<AR | null>(null)
   const [form, setForm] = useState({ payment_status: 'paid', received_amount: 0, payment_date: '', payment_note: '' })
-  const [msg, setMsg] = useState('')
   const [search, setSearch] = useState('')
 
   const load = () => apiFetch<AR[]>('/api/receivables').then(setItems).finally(() => setLoading(false))
   useEffect(() => { load() }, [])
-  const showMsg = (m: string) => { setMsg(m); setTimeout(() => setMsg(''), 3000) }
 
   const openEdit = (item: AR) => {
     setEditing(item)
@@ -84,8 +82,6 @@ export default function ReceivablesPage() {
           <div className="text-xl font-bold text-amber-500">{totalPending.toLocaleString()}</div>
         </div>
       </div>
-
-      {msg && <div className="mb-4 px-4 py-2.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">{msg}</div>}
 
       {editing && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">

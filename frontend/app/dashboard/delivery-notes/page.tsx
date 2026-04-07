@@ -21,12 +21,10 @@ export default function DeliveryNotesPage() {
   const [viewing, setViewing] = useState<DN|null>(null)
   const [form, setForm] = useState({ customer_name:'', delivery_date:'', remark:'', items:[emptyItem()] })
   const [loading, setLoading] = useState(true)
-  const [msg, setMsg] = useState('')
   const [search, setSearch] = useState('')
 
   const load = () => apiFetch<DN[]>('/api/delivery-notes').then(setItems).finally(()=>setLoading(false))
   useEffect(()=>{ load() },[])
-  const showMsg = (m:string) => { setMsg(m); setTimeout(()=>setMsg(''),3000) }
 
   const viewDN = async (id:number) => { const d = await apiFetch<DN>(`/api/delivery-notes/${id}`); setViewing(d) }
   const changeStatus = async (id:number, status:string) => {
@@ -70,7 +68,6 @@ export default function DeliveryNotesPage() {
         <h1 className="text-xl font-bold text-slate-800">出貨單</h1>
         <button onClick={()=>setCreating(true)} className="btn-primary">+ 新增出貨單</button>
       </div>
-      {msg && <div className="mb-4 px-4 py-2.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">{msg}</div>}
 
       {creating && (
         <div className="oms-card p-6 mb-5">

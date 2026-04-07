@@ -35,7 +35,6 @@ export default function RolesPage() {
   const [allPerms, setAllPerms] = useState<PermDef[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
-  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null)
 
   // Create role form
   const [creating, setCreating] = useState(false)
@@ -53,13 +52,8 @@ export default function RolesPage() {
       setPermMap(data.permissions)
       setAllPerms(data.allPermissions)
     } catch (e: any) {
-      toast('載入失敗：' + e.message, false)
+      toast('載入失敗：' + e.message, 'error')
     } finally { setLoading(false) }
-  }
-
-  const showMsg = (text: string, ok = true) => {
-    setMsg({ text, ok })
-    setTimeout(() => setMsg(null), 3000)
   }
 
   const toggle = async (role: string, permission: string, current: boolean) => {
@@ -72,7 +66,7 @@ export default function RolesPage() {
       })
       setPermMap(prev => ({ ...prev, [role]: { ...prev[role], [permission]: !current } }))
     } catch (e: any) {
-      toast('更新失敗：' + e.message, false)
+      toast('更新失敗：' + e.message, 'error')
     } finally { setSaving(null) }
   }
 
@@ -93,7 +87,7 @@ export default function RolesPage() {
       setCreating(false)
       setNewRole({ name: '', label: '', perms: {} })
       load()
-    } catch (e: any) { toast('建立失敗：' + e.message, false) }
+    } catch (e: any) { toast('建立失敗：' + e.message, 'error') }
   }
 
   const editableRoles = Object.keys(permMap).filter(r => r !== 'admin')
@@ -128,12 +122,6 @@ export default function RolesPage() {
         </div>
         <button onClick={() => setCreating(true)} className="btn-primary">+ 建立角色</button>
       </div>
-
-      {msg && (
-        <div className={`mb-4 px-4 py-2.5 rounded-lg text-xs font-medium ${msg.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
-          {msg.text}
-        </div>
-      )}
 
       {/* Create role modal */}
       {creating && (
