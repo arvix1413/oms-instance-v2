@@ -363,39 +363,52 @@ app.patch('/api/po/:id/receive', authMiddleware, canWrite, async c => {
 
 // ── Customer Orders ───────────────────────────────────────────────────────────
 app.get('/api/customer-orders', authMiddleware, async c => c.json(await query(`
-  SELECT co.*, c.customer_name, c.customer_code
+  SELECT co.id, co.po_date, co.po_number, co.customer_id, co.status, co.remark, co.created_at,
+         co.received_amount, co.payment_status, co.payment_date, co.payment_note,
+         c.customer_name, c.customer_code
   FROM customer_orders co LEFT JOIN customers c ON co.customer_id = c.id
   ORDER BY co.created_at DESC
 `)))
 app.get('/api/customer-orders/:id', authMiddleware, async c => {
   const order = await queryOne<any>(`
-    SELECT co.*, c.customer_name, c.customer_code
+    SELECT co.id, co.po_date, co.po_number, co.customer_id, co.status, co.remark, co.created_at,
+           co.received_amount, co.payment_status, co.payment_date, co.payment_note,
+           c.customer_name, c.customer_code
     FROM customer_orders co LEFT JOIN customers c ON co.customer_id = c.id
     WHERE co.id=?`, [c.req.param('id')])
   if (!order) return c.json({ error: 'Not found' }, 404)
-  const items = await query('SELECT * FROM customer_order_items WHERE order_id=?', [c.req.param('id')])
+  const items = await query(`
+    SELECT ci.*, b.product_name as bom_name, b.product_sku as bom_sku
+    FROM customer_order_items ci
+    LEFT JOIN bom b ON ci.bom_id = b.id
+    WHERE ci.order_id=?`, [c.req.param('id')])
   return c.json({ ...order, items })
 })
 app.post('/api/customer-orders', authMiddleware, canWrite, async c => {
   try {
     const b = await c.req.json()
-    if (!b.po_number || !b.customer_name) return c.json({ error: 'po_number and customer_name required' }, 400)
-    const r = await execute('INSERT INTO customer_orders (po_date,po_number,customer_id,customer_name,status,remark,created_at) VALUES (?,?,?,?,?,?,?)',
-      [b.po_date||null,b.po_number,b.customer_id||null,b.customer_name,b.status||'pending',b.remark||'',now8()])
+    if (!b.po_number || !b.customer_id) return c.json({ error: 'po_number and customer_id required' }, 400)
+    // Get customer name for audit log
+    const cust = await queryOne<any>('SELECT customer_name FROM customers WHERE id=?', [b.customer_id])
+    const r = await execute('INSERT INTO customer_orders (po_date,po_number,customer_id,status,remark,created_at) VALUES (?,?,?,?,?,?)',
+      [b.po_date||null, b.po_number, b.customer_id, b.status||'pending', b.remark||'', now8()])
     const orderId = r.insertId
     if (b.items?.length) {
       for (const item of b.items) {
-        await execute('INSERT INTO customer_order_items (order_id,item_name,material_code,spec,thickness,unit,qty,unit_price,rta_date,arrived_qty,arrived_date,balance,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
-          [orderId,item.item_name,item.material_code||'',item.spec||'',item.thickness||null,item.unit||'PCS',item.qty,item.unit_price||0,item.rta_date||null,item.arrived_qty||0,item.arrived_date||null,item.qty-(item.arrived_qty||0),item.status||'pending'])
+        await execute('INSERT INTO customer_order_items (order_id,bom_id,item_name,material_code,spec,thickness,unit,qty,unit_price,rta_date,arrived_qty,arrived_date,balance,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          [orderId, item.bom_id||null, item.item_name||'', item.material_code||'', item.spec||'', item.thickness||null, item.unit||'PCS', item.qty, item.unit_price||0, item.rta_date||null, item.arrived_qty||0, item.arrived_date||null, item.qty-(item.arrived_qty||0), item.status||'pending'])
       }
     }
-    await audit(c.get('user'), 'CREATE', '客戶訂單', orderId, `${b.po_number} / ${b.customer_name}`)
+    await audit(c.get('user'), 'CREATE', '客戶訂單', orderId, `${b.po_number} / ${cust?.customer_name||b.customer_id}`)
     return c.json({ id: orderId }, 201)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 app.delete('/api/customer-orders/:id', authMiddleware, canApprove, async c => {
   const id = c.req.param('id')
-  const row = await queryOne<any>('SELECT po_number,customer_name FROM customer_orders WHERE id=?', [id])
+  const row = await queryOne<any>(`
+    SELECT co.po_number, c.customer_name
+    FROM customer_orders co LEFT JOIN customers c ON co.customer_id = c.id
+    WHERE co.id=?`, [id])
   await execute('DELETE FROM customer_order_items WHERE order_id=?', [id])
   await execute('DELETE FROM customer_orders WHERE id=?', [id])
   await audit(c.get('user'), 'DELETE', '客戶訂單', id, `${row?.po_number} / ${row?.customer_name}`)
