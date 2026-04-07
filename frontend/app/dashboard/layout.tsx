@@ -16,12 +16,13 @@ const NAV: NavEntry[] = [
   {
     label: '業務流程', icon: <IconClipboard />,
     children: [
-      { href: '/dashboard/bom', label: 'BOM 管理', icon: <IconList /> },
       { href: '/dashboard/customer-orders', label: '客戶訂單', icon: <IconDoc /> },
+      { href: '/dashboard/bom', label: 'BOM 管理', icon: <IconList /> },
       { href: '/dashboard/po', label: '採購單', icon: <IconCart /> },
       { href: '/dashboard/production', label: '生產單', icon: <IconFactory /> },
       { href: '/dashboard/delivery-notes', label: '出貨單', icon: <IconTruck /> },
-    ]
+    ],
+    defaultOpen: true
   },
   {
     label: '基礎資料', icon: <IconBox />,
