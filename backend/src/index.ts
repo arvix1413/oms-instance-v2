@@ -845,7 +845,7 @@ app.post('/api/production', authMiddleware, canWrite, async c => {
     const prodNum = `WO${Date.now()}`
     const r = await execute(
       'INSERT INTO production_orders (prod_number,customer_order_id,bom_id,product_sku,product_name,planned_qty,status,planned_start,planned_end,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
-      [prodNum,b.customer_order_id||null,b.bom_id||null,b.product_sku||'',b.product_name,'draft',b.planned_qty,b.planned_start||null,b.planned_end||null,b.remark||'',u.userId,now8()]
+      [prodNum,b.customer_order_id||null,b.bom_id||null,b.product_sku||'',b.product_name,b.planned_qty,b.initial_status||'draft',b.planned_start||null,b.planned_end||null,b.remark||'',u.userId,now8()]
     )
     const prodId = r.insertId
     if (b.materials?.length) {
