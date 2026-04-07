@@ -873,7 +873,7 @@ app.patch('/api/production/:id/status', authMiddleware, canWrite, async c => {
       // Issue materials from stock only on completion
       const mats = await query<any>('SELECT * FROM production_materials WHERE prod_id=?', [id])
       for (const mat of mats) {
-        const qty = parseFloat(mat.issued_qty || mat.planned_qty) || 0
+        const qty = parseFloat(mat.issued_qty) > 0 ? parseFloat(mat.issued_qty) : parseFloat(mat.planned_qty) || 0
         const m = await queryOne<any>('SELECT current_stock FROM materials WHERE material_code=?', [mat.material_code])
         const before = parseFloat(m?.current_stock) || 0
         const after = Math.max(0, before - qty)
