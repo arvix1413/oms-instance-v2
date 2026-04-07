@@ -211,12 +211,19 @@ app.post('/api/materials/bulk', authMiddleware, canWrite, async c => {
 })
 
 // ── BOM ──────────────────────────────────────────────────────────────────────
-app.get('/api/bom', authMiddleware, async c => c.json(await query('SELECT * FROM bom ORDER BY created_at DESC')))
+app.get('/api/bom', authMiddleware, async c => c.json(await query(`
+  SELECT b.*, s.name as supplier_display_name
+  FROM bom b LEFT JOIN suppliers s ON b.supplier_id = s.id
+  ORDER BY b.category, b.created_at DESC
+`)))
 app.get('/api/bom/:id', authMiddleware, async c => {
-  const bom = await queryOne<any>('SELECT * FROM bom WHERE id=?', [c.req.param('id')])
+  const bom = await queryOne<any>(`
+    SELECT b.*, s.name as supplier_display_name
+    FROM bom b LEFT JOIN suppliers s ON b.supplier_id = s.id
+    WHERE b.id=?`, [c.req.param('id')])
   if (!bom) return c.json({ error: 'Not found' }, 404)
   const items = await query(`
-    SELECT bi.*, m.material_name, m.spec, m.unit, s.name as supplier_name
+    SELECT bi.*, m.material_name as mat_name, m.spec as mat_spec, m.unit as mat_unit, s.name as sup_name
     FROM bom_items bi
     LEFT JOIN materials m ON bi.material_code = m.material_code
     LEFT JOIN suppliers s ON m.supplier_id = s.id
@@ -227,12 +234,13 @@ app.post('/api/bom', authMiddleware, canWrite, async c => {
   try {
     const b = await c.req.json()
     if (!b.product_sku || !b.product_name) return c.json({ error: 'product_sku and product_name required' }, 400)
-    // Check SKU uniqueness
     const existing = await queryOne<any>('SELECT id FROM bom WHERE product_sku=?', [b.product_sku])
     if (existing) return c.json({ error: `SKU「${b.product_sku}」已存在，請使用不同的 SKU` }, 409)
     const u = c.get('user')
-    const r = await execute('INSERT INTO bom (product_sku,product_name,version,status,created_by,created_at) VALUES (?,?,?,?,?,?)',
-      [b.product_sku,b.product_name,b.version||'V1','active',u.userId,now8()])
+    const r = await execute(`INSERT INTO bom (product_sku,product_name,material_name,spec,unit,supplier_id,supplier_name,supplier_price,company_price,currency,category,version,status,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [b.product_sku, b.product_name, b.material_name||'', b.spec||'', b.unit||'PCS',
+       b.supplier_id||null, b.supplier_name||'', b.supplier_price||0, b.company_price||0,
+       b.currency||'VND', b.category||'', b.version||'V1', 'active', u.userId, now8()])
     const bomId = r.insertId
     if (b.items?.length) {
       for (const item of b.items) {
@@ -247,8 +255,10 @@ app.post('/api/bom', authMiddleware, canWrite, async c => {
 app.put('/api/bom/:id', authMiddleware, canWrite, async c => {
   try {
     const id = c.req.param('id'); const b = await c.req.json(); const u = c.get('user')
-    await execute('UPDATE bom SET product_sku=?,product_name=?,version=? WHERE id=?',
-      [b.product_sku,b.product_name,b.version||'V1',id])
+    await execute(`UPDATE bom SET product_sku=?,product_name=?,material_name=?,spec=?,unit=?,supplier_id=?,supplier_name=?,supplier_price=?,company_price=?,currency=?,category=?,version=? WHERE id=?`,
+      [b.product_sku, b.product_name, b.material_name||'', b.spec||'', b.unit||'PCS',
+       b.supplier_id||null, b.supplier_name||'', b.supplier_price||0, b.company_price||0,
+       b.currency||'VND', b.category||'', b.version||'V1', id])
     await execute('DELETE FROM bom_items WHERE bom_id=?', [id])
     if (b.items?.length) {
       for (const item of b.items) {
@@ -378,7 +388,9 @@ app.get('/api/customer-orders/:id', authMiddleware, async c => {
     WHERE co.id=?`, [c.req.param('id')])
   if (!order) return c.json({ error: 'Not found' }, 404)
   const items = await query(`
-    SELECT ci.*, b.product_name as bom_name, b.product_sku as bom_sku
+    SELECT ci.id, ci.order_id, ci.bom_id, ci.qty, ci.unit_price, ci.rta_date,
+           ci.arrived_qty, ci.arrived_date, ci.balance, ci.status,
+           b.product_sku, b.product_name, b.version
     FROM customer_order_items ci
     LEFT JOIN bom b ON ci.bom_id = b.id
     WHERE ci.order_id=?`, [c.req.param('id')])
@@ -388,15 +400,15 @@ app.post('/api/customer-orders', authMiddleware, canWrite, async c => {
   try {
     const b = await c.req.json()
     if (!b.po_number || !b.customer_id) return c.json({ error: 'po_number and customer_id required' }, 400)
-    // Get customer name for audit log
     const cust = await queryOne<any>('SELECT customer_name FROM customers WHERE id=?', [b.customer_id])
     const r = await execute('INSERT INTO customer_orders (po_date,po_number,customer_id,status,remark,created_at) VALUES (?,?,?,?,?,?)',
       [b.po_date||null, b.po_number, b.customer_id, b.status||'pending', b.remark||'', now8()])
     const orderId = r.insertId
     if (b.items?.length) {
       for (const item of b.items) {
-        await execute('INSERT INTO customer_order_items (order_id,bom_id,item_name,material_code,spec,thickness,unit,qty,unit_price,rta_date,arrived_qty,arrived_date,balance,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-          [orderId, item.bom_id||null, item.item_name||'', item.material_code||'', item.spec||'', item.thickness||null, item.unit||'PCS', item.qty, item.unit_price||0, item.rta_date||null, item.arrived_qty||0, item.arrived_date||null, item.qty-(item.arrived_qty||0), item.status||'pending'])
+        if (!item.bom_id) continue  // skip items without BOM
+        await execute('INSERT INTO customer_order_items (order_id,bom_id,qty,unit_price,rta_date,arrived_qty,balance,status) VALUES (?,?,?,?,?,?,?,?)',
+          [orderId, item.bom_id, item.qty||0, item.unit_price||0, item.rta_date||null, 0, item.qty||0, 'pending'])
       }
     }
     await audit(c.get('user'), 'CREATE', '客戶訂單', orderId, `${b.po_number} / ${cust?.customer_name||b.customer_id}`)

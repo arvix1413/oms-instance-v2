@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 
-type OrderItem = { bom_id?:number|null; item_name:string; material_code:string; spec:string; thickness?:number|null; unit:string; qty:number; unit_price:number; rta_date:string; arrived_qty:number; arrived_date?:string; balance?:number; status?:string; bom_name?:string }
+type OrderItem = { id?:number; bom_id:number|null; qty:number; unit_price:number; rta_date:string; arrived_qty?:number; arrived_date?:string; balance?:number; status?:string; product_sku?:string; product_name?:string }
 type Order = { id:number; po_date:string; po_number:string; customer_id:number; customer_name:string; customer_code:string; status:string; remark:string; created_at:string; items?:OrderItem[] }
-type BOM = { id:number; product_sku:string; product_name:string; version:string }
+type BOM = { id:number; product_sku:string; product_name:string; company_price?:number; unit?:string }
 type Customer = { id:number; customer_code:string; customer_name:string }
-const emptyItem = (): OrderItem => ({ bom_id:null, item_name:'', material_code:'', spec:'', unit:'PCS', qty:0, unit_price:0, rta_date:'', arrived_qty:0 })
+const emptyItem = (): OrderItem => ({ bom_id:null, qty:0, unit_price:0, rta_date:'' })
 
 const STATUS_BADGE: Record<string,string> = { pending:'badge-yellow', completed:'badge-green', delay:'badge-red', partial:'badge-blue' }
 const STATUS_LABEL: Record<string,string> = { pending:'待出貨', completed:'已完成', delay:'延遲', partial:'部分到貨' }
@@ -47,7 +47,7 @@ export default function CustomerOrdersPage() {
     if (next.has(id)) { next.delete(id); setExpanded(next) }
     else {
       next.add(id); setExpanded(next)
-      if (!loadedItems[id]) {
+      if (loadedItems[id] === undefined) {
         const data = await apiFetch<Order>(`/api/customer-orders/${id}`)
         setLoadedItems(p => ({ ...p, [id]: data.items || [] }))
       }
@@ -57,8 +57,10 @@ export default function CustomerOrdersPage() {
   const save = async () => {
     if (!form.po_number) { toast('請填寫採購單號', 'error'); return }
     if (!form.customer_id) { toast('請選擇客戶', 'error'); return }
+    const validItems = form.items.filter(i => i.bom_id)
+    if (!validItems.length) { toast('請至少選擇一個 BOM 品項', 'error'); return }
     try {
-      await apiFetch('/api/customer-orders', { method:'POST', body:JSON.stringify(form) })
+      await apiFetch('/api/customer-orders', { method:'POST', body:JSON.stringify({ ...form, items: validItems }) })
       toast('建立成功'); setCreating(false)
       setForm({ po_date:'', po_number:'', customer_id:'', remark:'', items:[emptyItem()] }); load()
     } catch(e:any){ toast('錯誤：'+e.message, 'error') }
@@ -73,26 +75,12 @@ export default function CustomerOrdersPage() {
   const removeItem = (i:number) => setForm(p=>({...p, items:p.items.filter((_,idx)=>idx!==i)}))
   const updateItem = (i:number, f:keyof OrderItem, v:any) => setForm(p=>({...p, items:p.items.map((item,idx)=>idx===i?{...item,[f]:v}:item)}))
 
-  const selectBOM = async (i:number, bomId:string) => {
-    if (!bomId) { updateItem(i, 'bom_id', null); return }
+  // When BOM selected, auto-fill unit_price from company_price
+  const onSelectBom = (i:number, bomId:string) => {
     const bom = boms.find(b => String(b.id) === bomId)
-    if (!bom) return
-    // Fetch BOM detail to get spec/unit from first item
-    try {
-      const detail = await apiFetch<any>(`/api/bom/${bomId}`)
-      const firstItem = detail.items?.[0]
-      setForm(p=>({...p, items: p.items.map((item,idx) => idx===i ? {
-        ...item,
-        bom_id: Number(bomId),
-        item_name: bom.product_name,
-        material_code: bom.product_sku,
-        spec: firstItem?.spec || '',
-        unit: firstItem?.unit || 'PCS',
-      } : item)}))
-    } catch {
-      setForm(p=>({...p, items: p.items.map((item,idx) => idx===i ? {
-        ...item, bom_id: Number(bomId), item_name: bom.product_name, material_code: bom.product_sku,
-      } : item)}))
+    updateItem(i, 'bom_id', bomId ? Number(bomId) : null)
+    if (bom && (bom as any).company_price) {
+      updateItem(i, 'unit_price', Number((bom as any).company_price))
     }
   }
 
@@ -115,7 +103,7 @@ export default function CustomerOrdersPage() {
       {creating && (
         <div className="oms-card p-6 mb-5">
           <h2 className="text-sm font-semibold text-slate-800 mb-4">新增客戶訂單</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">採購日期</label>
               <input type="date" className={inp} value={form.po_date} onChange={e=>setForm(p=>({...p,po_date:e.target.value}))} />
@@ -129,7 +117,7 @@ export default function CustomerOrdersPage() {
               <select className={inp} value={form.customer_id} onChange={e=>setForm(p=>({...p,customer_id:e.target.value}))}>
                 <option value="">-- 選擇客戶 --</option>
                 {customers.map(c=>(
-                  <option key={c.id} value={String(c.id)}>{c.customer_name}{c.customer_code ? ` (${c.customer_code})` : ''}</option>
+                  <option key={c.id} value={String(c.id)}>{c.customer_name}{c.customer_code?` (${c.customer_code})`:''}</option>
                 ))}
               </select>
             </div>
@@ -138,38 +126,44 @@ export default function CustomerOrdersPage() {
               <input className={inp} value={form.remark} onChange={e=>setForm(p=>({...p,remark:e.target.value}))} />
             </div>
           </div>
+
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-600">訂單明細</span>
+            <span className="text-xs font-semibold text-slate-600">訂單品項</span>
             <button onClick={addItem} className="btn-ghost text-blue-600">+ 新增品項</button>
           </div>
           <div className="overflow-x-auto rounded-lg border border-slate-200">
             <table className="w-full text-xs">
-              <thead><tr className="border-b border-slate-200">
-                {['品名（選BOM）','物料編號','規格','厚度mm','單位','數量','單價','出貨日期',''].map(h=>(
-                  <th key={h} className="px-2 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
-                ))}
+              <thead><tr className="bg-slate-50 border-b border-slate-200">
+                <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">品名（BOM）</th>
+                <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">數量</th>
+                <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">單價</th>
+                <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">出貨日期</th>
+                <th className="w-8" />
               </tr></thead>
               <tbody>
                 {form.items.map((item,i)=>(
-                  <tr key={i} className="border-b border-slate-100">
-                    <td className="p-1 min-w-[220px]">
+                  <tr key={i} className="border-b border-slate-100 last:border-0">
+                    <td className="p-1.5 min-w-[260px]">
                       <select className={inp} style={{width:'100%'}} value={item.bom_id ? String(item.bom_id) : ''}
-                        onChange={e => selectBOM(i, e.target.value)}>
+                        onChange={e=>onSelectBom(i, e.target.value)}>
                         <option value="">-- 選擇成品 BOM --</option>
                         {boms.map(b=>(
                           <option key={b.id} value={String(b.id)}>{b.product_sku} — {b.product_name}</option>
                         ))}
                       </select>
-                      {item.item_name && <div className="text-[10px] text-blue-600 mt-0.5 px-1">{item.item_name}</div>}
                     </td>
-                    <td className="p-1"><input className={inp} style={{width:100}} value={item.material_code} onChange={e=>updateItem(i,'material_code',e.target.value)} /></td>
-                    <td className="p-1"><input className={inp} style={{width:80}} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} /></td>
-                    <td className="p-1"><input type="number" className={inp} style={{width:55}} value={item.thickness||''} onChange={e=>updateItem(i,'thickness',e.target.value?Number(e.target.value):null)} /></td>
-                    <td className="p-1"><input className={inp} style={{width:45}} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} /></td>
-                    <td className="p-1"><input type="number" className={inp} style={{width:65}} value={item.qty||''} onChange={e=>updateItem(i,'qty',Number(e.target.value))} /></td>
-                    <td className="p-1"><input type="number" className={inp} style={{width:75}} value={item.unit_price||''} onChange={e=>updateItem(i,'unit_price',Number(e.target.value))} /></td>
-                    <td className="p-1"><input type="date" className={inp} value={item.rta_date} onChange={e=>updateItem(i,'rta_date',e.target.value)} /></td>
-                    <td className="p-1 text-center"><button onClick={()=>removeItem(i)} className="text-slate-300 hover:text-red-600 transition-colors">✕</button></td>
+                    <td className="p-1.5 w-24">
+                      <input type="number" className={inp} value={item.qty||''} onChange={e=>updateItem(i,'qty',Number(e.target.value))} />
+                    </td>
+                    <td className="p-1.5 w-28">
+                      <input type="number" className={inp} value={item.unit_price||''} onChange={e=>updateItem(i,'unit_price',Number(e.target.value))} />
+                    </td>
+                    <td className="p-1.5 w-36">
+                      <input type="date" className={inp} value={item.rta_date} onChange={e=>updateItem(i,'rta_date',e.target.value)} />
+                    </td>
+                    <td className="p-1.5 text-center">
+                      <button onClick={()=>removeItem(i)} className="text-slate-300 hover:text-red-600 transition-colors">✕</button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -227,35 +221,29 @@ export default function CustomerOrdersPage() {
                               ) : items.length === 0 ? (
                                 <div className="px-8 py-4 text-xs text-slate-400">尚無品項</div>
                               ) : (
-                                <div className="overflow-x-auto">
-                                  <table className="w-full text-xs" style={{minWidth:800}}>
-                                    <thead><tr className="border-b border-slate-100">
-                                      {['品名','物料編號','規格','厚度mm','單位','訂單數量','單價','RTA','已到數量','到貨日期','結餘','狀態'].map(h=>(
-                                        <th key={h} className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
-                                      ))}
-                                    </tr></thead>
-                                    <tbody>
-                                      {items.map((item,i)=>(
-                                        <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                                          <td className="px-3 py-2 text-slate-600 whitespace-nowrap max-w-[160px] truncate" title={item.item_name}>{item.item_name}</td>
-                                          <td className="px-3 py-2 font-mono text-blue-600 whitespace-nowrap">{item.material_code}</td>
-                                          <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.spec}</td>
-                                          <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.thickness??'—'}</td>
-                                          <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.unit}</td>
-                                          <td className="px-3 py-2 text-right text-slate-600 font-medium whitespace-nowrap">{item.qty?.toLocaleString()}</td>
-                                          <td className="px-3 py-2 text-right text-slate-600 whitespace-nowrap">{item.unit_price?.toLocaleString()}</td>
-                                          <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.rta_date}</td>
-                                          <td className="px-3 py-2 text-right text-slate-600 whitespace-nowrap">{item.arrived_qty?.toLocaleString()??'—'}</td>
-                                          <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.arrived_date??'—'}</td>
-                                          <td className="px-3 py-2 text-right text-slate-600 font-medium whitespace-nowrap">{item.balance?.toLocaleString()??'—'}</td>
-                                          <td className="px-3 py-2 whitespace-nowrap">
-                                            {item.status ? <span className={STATUS_BADGE[item.status]||'badge-gray'}>{STATUS_LABEL[item.status]||item.status}</span> : <span className="text-slate-300">—</span>}
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
+                                <table className="w-full text-xs">
+                                  <thead><tr className="border-b border-slate-100">
+                                    {['BOM SKU','品名','數量','單價','出貨日期','已到數量','結餘','狀態'].map(h=>(
+                                      <th key={h} className="px-4 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
+                                    ))}
+                                  </tr></thead>
+                                  <tbody>
+                                    {items.map((item,i)=>(
+                                      <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                                        <td className="px-4 py-2 font-mono text-blue-600 whitespace-nowrap">{item.product_sku}</td>
+                                        <td className="px-4 py-2 text-slate-700 whitespace-nowrap max-w-[200px] truncate" title={item.product_name}>{item.product_name}</td>
+                                        <td className="px-4 py-2 text-right font-medium whitespace-nowrap">{Number(item.qty).toLocaleString()}</td>
+                                        <td className="px-4 py-2 text-right text-slate-600 whitespace-nowrap">{Number(item.unit_price).toLocaleString()}</td>
+                                        <td className="px-4 py-2 text-slate-400 whitespace-nowrap">{item.rta_date||'—'}</td>
+                                        <td className="px-4 py-2 text-right text-slate-600 whitespace-nowrap">{Number(item.arrived_qty||0).toLocaleString()}</td>
+                                        <td className="px-4 py-2 text-right font-medium whitespace-nowrap">{Number(item.balance||0).toLocaleString()}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap">
+                                          <span className={STATUS_BADGE[item.status||'pending']||'badge-gray'}>{STATUS_LABEL[item.status||'pending']||item.status}</span>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
                               )}
                             </div>
                           </td>
