@@ -105,37 +105,9 @@ export default function PoPage() {
 
   const confirmReceipt = async (po: Po, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!await confirmDialog('確認收貨？', '將建立進貨單並更新材料庫存')) return
+    if (!await confirmDialog('確認收貨？', '確認後將更新材料庫存，此操作不可撤銷')) return
     try {
-      const items = loadedItems[po.id] || []
-      if (items.length === 0) {
-        const data = await apiFetch<Po>(`/api/po/${po.id}`)
-        const poItems = data.items || []
-        await apiFetch('/api/goods-receipts', {
-          method: 'POST',
-          body: JSON.stringify({
-            po_id: po.id, po_number: po.po_number,
-            supplier_name: po.supplier_name,
-            received_date: new Date().toISOString().slice(0,10),
-            items: poItems.map((i, idx) => ({ ...i, po_item_id: idx, ordered_qty: i.quantity, received_qty: i.quantity }))
-          })
-        })
-      } else {
-        await apiFetch('/api/goods-receipts', {
-          method: 'POST',
-          body: JSON.stringify({
-            po_id: po.id, po_number: po.po_number,
-            supplier_name: po.supplier_name,
-            received_date: new Date().toISOString().slice(0,10),
-            items: items.map((i, idx) => ({ ...i, po_item_id: idx, ordered_qty: i.quantity, received_qty: i.quantity }))
-          })
-        })
-      }
-      // Auto-confirm the goods receipt to update stock
-      const grs = await apiFetch<any[]>('/api/goods-receipts')
-      const latest = grs[0]
-      if (latest) await apiFetch(`/api/goods-receipts/${latest.id}/confirm`, { method: 'PATCH' })
-      await apiFetch(`/api/po/${po.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: 'received' }) })
+      await apiFetch(`/api/po/${po.id}/receive`, { method: 'PATCH' })
       toast('收貨完成，庫存已更新'); load()
     } catch (e: any) { toast('收貨失敗：' + e.message, 'error') }
   }

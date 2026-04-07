@@ -144,13 +144,14 @@ app.get('/api/materials', authMiddleware, async c => {
   const url = new URL(c.req.url)
   const supplierId = url.searchParams.get('supplier_id')
   const supplierName = url.searchParams.get('supplier_name')
-  let sql = 'SELECT m.*, COALESCE(s.name, m.supplier_name) as supplier_name, s.supplier_code FROM materials m LEFT JOIN suppliers s ON m.supplier_id=s.id'
+  let sql = `SELECT m.*, s.name as supplier_name, s.supplier_code, s.currency as supplier_currency
+             FROM materials m LEFT JOIN suppliers s ON m.supplier_id = s.id`
   const params: any[] = []
   if (supplierId) {
-    sql += ' WHERE m.supplier_id=? OR s.id=?'
-    params.push(supplierId, supplierId)
+    sql += ' WHERE m.supplier_id=?'
+    params.push(supplierId)
   } else if (supplierName) {
-    sql += ' WHERE m.supplier_name=? OR s.name=?'
+    sql += ' WHERE s.name=? OR s.supplier_code=?'
     params.push(supplierName, supplierName)
   }
   sql += ' ORDER BY m.created_at DESC'
@@ -214,7 +215,12 @@ app.get('/api/bom', authMiddleware, async c => c.json(await query('SELECT * FROM
 app.get('/api/bom/:id', authMiddleware, async c => {
   const bom = await queryOne<any>('SELECT * FROM bom WHERE id=?', [c.req.param('id')])
   if (!bom) return c.json({ error: 'Not found' }, 404)
-  const items = await query('SELECT * FROM bom_items WHERE bom_id=?', [c.req.param('id')])
+  const items = await query(`
+    SELECT bi.*, m.material_name, m.spec, m.unit, s.name as supplier_name
+    FROM bom_items bi
+    LEFT JOIN materials m ON bi.material_code = m.material_code
+    LEFT JOIN suppliers s ON m.supplier_id = s.id
+    WHERE bi.bom_id=?`, [c.req.param('id')])
   return c.json({ ...bom, items })
 })
 app.post('/api/bom', authMiddleware, canWrite, async c => {
@@ -264,11 +270,21 @@ app.delete('/api/bom/:id', authMiddleware, canApprove, async c => {
 })
 
 // ── Purchase Orders ───────────────────────────────────────────────────────────
-app.get('/api/po', authMiddleware, async c => c.json(await query('SELECT * FROM purchase_orders ORDER BY created_at DESC')))
+app.get('/api/po', authMiddleware, async c => c.json(await query(`
+  SELECT po.*, s.name as supplier_name, s.supplier_code
+  FROM purchase_orders po LEFT JOIN suppliers s ON po.supplier_id = s.id
+  ORDER BY po.created_at DESC
+`)))
 app.get('/api/po/:id', authMiddleware, async c => {
-  const po = await queryOne<any>('SELECT * FROM purchase_orders WHERE id=?', [c.req.param('id')])
+  const po = await queryOne<any>(`
+    SELECT po.*, s.name as supplier_name, s.supplier_code
+    FROM purchase_orders po LEFT JOIN suppliers s ON po.supplier_id = s.id
+    WHERE po.id=?`, [c.req.param('id')])
   if (!po) return c.json({ error: 'Not found' }, 404)
-  const items = await query('SELECT * FROM po_items WHERE po_id=?', [c.req.param('id')])
+  const items = await query(`
+    SELECT pi.*, m.material_name, m.spec, m.unit
+    FROM po_items pi LEFT JOIN materials m ON pi.material_code = m.material_code
+    WHERE pi.po_id=?`, [c.req.param('id')])
   return c.json({ ...po, items })
 })
 app.post('/api/po', authMiddleware, canWrite, async c => {
@@ -318,10 +334,44 @@ app.delete('/api/po/:id', authMiddleware, canApprove, async c => {
   return c.json({ ok: true })
 })
 
+// 採購單收貨：更新材料庫存
+app.patch('/api/po/:id/receive', authMiddleware, canWrite, async c => {
+  try {
+    const id = c.req.param('id'); const u = c.get('user')
+    const po = await queryOne<any>('SELECT * FROM purchase_orders WHERE id=?', [id])
+    if (!po) return c.json({ error: 'Not found' }, 404)
+    const items = await query<any>('SELECT * FROM po_items WHERE po_id=?', [id])
+    for (const item of items) {
+      const qty = item.quantity || 0
+      const mat = await queryOne<any>('SELECT id, current_stock FROM materials WHERE material_code=?', [item.material_code])
+      const before = mat?.current_stock || 0
+      const after = before + qty
+      if (mat) {
+        await execute('UPDATE materials SET current_stock=? WHERE material_code=?', [after, item.material_code])
+      }
+      await execute(
+        'INSERT INTO stock_ledger (material_code,material_name,transaction_type,ref_type,ref_id,ref_number,qty_change,qty_before,qty_after,unit,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        [item.material_code, item.material_name, 'GR_IN', 'purchase_order', id, po.po_number, qty, before, after, item.unit||'PCS', `採購收貨 ${po.po_number}`, u.userId, now8()]
+      )
+      await execute('UPDATE po_items SET received_qty=? WHERE id=?', [qty, item.id])
+    }
+    await execute('UPDATE purchase_orders SET status=? WHERE id=?', ['received', id])
+    await audit(u, 'RECEIVE', '採購單', id, `${po.po_number} 收貨完成，庫存已更新`)
+    return c.json({ ok: true })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+
 // ── Customer Orders ───────────────────────────────────────────────────────────
-app.get('/api/customer-orders', authMiddleware, async c => c.json(await query('SELECT * FROM customer_orders ORDER BY created_at DESC')))
+app.get('/api/customer-orders', authMiddleware, async c => c.json(await query(`
+  SELECT co.*, c.customer_name, c.customer_code
+  FROM customer_orders co LEFT JOIN customers c ON co.customer_id = c.id
+  ORDER BY co.created_at DESC
+`)))
 app.get('/api/customer-orders/:id', authMiddleware, async c => {
-  const order = await queryOne<any>('SELECT * FROM customer_orders WHERE id=?', [c.req.param('id')])
+  const order = await queryOne<any>(`
+    SELECT co.*, c.customer_name, c.customer_code
+    FROM customer_orders co LEFT JOIN customers c ON co.customer_id = c.id
+    WHERE co.id=?`, [c.req.param('id')])
   if (!order) return c.json({ error: 'Not found' }, 404)
   const items = await query('SELECT * FROM customer_order_items WHERE order_id=?', [c.req.param('id')])
   return c.json({ ...order, items })
@@ -353,9 +403,16 @@ app.delete('/api/customer-orders/:id', authMiddleware, canApprove, async c => {
 })
 
 // ── Quotations ────────────────────────────────────────────────────────────────
-app.get('/api/quotations', authMiddleware, async c => c.json(await query('SELECT * FROM quotations ORDER BY created_at DESC')))
+app.get('/api/quotations', authMiddleware, async c => c.json(await query(`
+  SELECT q.*, c.customer_name, c.customer_code
+  FROM quotations q LEFT JOIN customers c ON q.customer_id = c.id
+  ORDER BY q.created_at DESC
+`)))
 app.get('/api/quotations/:id', authMiddleware, async c => {
-  const q = await queryOne<any>('SELECT * FROM quotations WHERE id=?', [c.req.param('id')])
+  const q = await queryOne<any>(`
+    SELECT q.*, c.customer_name, c.customer_code
+    FROM quotations q LEFT JOIN customers c ON q.customer_id = c.id
+    WHERE q.id=?`, [c.req.param('id')])
   if (!q) return c.json({ error: 'Not found' }, 404)
   const items = await query('SELECT * FROM quotation_items WHERE quotation_id=?', [c.req.param('id')])
   return c.json({ ...q, items })
@@ -395,9 +452,16 @@ app.delete('/api/quotations/:id', authMiddleware, canApprove, async c => {
 })
 
 // ── Delivery Notes ────────────────────────────────────────────────────────────
-app.get('/api/delivery-notes', authMiddleware, async c => c.json(await query('SELECT * FROM delivery_notes ORDER BY created_at DESC')))
+app.get('/api/delivery-notes', authMiddleware, async c => c.json(await query(`
+  SELECT dn.*, c.customer_name, c.customer_code
+  FROM delivery_notes dn LEFT JOIN customers c ON dn.customer_id = c.id
+  ORDER BY dn.created_at DESC
+`)))
 app.get('/api/delivery-notes/:id', authMiddleware, async c => {
-  const dn = await queryOne<any>('SELECT * FROM delivery_notes WHERE id=?', [c.req.param('id')])
+  const dn = await queryOne<any>(`
+    SELECT dn.*, c.customer_name, c.customer_code
+    FROM delivery_notes dn LEFT JOIN customers c ON dn.customer_id = c.id
+    WHERE dn.id=?`, [c.req.param('id')])
   if (!dn) return c.json({ error: 'Not found' }, 404)
   const items = await query('SELECT * FROM delivery_note_items WHERE dn_id=?', [c.req.param('id')])
   return c.json({ ...dn, items })
@@ -656,13 +720,22 @@ app.get('/api/reports', authMiddleware, async c => {
 
 // ── Goods Receipts (進貨單) ───────────────────────────────────────────────────
 app.get('/api/goods-receipts', authMiddleware, async c => {
-  const rows = await query('SELECT * FROM goods_receipts ORDER BY created_at DESC')
+  const rows = await query(`
+    SELECT gr.*, s.name as supplier_name, s.supplier_code
+    FROM goods_receipts gr LEFT JOIN suppliers s ON gr.supplier_id = s.id
+    ORDER BY gr.created_at DESC`)
   return c.json(rows)
 })
 app.get('/api/goods-receipts/:id', authMiddleware, async c => {
-  const gr = await queryOne<any>('SELECT * FROM goods_receipts WHERE id=?', [c.req.param('id')])
+  const gr = await queryOne<any>(`
+    SELECT gr.*, s.name as supplier_name
+    FROM goods_receipts gr LEFT JOIN suppliers s ON gr.supplier_id = s.id
+    WHERE gr.id=?`, [c.req.param('id')])
   if (!gr) return c.json({ error: 'Not found' }, 404)
-  const items = await query('SELECT * FROM goods_receipt_items WHERE gr_id=?', [c.req.param('id')])
+  const items = await query(`
+    SELECT gri.*, m.material_name, m.spec, m.unit
+    FROM goods_receipt_items gri LEFT JOIN materials m ON gri.material_code = m.material_code
+    WHERE gri.gr_id=?`, [c.req.param('id')])
   return c.json({ ...gr, items })
 })
 app.post('/api/goods-receipts', authMiddleware, canWrite, async c => {
