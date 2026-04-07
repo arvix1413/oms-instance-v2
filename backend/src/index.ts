@@ -651,6 +651,233 @@ app.get('/api/reports', authMiddleware, async c => {
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 
+// ── Goods Receipts (進貨單) ───────────────────────────────────────────────────
+app.get('/api/goods-receipts', authMiddleware, async c => {
+  const rows = await query('SELECT * FROM goods_receipts ORDER BY created_at DESC')
+  return c.json(rows)
+})
+app.get('/api/goods-receipts/:id', authMiddleware, async c => {
+  const gr = await queryOne<any>('SELECT * FROM goods_receipts WHERE id=?', [c.req.param('id')])
+  if (!gr) return c.json({ error: 'Not found' }, 404)
+  const items = await query('SELECT * FROM goods_receipt_items WHERE gr_id=?', [c.req.param('id')])
+  return c.json({ ...gr, items })
+})
+app.post('/api/goods-receipts', authMiddleware, canWrite, async c => {
+  try {
+    const b = await c.req.json(); const u = c.get('user')
+    const grNum = `GR${Date.now()}`
+    const r = await execute(
+      'INSERT INTO goods_receipts (gr_number,po_id,po_number,supplier_id,supplier_name,status,received_date,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)',
+      [grNum,b.po_id||null,b.po_number||'',b.supplier_id||null,b.supplier_name,'draft',b.received_date||null,b.remark||'',u.userId,now8()]
+    )
+    const grId = r.insertId
+    if (b.items?.length) {
+      for (const item of b.items) {
+        await execute(
+          'INSERT INTO goods_receipt_items (gr_id,po_item_id,material_code,material_name,spec,unit,ordered_qty,received_qty,unit_price,currency,batch_no,remark) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+          [grId,item.po_item_id||null,item.material_code,item.material_name,item.spec||'',item.unit||'PCS',item.ordered_qty||0,item.received_qty,item.unit_price||0,item.currency||'VND',item.batch_no||'',item.remark||'']
+        )
+      }
+    }
+    await audit(u, 'CREATE', '進貨單', grId, grNum)
+    return c.json({ id: grId, gr_number: grNum }, 201)
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+app.patch('/api/goods-receipts/:id/confirm', authMiddleware, canApprove, async c => {
+  try {
+    const id = c.req.param('id'); const u = c.get('user')
+    const gr = await queryOne<any>('SELECT * FROM goods_receipts WHERE id=?', [id])
+    if (!gr) return c.json({ error: 'Not found' }, 404)
+    if (gr.status === 'confirmed') return c.json({ error: 'Already confirmed' }, 400)
+    const items = await query<any>('SELECT * FROM goods_receipt_items WHERE gr_id=?', [id])
+    // Update stock for each item
+    for (const item of items) {
+      const mat = await queryOne<any>('SELECT id, current_stock FROM materials WHERE material_code=?', [item.material_code])
+      const before = mat?.current_stock || 0
+      const after = before + item.received_qty
+      if (mat) {
+        await execute('UPDATE materials SET current_stock=? WHERE material_code=?', [after, item.material_code])
+      }
+      // Write stock ledger
+      await execute(
+        'INSERT INTO stock_ledger (material_code,material_name,transaction_type,ref_type,ref_id,ref_number,qty_change,qty_before,qty_after,unit,batch_no,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        [item.material_code,item.material_name,'GR_IN','goods_receipt',id,gr.gr_number,item.received_qty,before,after,item.unit||'PCS',item.batch_no||'',`進貨確認 ${gr.gr_number}`,u.userId,now8()]
+      )
+      // Update po_item received_qty if linked
+      if (item.po_item_id) {
+        await execute('UPDATE po_items SET received_qty = received_qty + ? WHERE id=?', [item.received_qty, item.po_item_id])
+      }
+    }
+    await execute('UPDATE goods_receipts SET status=? WHERE id=?', ['confirmed', id])
+    await audit(u, 'CONFIRM', '進貨單', id, gr.gr_number)
+    return c.json({ ok: true })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+app.delete('/api/goods-receipts/:id', authMiddleware, canApprove, async c => {
+  const id = c.req.param('id')
+  const row = await queryOne<any>('SELECT gr_number,status FROM goods_receipts WHERE id=?', [id])
+  if (row?.status === 'confirmed') return c.json({ error: '已確認的進貨單不能刪除' }, 400)
+  await execute('DELETE FROM goods_receipt_items WHERE gr_id=?', [id])
+  await execute('DELETE FROM goods_receipts WHERE id=?', [id])
+  await audit(c.get('user'), 'DELETE', '進貨單', id, row?.gr_number)
+  return c.json({ ok: true })
+})
+
+// ── Production Orders (生產單) ────────────────────────────────────────────────
+app.get('/api/production', authMiddleware, async c => {
+  const rows = await query('SELECT * FROM production_orders ORDER BY created_at DESC')
+  return c.json(rows)
+})
+app.get('/api/production/:id', authMiddleware, async c => {
+  const prod = await queryOne<any>('SELECT * FROM production_orders WHERE id=?', [c.req.param('id')])
+  if (!prod) return c.json({ error: 'Not found' }, 404)
+  const materials = await query('SELECT * FROM production_materials WHERE prod_id=?', [c.req.param('id')])
+  return c.json({ ...prod, materials })
+})
+app.post('/api/production', authMiddleware, canWrite, async c => {
+  try {
+    const b = await c.req.json(); const u = c.get('user')
+    const prodNum = `WO${Date.now()}`
+    const r = await execute(
+      'INSERT INTO production_orders (prod_number,customer_order_id,bom_id,product_sku,product_name,planned_qty,status,planned_start,planned_end,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+      [prodNum,b.customer_order_id||null,b.bom_id||null,b.product_sku||'',b.product_name,'draft',b.planned_qty,b.planned_start||null,b.planned_end||null,b.remark||'',u.userId,now8()]
+    )
+    const prodId = r.insertId
+    if (b.materials?.length) {
+      for (const mat of b.materials) {
+        await execute(
+          'INSERT INTO production_materials (prod_id,material_code,material_name,spec,unit,planned_qty,issued_qty,batch_no,remark) VALUES (?,?,?,?,?,?,?,?,?)',
+          [prodId,mat.material_code,mat.material_name,mat.spec||'',mat.unit||'PCS',mat.planned_qty||0,0,mat.batch_no||'',mat.remark||'']
+        )
+      }
+    }
+    await audit(u, 'CREATE', '生產單', prodId, prodNum)
+    return c.json({ id: prodId, prod_number: prodNum }, 201)
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+app.patch('/api/production/:id/status', authMiddleware, canWrite, async c => {
+  try {
+    const id = c.req.param('id'); const { status, produced_qty } = await c.req.json(); const u = c.get('user')
+    const prod = await queryOne<any>('SELECT * FROM production_orders WHERE id=?', [id])
+    if (!prod) return c.json({ error: 'Not found' }, 404)
+    const updates: any = { status }
+    if (status === 'in_progress' && !prod.actual_start) updates.actual_start = now8().slice(0,10)
+    if (status === 'completed') {
+      updates.actual_end = now8().slice(0,10)
+      if (produced_qty) updates.produced_qty = produced_qty
+      // Issue materials from stock
+      const mats = await query<any>('SELECT * FROM production_materials WHERE prod_id=?', [id])
+      for (const mat of mats) {
+        const qty = mat.issued_qty || mat.planned_qty
+        const m = await queryOne<any>('SELECT current_stock FROM materials WHERE material_code=?', [mat.material_code])
+        const before = m?.current_stock || 0
+        const after = Math.max(0, before - qty)
+        await execute('UPDATE materials SET current_stock=? WHERE material_code=?', [after, mat.material_code])
+        await execute('UPDATE production_materials SET issued_qty=? WHERE id=?', [qty, mat.id])
+        await execute(
+          'INSERT INTO stock_ledger (material_code,material_name,transaction_type,ref_type,ref_id,ref_number,qty_change,qty_before,qty_after,unit,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          [mat.material_code,mat.material_name,'PROD_OUT','production',id,prod.prod_number,-qty,before,after,mat.unit||'PCS',`生產領料 ${prod.prod_number}`,u.userId,now8()]
+        )
+      }
+    }
+    const setClause = Object.keys(updates).map(k => `${k}=?`).join(',')
+    await execute(`UPDATE production_orders SET ${setClause} WHERE id=?`, [...Object.values(updates), id])
+    await audit(u, 'STATUS_CHANGE', '生產單', id, `${prod.prod_number} → ${status}`)
+    return c.json({ ok: true })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+app.delete('/api/production/:id', authMiddleware, canApprove, async c => {
+  const id = c.req.param('id')
+  const row = await queryOne<any>('SELECT prod_number,status FROM production_orders WHERE id=?', [id])
+  if (row?.status === 'completed') return c.json({ error: '已完成的生產單不能刪除' }, 400)
+  await execute('DELETE FROM production_materials WHERE prod_id=?', [id])
+  await execute('DELETE FROM production_orders WHERE id=?', [id])
+  await audit(c.get('user'), 'DELETE', '生產單', id, row?.prod_number)
+  return c.json({ ok: true })
+})
+
+// ── Stock Ledger (庫存流水) ───────────────────────────────────────────────────
+app.get('/api/stock-ledger', authMiddleware, async c => {
+  const url = new URL(c.req.url)
+  const materialCode = url.searchParams.get('material_code') || ''
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '200'), 500)
+  let sql = 'SELECT * FROM stock_ledger'
+  const params: any[] = []
+  if (materialCode) { sql += ' WHERE material_code=?'; params.push(materialCode) }
+  sql += ` ORDER BY created_at DESC LIMIT ${limit}`
+  const rows = await query(sql, params.length ? params : undefined)
+  return c.json(rows)
+})
+
+// ── Stock Adjustments (庫存調整) ──────────────────────────────────────────────
+app.get('/api/stock-adjustments', authMiddleware, async c => {
+  const rows = await query('SELECT * FROM stock_adjustments ORDER BY created_at DESC')
+  return c.json(rows)
+})
+app.get('/api/stock-adjustments/:id', authMiddleware, async c => {
+  const adj = await queryOne<any>('SELECT * FROM stock_adjustments WHERE id=?', [c.req.param('id')])
+  if (!adj) return c.json({ error: 'Not found' }, 404)
+  const items = await query('SELECT * FROM stock_adjustment_items WHERE adj_id=?', [c.req.param('id')])
+  return c.json({ ...adj, items })
+})
+app.post('/api/stock-adjustments', authMiddleware, canWrite, async c => {
+  try {
+    const b = await c.req.json(); const u = c.get('user')
+    const adjNum = `ADJ${Date.now()}`
+    const r = await execute(
+      'INSERT INTO stock_adjustments (adj_number,adj_type,status,adj_date,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?)',
+      [adjNum,b.adj_type||'count','draft',b.adj_date||null,b.remark||'',u.userId,now8()]
+    )
+    const adjId = r.insertId
+    if (b.items?.length) {
+      for (const item of b.items) {
+        const mat = await queryOne<any>('SELECT current_stock FROM materials WHERE material_code=?', [item.material_code])
+        const systemQty = mat?.current_stock || 0
+        const diff = (item.actual_qty || 0) - systemQty
+        await execute(
+          'INSERT INTO stock_adjustment_items (adj_id,material_code,material_name,unit,system_qty,actual_qty,diff_qty,batch_no,remark) VALUES (?,?,?,?,?,?,?,?,?)',
+          [adjId,item.material_code,item.material_name||'',item.unit||'PCS',systemQty,item.actual_qty||0,diff,item.batch_no||'',item.remark||'']
+        )
+      }
+    }
+    await audit(u, 'CREATE', '庫存調整', adjId, adjNum)
+    return c.json({ id: adjId, adj_number: adjNum }, 201)
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+app.patch('/api/stock-adjustments/:id/approve', authMiddleware, canApprove, async c => {
+  try {
+    const id = c.req.param('id'); const u = c.get('user')
+    const adj = await queryOne<any>('SELECT * FROM stock_adjustments WHERE id=?', [id])
+    if (!adj) return c.json({ error: 'Not found' }, 404)
+    if (adj.status === 'approved') return c.json({ error: 'Already approved' }, 400)
+    const items = await query<any>('SELECT * FROM stock_adjustment_items WHERE adj_id=?', [id])
+    for (const item of items) {
+      if (item.diff_qty === 0) continue
+      const mat = await queryOne<any>('SELECT current_stock FROM materials WHERE material_code=?', [item.material_code])
+      const before = mat?.current_stock || 0
+      const after = item.actual_qty
+      await execute('UPDATE materials SET current_stock=? WHERE material_code=?', [after, item.material_code])
+      const txType = item.diff_qty > 0 ? 'ADJ_IN' : 'ADJ_OUT'
+      await execute(
+        'INSERT INTO stock_ledger (material_code,material_name,transaction_type,ref_type,ref_id,ref_number,qty_change,qty_before,qty_after,unit,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        [item.material_code,item.material_name,txType,'adjustment',id,adj.adj_number,item.diff_qty,before,after,item.unit||'PCS',`庫存調整 ${adj.adj_number}`,u.userId,now8()]
+      )
+    }
+    await execute('UPDATE stock_adjustments SET status=?,approved_by=?,approved_at=? WHERE id=?', ['approved',u.userId,now8(),id])
+    await audit(u, 'APPROVE', '庫存調整', id, adj.adj_number)
+    return c.json({ ok: true })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+app.delete('/api/stock-adjustments/:id', authMiddleware, canApprove, async c => {
+  const id = c.req.param('id')
+  const row = await queryOne<any>('SELECT adj_number,status FROM stock_adjustments WHERE id=?', [id])
+  if (row?.status === 'approved') return c.json({ error: '已核准的調整單不能刪除' }, 400)
+  await execute('DELETE FROM stock_adjustment_items WHERE adj_id=?', [id])
+  await execute('DELETE FROM stock_adjustments WHERE id=?', [id])
+  await audit(c.get('user'), 'DELETE', '庫存調整', id, row?.adj_number)
+  return c.json({ ok: true })
+})
+
 // ── Stats ─────────────────────────────────────────────────────────────────────
 app.get('/api/stats', authMiddleware, async c => {
   try {

@@ -24,7 +24,11 @@ const NAV: NavEntry[] = [
   {
     label: '採購和供應商管理', icon: <IconBuilding />,
     children: [
+      { href: '/dashboard/goods-receipts', label: '進貨單', icon: <IconTruck /> },
+      { href: '/dashboard/production', label: '生產單', icon: <IconFactory /> },
       { href: '/dashboard/inventory', label: '庫存管理', icon: <IconWarehouse /> },
+      { href: '/dashboard/stock-ledger', label: '庫存流水', icon: <IconList /> },
+      { href: '/dashboard/stock-adjustments', label: '庫存調整', icon: <IconAdjust /> },
       { href: '/dashboard/materials', label: '料號管理', icon: <IconBox /> },
       { href: '/dashboard/bom', label: 'BOM 表', icon: <IconList /> },
       { href: '/dashboard/suppliers', label: '供應商管理', icon: <IconBuilding2 /> },
@@ -59,6 +63,8 @@ function IconReceive() { return <svg viewBox="0 0 24 24" fill="none" stroke="cur
 function IconPay() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4"><path d="M12 22V2M7 17l5-5 5 5"/><path d="M3 12h18"/></svg> }
 function IconChart() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> }
 function IconBuilding2() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4"><rect x="2" y="7" width="20" height="14" rx="1"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> }
+function IconFactory() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4"><path d="M2 20V8l6-4v4l6-4v4l6-4v16H2z"/><path d="M6 20v-4h4v4"/></svg> }
+function IconAdjust() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> }
 function IconChevron({ open }: { open: boolean }) { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`w-3 h-3 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}><polyline points="9 18 15 12 9 6"/></svg> }
 function IconLogout() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> }
 const ROLE_DOT: Record<string, string> = {
