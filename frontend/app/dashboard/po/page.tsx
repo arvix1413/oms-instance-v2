@@ -138,7 +138,7 @@ export default function PoPage() {
     try {
       await apiFetch('/api/po', { method: 'POST', body: JSON.stringify(form) })
       toast('採購單建立成功'); setCreating(false)
-      setForm({ supplier_name:'', currency:'VND', remark:'', items:[emptyItem()] }); load()
+      setForm({ supplier_id: '', supplier_name:'', currency:'VND', remark:'', items:[emptyItem()] }); load()
     } catch (e: any) { toast('錯誤：' + e.message) }
   }
 
