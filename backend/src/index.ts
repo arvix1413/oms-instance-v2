@@ -947,8 +947,8 @@ app.post('/api/upload', authMiddleware, async c => {
     const filepath = path.join(uploadDir, filename)
     const buffer = Buffer.from(await file.arrayBuffer())
     fs.writeFileSync(filepath, buffer)
-    const baseUrl = process.env.BASE_URL || `http://43.133.56.234:3001`
-    return c.json({ url: `${baseUrl}/uploads/${filename}` })
+    // Return relative URL so it works through Nginx proxy
+    return c.json({ url: `/uploads/${filename}` })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 
