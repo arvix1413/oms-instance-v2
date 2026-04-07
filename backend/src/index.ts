@@ -342,9 +342,9 @@ app.patch('/api/po/:id/receive', authMiddleware, canWrite, async c => {
     if (!po) return c.json({ error: 'Not found' }, 404)
     const items = await query<any>('SELECT * FROM po_items WHERE po_id=?', [id])
     for (const item of items) {
-      const qty = item.quantity || 0
+      const qty = parseFloat(item.quantity) || 0
       const mat = await queryOne<any>('SELECT id, current_stock FROM materials WHERE material_code=?', [item.material_code])
-      const before = mat?.current_stock || 0
+      const before = parseFloat(mat?.current_stock) || 0
       const after = before + qty
       if (mat) {
         await execute('UPDATE materials SET current_stock=? WHERE material_code=?', [after, item.material_code])
@@ -769,8 +769,8 @@ app.patch('/api/goods-receipts/:id/confirm', authMiddleware, canApprove, async c
     // Update stock for each item
     for (const item of items) {
       const mat = await queryOne<any>('SELECT id, current_stock FROM materials WHERE material_code=?', [item.material_code])
-      const before = mat?.current_stock || 0
-      const after = before + item.received_qty
+      const before = parseFloat(mat?.current_stock) || 0
+      const after = before + parseFloat(item.received_qty)
       if (mat) {
         await execute('UPDATE materials SET current_stock=? WHERE material_code=?', [after, item.material_code])
       }
@@ -873,9 +873,9 @@ app.patch('/api/production/:id/status', authMiddleware, canWrite, async c => {
       // Issue materials from stock only on completion
       const mats = await query<any>('SELECT * FROM production_materials WHERE prod_id=?', [id])
       for (const mat of mats) {
-        const qty = mat.issued_qty || mat.planned_qty
+        const qty = parseFloat(mat.issued_qty || mat.planned_qty) || 0
         const m = await queryOne<any>('SELECT current_stock FROM materials WHERE material_code=?', [mat.material_code])
-        const before = m?.current_stock || 0
+        const before = parseFloat(m?.current_stock) || 0
         const after = Math.max(0, before - qty)
         await execute('UPDATE materials SET current_stock=? WHERE material_code=?', [after, mat.material_code])
         await execute('UPDATE production_materials SET issued_qty=? WHERE id=?', [qty, mat.id])
