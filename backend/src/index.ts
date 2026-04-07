@@ -728,6 +728,35 @@ app.get('/api/production', authMiddleware, async c => {
   const rows = await query('SELECT * FROM production_orders ORDER BY created_at DESC')
   return c.json(rows)
 })
+// 庫存檢查：傳入 bom_id + planned_qty，返回每個材料的庫存狀況
+app.post('/api/production/check-stock', authMiddleware, async c => {
+  try {
+    const { bom_id, planned_qty } = await c.req.json()
+    if (!bom_id) return c.json({ error: 'bom_id required' }, 400)
+    const qty = planned_qty || 1
+    const bomItems = await query<any>('SELECT * FROM bom_items WHERE bom_id=?', [bom_id])
+    const result = []
+    let hasShortage = false
+    for (const item of bomItems) {
+      const needed = (item.quantity || 0) * qty
+      const mat = await queryOne<any>('SELECT current_stock, material_name FROM materials WHERE material_code=?', [item.material_code])
+      const stock = mat?.current_stock || 0
+      const shortage = Math.max(0, needed - stock)
+      if (shortage > 0) hasShortage = true
+      result.push({
+        material_code: item.material_code,
+        material_name: item.material_name || mat?.material_name || '',
+        spec: item.spec || '',
+        unit: item.unit || 'PCS',
+        planned_qty: needed,
+        current_stock: stock,
+        shortage,
+        sufficient: shortage === 0,
+      })
+    }
+    return c.json({ items: result, has_shortage: hasShortage, status: hasShortage ? 'shortage' : 'ready' })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
 app.get('/api/production/:id', authMiddleware, async c => {
   const prod = await queryOne<any>('SELECT * FROM production_orders WHERE id=?', [c.req.param('id')])
   if (!prod) return c.json({ error: 'Not found' }, 404)
