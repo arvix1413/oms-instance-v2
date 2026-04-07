@@ -65,6 +65,8 @@ export default function BomPage() {
       if (editing) {
         await apiFetch(`/api/bom/${editing.id}`, { method: 'PUT', body: JSON.stringify(payload) })
         toast('BOM 更新成功')
+        // Clear cache so expanded row re-fetches updated items
+        setLoadedItems(p => { const n = { ...p }; delete n[editing.id]; return n })
         setEditing(null)
       } else {
         await apiFetch('/api/bom', { method: 'POST', body: JSON.stringify(payload) })

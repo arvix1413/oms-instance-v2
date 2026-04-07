@@ -100,7 +100,9 @@ export default function PoPage() {
   const approve = async (id: number, e: React.MouseEvent) => {
     e.stopPropagation()
     await apiFetch(`/api/po/${id}/approve`, { method: 'PATCH' })
-    toast('已核准'); load()
+    toast('已核准')
+    setLoadedItems(p => { const n = { ...p }; delete n[id]; return n })
+    load()
   }
 
   const confirmReceipt = async (po: Po, e: React.MouseEvent) => {
@@ -108,7 +110,9 @@ export default function PoPage() {
     if (!await confirmDialog('確認收貨？', '確認後將更新材料庫存，此操作不可撤銷')) return
     try {
       await apiFetch(`/api/po/${po.id}/receive`, { method: 'PATCH' })
-      toast('收貨完成，庫存已更新'); load()
+      toast('收貨完成，庫存已更新')
+      setLoadedItems(p => { const n = { ...p }; delete n[po.id]; return n })
+      load()
     } catch (e: any) { toast('收貨失敗：' + e.message, 'error') }
   }
 
