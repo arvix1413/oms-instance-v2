@@ -68,9 +68,18 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     <Ctx.Provider value={{ toast, confirm }}>
       {children}
 
-      {/* Toast stack */}
+      {/* Toast stack - errors top center, success bottom right */}
+      <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] flex flex-col gap-2 pointer-events-none items-center">
+        {toasts.filter(t => t.type === 'error').map(t => (
+          <div key={t.id}
+            className="flex items-center gap-3 bg-white border border-red-200 rounded-xl px-4 py-3 shadow-xl shadow-red-100/60 pointer-events-auto animate-slide-down min-w-[280px] max-w-[420px]">
+            {ICONS.error}
+            <span className="text-sm font-semibold text-red-700 flex-1">{t.msg}</span>
+          </div>
+        ))}
+      </div>
       <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2 pointer-events-none">
-        {toasts.map(t => (
+        {toasts.filter(t => t.type !== 'error').map(t => (
           <div key={t.id}
             className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-lg shadow-slate-200/60 pointer-events-auto animate-slide-up min-w-[260px] max-w-[360px]">
             {ICONS[t.type]}
