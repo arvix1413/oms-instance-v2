@@ -47,14 +47,15 @@ export default function CustomerOrdersPage() {
     const next = new Set(expanded)
     if (next.has(id)) {
       next.delete(id)
+      setExpanded(next)
     } else {
       next.add(id)
+      setExpanded(next)
       if (!loadedItems[id]) {
         const data = await apiFetch<Order>(`/api/customer-orders/${id}`)
         setLoadedItems(p => ({ ...p, [id]: data.items || [] }))
       }
     }
-    setExpanded(next)
   }
 
   const save = async () => {

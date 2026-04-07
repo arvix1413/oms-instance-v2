@@ -87,14 +87,15 @@ export default function PoPage() {
     const next = new Set(expanded)
     if (next.has(id)) {
       next.delete(id)
+      setExpanded(next)
     } else {
       next.add(id)
+      setExpanded(next)
       if (!loadedItems[id]) {
         const data = await apiFetch<Po>(`/api/po/${id}`)
         setLoadedItems(p => ({ ...p, [id]: data.items || [] }))
       }
     }
-    setExpanded(next)
   }
 
   const approve = async (id: number, e: React.MouseEvent) => {

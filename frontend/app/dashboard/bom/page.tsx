@@ -36,14 +36,15 @@ export default function BomPage() {
     const next = new Set(expanded)
     if (next.has(id)) {
       next.delete(id)
+      setExpanded(next)
     } else {
       next.add(id)
-      if (!loadedItems[id]) {
+      setExpanded(next)  // expand immediately, show spinner
+      if (loadedItems[id] === undefined) {
         const data = await apiFetch<Bom>(`/api/bom/${id}`)
         setLoadedItems(p => ({ ...p, [id]: data.items || [] }))
       }
     }
-    setExpanded(next)
   }
 
   const startEdit = async (id: number, e: React.MouseEvent) => {
