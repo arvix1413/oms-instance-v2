@@ -68,7 +68,7 @@ export default function BomPage() {
     setEditing(p => ({ ...p, supplier_id: supplierId ? Number(supplierId) : null, supplier_name: sup?.name||'', currency: sup?.currency||'VND' }))
   }
 
-  const categories = [...new Set(boms.map(b => b.category).filter(Boolean))]
+  const categories = Array.from(new Set(boms.map(b => b.category).filter(Boolean)))
   const filtered = boms.filter(b => {
     const q = search.toLowerCase()
     const matchSearch = !search || b.product_sku.toLowerCase().includes(q) || b.product_name.toLowerCase().includes(q) || (b.material_name||'').toLowerCase().includes(q)
