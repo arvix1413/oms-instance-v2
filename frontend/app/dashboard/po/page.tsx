@@ -117,7 +117,7 @@ export default function PoPage() {
             po_id: po.id, po_number: po.po_number,
             supplier_name: po.supplier_name,
             received_date: new Date().toISOString().slice(0,10),
-            items: poItems.map(i => ({ ...i, po_item_id: i.id, ordered_qty: i.quantity, received_qty: i.quantity }))
+            items: poItems.map((i, idx) => ({ ...i, po_item_id: idx, ordered_qty: i.quantity, received_qty: i.quantity }))
           })
         })
       } else {
@@ -127,7 +127,7 @@ export default function PoPage() {
             po_id: po.id, po_number: po.po_number,
             supplier_name: po.supplier_name,
             received_date: new Date().toISOString().slice(0,10),
-            items: items.map(i => ({ ...i, po_item_id: (i as any).id, ordered_qty: i.quantity, received_qty: i.quantity }))
+            items: items.map((i, idx) => ({ ...i, po_item_id: idx, ordered_qty: i.quantity, received_qty: i.quantity }))
           })
         })
       }
