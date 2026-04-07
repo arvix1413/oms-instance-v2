@@ -218,7 +218,7 @@ export default function BomPage() {
               <tbody>
                 {paged.map(b => {
                   const isExpanded = expanded.has(b.id)
-                  const items = loadedItems[b.id] || []
+                  const items = loadedItems[b.id]  // undefined = not yet loaded, [] = loaded empty
                   return (
                     <>
                       <tr key={b.id}
@@ -234,7 +234,7 @@ export default function BomPage() {
                         <td className="px-4 py-3 text-slate-400 text-xs">{b.created_at?.slice(0,10)}</td>
                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                           <div className="flex gap-2">
-                            {isExpanded && items.length > 0 && (
+                            {isExpanded && items && items.length > 0 && (
                               <button onClick={e => printBom(b, items, e)} className="btn-ghost">🖨</button>
                             )}
                             <button onClick={e => startEdit(b.id, e)} className="btn-ghost text-blue-600">編輯</button>
@@ -246,8 +246,13 @@ export default function BomPage() {
                         <tr key={`${b.id}-items`} className="border-b border-slate-100">
                           <td colSpan={7} className="px-0 py-0">
                             <div className="bg-blue-50/30 border-t border-blue-100">
-                              {items.length === 0 ? (
-                                <div className="px-8 py-4 text-xs text-slate-400">載入中...</div>
+                              {items === undefined ? (
+                                <div className="px-8 py-4 text-xs text-slate-400 flex items-center gap-2">
+                                  <div className="w-3 h-3 border border-slate-300 border-t-slate-500 rounded-full animate-spin" />
+                                  載入中...
+                                </div>
+                              ) : items.length === 0 ? (
+                                <div className="px-8 py-4 text-xs text-slate-400">尚無材料明細</div>
                               ) : (
                                 <div className="overflow-x-auto">
                                   <table className="w-full text-xs" style={{minWidth:800}}>
