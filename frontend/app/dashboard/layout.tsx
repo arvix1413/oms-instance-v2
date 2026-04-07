@@ -13,17 +13,24 @@ const isGroup = (n: NavEntry): n is NavGroup => 'children' in n
 
 const NAV: NavEntry[] = [
   { href: '/dashboard', label: '總覽', icon: <IconGrid />, exact: true } as any,
-  // 基礎資料
-  { href: '/dashboard/customers', label: '客戶管理', icon: <IconUsers /> },
-  { href: '/dashboard/suppliers', label: '供應商管理', icon: <IconBuilding2 /> },
-  { href: '/dashboard/materials', label: '料號管理', icon: <IconBox /> },
-  { href: '/dashboard/bom', label: 'BOM 表', icon: <IconList /> },
-  // 業務流程（按操作順序）
-  { href: '/dashboard/customer-orders', label: '客戶訂單', icon: <IconClipboard /> },
-  { href: '/dashboard/po', label: '採購單', icon: <IconCart /> },
-  { href: '/dashboard/production', label: '生產單', icon: <IconFactory /> },
-  { href: '/dashboard/delivery-notes', label: '出貨單', icon: <IconTruck /> },
-  // 倉庫
+  {
+    label: '業務流程', icon: <IconClipboard />,
+    children: [
+      { href: '/dashboard/bom', label: 'BOM 管理', icon: <IconList /> },
+      { href: '/dashboard/customer-orders', label: '客戶訂單', icon: <IconDoc /> },
+      { href: '/dashboard/po', label: '採購單', icon: <IconCart /> },
+      { href: '/dashboard/production', label: '生產單', icon: <IconFactory /> },
+      { href: '/dashboard/delivery-notes', label: '出貨單', icon: <IconTruck /> },
+    ]
+  },
+  {
+    label: '基礎資料', icon: <IconBox />,
+    children: [
+      { href: '/dashboard/customers', label: '客戶管理', icon: <IconUsers /> },
+      { href: '/dashboard/suppliers', label: '供應商管理', icon: <IconBuilding2 /> },
+      { href: '/dashboard/materials', label: '料號管理', icon: <IconBox /> },
+    ]
+  },
   {
     label: '倉庫管理', icon: <IconWarehouse />,
     children: [
@@ -73,7 +80,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
-  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(['銷售管理', '採購管理']))
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(['業務流程']))
 
   useEffect(() => {
     if (!getToken()) { router.replace('/login'); return }
