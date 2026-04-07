@@ -6,6 +6,7 @@ import { usePagination, Pagination } from '@/lib/usePagination'
 
 type OrderItem = { id?:number; item_name:string; material_code:string; spec:string; thickness?:number|null; unit:string; qty:number; unit_price:number; rta_date:string; arrived_qty:number; arrived_date?:string; balance?:number; status?:string }
 type Order = { id:number; po_date:string; po_number:string; customer_name:string; status:string; remark:string; created_at:string; items?:OrderItem[] }
+type BOM = { id:number; product_sku:string; product_name:string }
 const emptyItem = (): OrderItem => ({ item_name:'', material_code:'', spec:'', unit:'PCS', qty:0, unit_price:0, rta_date:'', arrived_qty:0 })
 
 const STATUS_BADGE: Record<string,string> = {
@@ -28,6 +29,7 @@ export default function CustomerOrdersPage() {
   const { toast, confirm: confirmDialog } = useDialog()
 
   const [orders, setOrders] = useState<Order[]>([])
+  const [boms, setBoms] = useState<BOM[]>([])
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [loadedItems, setLoadedItems] = useState<Record<number, OrderItem[]>>({})
   const [creating, setCreating] = useState(false)
@@ -36,7 +38,10 @@ export default function CustomerOrdersPage() {
   const [search, setSearch] = useState('')
 
   const load = () => apiFetch<Order[]>('/api/customer-orders').then(setOrders).finally(()=>setLoading(false))
-  useEffect(()=>{ load() },[])
+  useEffect(()=>{
+    load()
+    apiFetch<BOM[]>('/api/bom').then(setBoms).catch(()=>{})
+  },[])
 
   const toggleExpand = async (id: number) => {
     const next = new Set(expanded)
@@ -68,6 +73,16 @@ export default function CustomerOrdersPage() {
   const addItem = () => setForm(p=>({...p,items:[...p.items,emptyItem()]}))
   const removeItem = (i:number) => setForm(p=>({...p,items:p.items.filter((_,idx)=>idx!==i)}))
   const updateItem = (i:number, f:keyof OrderItem, v:any) => setForm(p=>({...p,items:p.items.map((item,idx)=>idx===i?{...item,[f]:v}:item)}))
+
+  const selectBOM = (i:number, bomId:string) => {
+    const bom = boms.find(b => String(b.id) === bomId)
+    if (!bom) return
+    setForm(p=>({...p, items: p.items.map((item,idx) => idx===i ? {
+      ...item,
+      item_name: bom.product_name,
+      material_code: bom.product_sku,
+    } : item)}))
+  }
 
   const filtered = orders.filter(o => !search || o.po_number.toLowerCase().includes(search.toLowerCase()) || o.customer_name.toLowerCase().includes(search.toLowerCase()))
   const { page, setPage, totalPages, paged, total } = usePagination(filtered, 20)
@@ -101,14 +116,24 @@ export default function CustomerOrdersPage() {
           <div className="overflow-x-auto rounded-lg border border-slate-200">
             <table className="w-full text-xs">
               <thead><tr className="border-b border-slate-200">
-                {['品名','物料編號','規格','厚度mm','單位','數量','單價','出貨日期',''].map(h=>(
+                {['品名（選BOM或手填）','物料編號','規格','厚度mm','單位','數量','單價','出貨日期',''].map(h=>(
                   <th key={h} className="px-2 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">{h}</th>
                 ))}
               </tr></thead>
               <tbody>
                 {form.items.map((item,i)=>(
                   <tr key={i} className="border-b border-slate-100">
-                    <td className="p-1"><input className={inp} value={item.item_name} onChange={e=>updateItem(i,'item_name',e.target.value)} /></td>
+                    <td className="p-1 min-w-[200px]">
+                      <select className={inp} style={{width:'100%'}} value=""
+                        onChange={e => { if(e.target.value) selectBOM(i, e.target.value) }}>
+                        <option value="">-- 從BOM選擇 --</option>
+                        {boms.map(b=>(
+                          <option key={b.id} value={String(b.id)}>{b.product_sku} — {b.product_name}</option>
+                        ))}
+                      </select>
+                      <input className={`${inp} mt-1`} style={{width:'100%'}} placeholder="或手動輸入品名"
+                        value={item.item_name} onChange={e=>updateItem(i,'item_name',e.target.value)} />
+                    </td>
                     <td className="p-1"><input className={inp} style={{width:90}} value={item.material_code} onChange={e=>updateItem(i,'material_code',e.target.value)} /></td>
                     <td className="p-1"><input className={inp} style={{width:80}} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} /></td>
                     <td className="p-1"><input type="number" className={inp} style={{width:55}} value={item.thickness||''} onChange={e=>updateItem(i,'thickness',e.target.value?Number(e.target.value):null)} /></td>
