@@ -17,6 +17,7 @@ type Prod = {
   materials?: ProdMat[]
 }
 type CustomerOrder = { id: number; po_number: string; customer_name: string }
+type BOM = { id: number; product_sku: string; product_name: string }
 
 const STATUS_MAP: Record<string, { label: string; badge: string }> = {
   draft:       { label: '待確認',   badge: 'badge-gray'   },

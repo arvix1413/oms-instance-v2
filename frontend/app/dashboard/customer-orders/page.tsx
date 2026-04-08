@@ -8,6 +8,7 @@ import { StatusFlow, CO_STEPS } from '@/components/StatusFlow'
 type OrderItem = { id?:number; bom_id:number|null; qty:number; unit_price:number; rta_date:string; arrived_qty?:number; arrived_date?:string; balance?:number; status?:string; product_sku?:string; product_name?:string }
 type Order = { id:number; po_date:string; po_number:string; customer_id:number; customer_name:string; customer_code:string; status:string; remark:string; created_at:string; items?:OrderItem[] }
 type BOM = { id:number; product_sku:string; product_name:string; company_price?:number; unit?:string }
+type Customer = { id:number; customer_code:string; customer_name:string }
 const emptyItem = (): OrderItem => ({ bom_id:null, qty:0, unit_price:0, rta_date:'' })
 
 const STATUS_BADGE: Record<string,string> = { pending:'badge-yellow', completed:'badge-green', delay:'badge-red', partial:'badge-blue' }

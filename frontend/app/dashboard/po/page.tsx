@@ -7,6 +7,8 @@ import { StatusFlow, PO_STEPS, getPOActions } from '@/components/StatusFlow'
 
 type PoItem = { material_code:string; material_name:string; spec:string; unit:string; quantity:number; unit_price:number; total_price:number; currency:string; remark:string; po_ref:string; thickness:number|string }
 type Po = { id:number; po_number:string; supplier_name:string; status:string; total_amount:number; currency:string; remark:string; created_at:string; approved_at?:string; items?:PoItem[] }
+type Supplier = { id: number; name: string; currency: string; supplier_code: string }
+type Material = { id: number; material_code: string; material_name: string; spec: string; unit: string; supplier_price: number; currency: string }
 
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
   draft:     { label:'草稿',   badge:'badge-gray'   },
@@ -27,7 +29,6 @@ function ChevronIcon({ open }: { open: boolean }) {
   )
 }
 
-type Material = { id: number; material_code: string; material_name: string; spec: string; unit: string; supplier_price: number; currency: string }
 
 export default function PoPage() {
   const { toast, confirm: confirmDialog } = useDialog()

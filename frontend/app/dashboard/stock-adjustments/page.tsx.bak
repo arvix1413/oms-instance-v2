@@ -27,55 +27,6 @@ export default function StockAdjustmentsPage() {
     apiFetch<Material[]>('/api/materials').then(setMaterials).catch(() => {})
   }, [])
 
-  const viewAdj = async (id: number) => {
-    const d = await apiFetch<Adj>(`/api/stock-adjustments/${id}`)
-    setViewing(d)
-  }
-
-  const save = async () => {
-    try {
-      await apiFetch('/api/stock-adjustments', { method: 'POST', body: JSON.stringify(form) })
-      toast('庫存調整單建立成功')
-      setCreating(false)
-      setForm({ adj_type: 'count', adj_date: '', remark: '', items: [emptyItem()] })
-      load()
-    } catch (e: any) { toast('錯誤：' + e.message, 'error') }
-  }
-
-  const approve = async (id: number) => {
-    if (!await confirmDialog('確認核准庫存調整？', '核准後將更新材料庫存，此操作不可撤銷', '確認核准')) return
-    try {
-      await apiFetch(`/api/stock-adjustments/${id}/approve`, { method: 'PATCH' })
-      toast('庫存調整已核准，庫存已更新')
-      load()
-      if (viewing?.id === id) { viewAdj(id) }
-    } catch (e: any) { toast(e.message, 'error') }
-  }
-
-  const del = async (id: number) => {
-    if (!await confirmDialog('確定刪除此調整單？')) return
-    try {
-      await apiFetch(`/api/stock-adjustments/${id}`, { method: 'DELETE' })
-      load()
-    } catch (e: any) { toast(e.message, 'error') }
-  }
-
-  const addItem = () => setForm(p => ({ ...p, items: [...p.items, emptyItem()] }))
-  const removeItem = (i: number) => setForm(p => ({ ...p, items: p.items.filter((_, idx) => idx !== i) }))
-
-  const updateItem = (i: number, f: keyof AdjItem, v: any) => {
-    setForm(p => ({
-      ...p,
-      items: p.items.map((item, idx) => {
-        if (idx !== i) return item
-        const next = { ...item, [f]: v }
-        const actual = f === 'actual_qty' ? Number(v) : next.actual_qty
-        const system = f === 'system_qty' ? Number(v) : next.system_qty
-        return { ...next, diff_qty: actual - system }
-      })
-    }))
-  }
-
   const onSelectMaterial = (i: number, code: string) => {
     const mat = materials.find(m => m.material_code === code)
     if (mat) {
@@ -87,6 +38,44 @@ export default function StockAdjustmentsPage() {
       updateItem(i, 'material_code', code)
     }
   }
+
+  const save = async () => {
+    try {
+      await apiFetch('/api/stock-adjustments', { method: 'POST', body: JSON.stringify(form) })
+      toast('庫存調整單建立成功'); setCreating(false)
+      setForm({ adj_type: 'count', adj_date: '', remark: '', items: [emptyItem()] })
+      load()
+    } catch (e: any) { toast('錯誤：' + e.message, 'error') }
+  }
+
+  const approve = async (id: number) => {
+    if (!await confirmDialog('確認核准庫存調整？', '核准後將更新材料庫存，此操作不可撤銷', '確認核准')) return
+    try {
+      await apiFetch(`/api/stock-adjustments/${id}/approve`, { method: 'PATCH' })
+      toast('庫存調整已核准，庫存已更新'); load()
+      if (viewing?.id === id) { const d = await apiFetch<Adj>(`/api/stock-adjustments/${id}`); setViewing(d) }
+    } catch (e: any) { toast(e.message, 'error') }
+  }
+
+  const del = async (id: number) => {
+    if (!await confirmDialog('確定刪除此調整單？')) return
+    try { await apiFetch(`/api/stock-adjustments/${id}`, { method: 'DELETE' }); load() }
+    catch (e: any) { toast(e.message, 'error') }
+  }
+
+  const viewAdj = async (id: number) => { const d = await apiFetch<Adj>(`/api/stock-adjustments/${id}`); setViewing(d) }
+  const addItem = () => setForm(p => ({ ...p, items: [...p.items, emptyItem()] }))
+  const removeItem = (i: number) => setForm(p => ({ ...p, items: p.items.filter((_, idx) => idx !== i) }))
+  const updateItem = (i: number, f: keyof AdjItem, v: any) => setForm(p => ({
+    ...p, items: p.items.map((item, idx) => {
+      if (idx !== i) return item
+      const updated = { ...item, [f]: v }
+      const actual = f === 'actual_qty' ? Number(v) : updated.actual_qty
+      const system = f === 'system_qty' ? Number(v) : updated.system_qty
+      updated.diff_qty = actual - system
+      return updated
+    })
+  }))
 
   const filtered = adjs.filter(a => !search || a.adj_number.toLowerCase().includes(search.toLowerCase()))
   const { page, setPage, totalPages, paged, total } = usePagination(filtered, 20)
@@ -129,22 +118,19 @@ export default function StockAdjustmentsPage() {
           </div>
           <div className="overflow-x-auto rounded-lg border border-slate-200">
             <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  {['料號','材料名稱','單位','系統庫存','實際數量','差異','批次號','備註',''].map(h => (
-                    <th key={h} className="px-2 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">{h}</th>
-                  ))}
-                </tr>
-              </thead>
+              <thead><tr className="border-b border-slate-200">
+                {['料號','材料名稱','單位','系統庫存','實際數量','差異','批次號','備註',''].map(h => (
+                  <th key={h} className="px-2 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">{h}</th>
+                ))}
+              </tr></thead>
               <tbody>
                 {form.items.map((item, i) => (
                   <tr key={i} className="border-b border-slate-100">
                     <td className="p-1">
-                      <select className={inp} style={{width:130}} value={item.material_code} onChange={e => onSelectMaterial(i, e.target.value)}>
+                      <select className={inp} style={{width:130}} value={item.material_code}
+                        onChange={e => onSelectMaterial(i, e.target.value)}>
                         <option value="">-- 選擇料號 --</option>
-                        {materials.map(m => (
-                          <option key={m.material_code} value={m.material_code}>{m.material_code} - {m.material_name}</option>
-                        ))}
+                        {materials.map(m => <option key={m.material_code} value={m.material_code}>{m.material_code} - {m.material_name}</option>)}
                       </select>
                     </td>
                     <td className="p-1"><input className={inp} value={item.material_name} onChange={e => updateItem(i, 'material_name', e.target.value)} /></td>
@@ -178,23 +164,17 @@ export default function StockAdjustmentsPage() {
                 <div className="text-xs text-slate-500">類型：{viewing.adj_type} | 日期：{viewing.adj_date}</div>
               </div>
               <div className="flex gap-2 items-center">
-                <span className={viewing.status === 'approved' ? 'badge-green' : 'badge-gray'}>
-                  {viewing.status === 'approved' ? '已核准' : '草稿'}
-                </span>
-                {viewing.status === 'draft' && (
-                  <button onClick={() => approve(viewing.id)} className="btn-primary">&#10003; 核准</button>
-                )}
-                <button onClick={() => setViewing(null)} className="text-slate-400 hover:text-slate-600 text-xl ml-2">&#10005;</button>
+                <span className={viewing.status === 'approved' ? 'badge-green' : 'badge-gray'}>{viewing.status === 'approved' ? '已核准' : '草稿'}</span>
+                {viewing.status === 'draft' && <button onClick={() => approve(viewing.id)} className="btn-primary">✓ 核准</button>}
+                <button onClick={() => setViewing(null)} className="text-slate-400 hover:text-slate-600 text-xl ml-2">✕</button>
               </div>
             </div>
             <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  {['料號','材料名稱','單位','系統庫存','實際數量','差異','批次號'].map(h => (
-                    <th key={h} className="border border-slate-200 px-3 py-2 text-left text-xs font-medium text-slate-400">{h}</th>
-                  ))}
-                </tr>
-              </thead>
+              <thead><tr className="border-b border-slate-200">
+                {['料號','材料名稱','單位','系統庫存','實際數量','差異','批次號'].map(h => (
+                  <th key={h} className="border border-slate-200 px-3 py-2 text-left text-xs font-medium text-slate-400">{h}</th>
+                ))}
+              </tr></thead>
               <tbody>
                 {(viewing.items || []).map((item, i) => (
                   <tr key={i} className="hover:bg-slate-50">
@@ -215,21 +195,15 @@ export default function StockAdjustmentsPage() {
         </div>
       )}
 
-      <div className="mb-4">
-        <input className="oms-input w-64" placeholder="搜尋調整單號..." value={search} onChange={e => setSearch(e.target.value)} />
-      </div>
+      <div className="mb-4"><input className="oms-input w-64" placeholder="搜尋調整單號..." value={search} onChange={e => setSearch(e.target.value)} /></div>
 
       <div className="oms-card overflow-hidden">
-        {loading ? (
-          <div className="flex justify-center py-16"><div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" /></div>
-        ) : (
+        {loading ? <div className="flex justify-center py-16"><div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" /></div> : (
           <>
             <table className="oms-table">
-              <thead>
-                <tr>
-                  <th>調整單號</th><th>類型</th><th>調整日期</th><th>備註</th><th>操作</th>
-                </tr>
-              </thead>
+              <thead><tr>
+                <th>調整單號</th><th>類型</th><th>調整日期</th><th>備註</th><th>狀態</th><th>操作</th>
+              </tr></thead>
               <tbody>
                 {paged.map(a => (
                   <tr key={a.id}>
@@ -238,15 +212,18 @@ export default function StockAdjustmentsPage() {
                     <td className="text-slate-400 text-xs">{a.adj_date}</td>
                     <td className="text-slate-400 text-xs">{a.remark}</td>
                     <td>
+                    <td>
                       <div className="flex gap-1 flex-wrap items-center">
-                        <StatusFlow compact steps={ADJ_STEPS} current={a.status} actions={getAdjActions(a.status)} onAction={() => approve(a.id)} />
+                        <StatusFlow compact steps={ADJ_STEPS} current={a.status}
+                          actions={getAdjActions(a.status)}
+                          onAction={() => approve(a.id)} />
                         <button onClick={() => viewAdj(a.id)} className="btn-ghost ml-1">詳情</button>
                         {a.status === 'draft' && <button onClick={() => del(a.id)} className="btn-danger">刪除</button>}
                       </div>
                     </td>
                   </tr>
                 ))}
-                {paged.length === 0 && <tr><td colSpan={5} className="text-center py-12 text-slate-400">尚無庫存調整記錄</td></tr>}
+                {paged.length === 0 && <tr><td colSpan={6} className="text-center py-12 text-slate-400">尚無庫存調整記錄</td></tr>}
               </tbody>
             </table>
             <Pagination page={page} totalPages={totalPages} setPage={setPage} total={total} />
