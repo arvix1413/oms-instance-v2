@@ -83,9 +83,25 @@ test('03. Customer Orders CRUD', async ({ page }) => {
 
   await page.locator('button', { hasText: /新增|建立/ }).first().click()
   await page.waitForTimeout(400)
-  const inputs = page.locator('input.oms-input')
-  await inputs.nth(1).fill('PO-E2E-UI-001')
-  await inputs.nth(2).fill('E2E UI 客戶')
+
+  // Fill PO number (first text input after date)
+  await page.locator('input.oms-input').nth(0).fill('PO-E2E-UI-001')
+
+  // Select first customer from dropdown
+  const custSelect = page.locator('select').first()
+  const opts = await custSelect.locator('option').all()
+  if (opts.length > 1) await custSelect.selectOption({ index: 1 })
+  await page.waitForTimeout(300)
+
+  // Add a BOM item if available
+  const bomSelect = page.locator('select').nth(1)
+  const bomOpts = await bomSelect.locator('option').all()
+  if (bomOpts.length > 1) {
+    await bomSelect.selectOption({ index: 1 })
+    await page.waitForTimeout(200)
+    await page.locator('input[type="number"]').first().fill('5')
+  }
+
   await page.locator('button', { hasText: '建立訂單' }).click()
   await waitMsg(page)
   await expect(page.locator('td', { hasText: 'PO-E2E-UI-001' }).first()).toBeVisible({ timeout: 5000 })

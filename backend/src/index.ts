@@ -382,20 +382,25 @@ app.get('/api/customer-orders', authMiddleware, async c => c.json(await query(`
 // Must be before /:id to avoid 'pending' being treated as an id
 app.get('/api/customer-orders/pending', authMiddleware, async c => {
   const customerId = c.req.query('customer_id')
-  if (!customerId) return c.json([])
-  const orders = await query(`
-    SELECT co.id, co.po_number, co.po_date, co.status,
+  const poSearch = c.req.query('po_search')
+  if (!customerId && !poSearch) return c.json([])
+
+  let sql = `
+    SELECT co.id, co.po_number, co.po_date, co.status, co.customer_id,
            c.customer_name,
            GROUP_CONCAT(b.product_name ORDER BY ci.id SEPARATOR ', ') as items_summary
     FROM customer_orders co
     LEFT JOIN customers c ON co.customer_id = c.id
     LEFT JOIN customer_order_items ci ON ci.order_id = co.id
     LEFT JOIN bom b ON ci.bom_id = b.id
-    WHERE co.customer_id = ? AND co.status = 'pending'
-    GROUP BY co.id
-    ORDER BY co.created_at DESC
-  `, [customerId])
-  return c.json(orders)
+    WHERE co.status = 'pending'
+  `
+  const params: any[] = []
+  if (customerId) { sql += ' AND co.customer_id = ?'; params.push(customerId) }
+  if (poSearch) { sql += ' AND co.po_number LIKE ?'; params.push(`%${poSearch}%`) }
+  sql += ' GROUP BY co.id ORDER BY co.created_at DESC'
+
+  return c.json(await query(sql, params))
 })
 app.get('/api/customer-orders/:id', authMiddleware, async c => {
   const order = await queryOne<any>(`
@@ -430,7 +435,28 @@ app.post('/api/customer-orders', authMiddleware, canWrite, async c => {
       }
     }
     await audit(c.get('user'), 'CREATE', '客戶訂單', orderId, `${b.po_number} / ${cust?.customer_name||b.customer_id}`)
-    return c.json({ id: orderId }, 201)
+
+    // Auto-create a draft delivery note with same items
+    const dnNum = `DN${Date.now()}`
+    const dnR = await execute(
+      'INSERT INTO delivery_notes (dn_number,customer_id,customer_name,customer_order_id,delivery_date,status,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?)',
+      [dnNum, b.customer_id, cust?.customer_name||'', orderId, b.po_date||null, 'draft', b.remark||'', u.userId, now8()]
+    )
+    const dnId = dnR.insertId
+    if (b.items?.length) {
+      for (const item of b.items) {
+        if (!item.bom_id) continue
+        // Get BOM info for item_name and material_code
+        const bom = await queryOne<any>('SELECT product_sku, product_name FROM bom WHERE id=?', [item.bom_id])
+        await execute(
+          'INSERT INTO delivery_note_items (dn_id,item_name,material_code,spec,unit,qty,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?)',
+          [dnId, bom?.product_name||'', bom?.product_sku||'', '', 'PCS', item.qty||0, '', b.po_number||'', null]
+        )
+      }
+    }
+    await audit(c.get('user'), 'CREATE', '出貨單(自動)', dnId, `${dnNum} ← ${b.po_number}`)
+
+    return c.json({ id: orderId, dn_id: dnId, dn_number: dnNum }, 201)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 app.delete('/api/customer-orders/:id', authMiddleware, canApprove, async c => {
