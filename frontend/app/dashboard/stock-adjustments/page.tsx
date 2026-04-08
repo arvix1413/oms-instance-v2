@@ -3,6 +3,7 @@ import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
+import { StatusFlow, ADJ_STEPS, getAdjActions } from '@/components/StatusFlow'
 
 type AdjItem = { material_code: string; material_name: string; unit: string; system_qty: number; actual_qty: number; diff_qty: number; batch_no: string; remark: string }
 type Adj = { id: number; adj_number: string; adj_type: string; status: string; adj_date: string; remark: string; created_at: string; items?: AdjItem[] }
@@ -208,11 +209,13 @@ export default function StockAdjustmentsPage() {
                     <td>{{ count: '盤點', scrap: '報廢', other: '其他' }[a.adj_type] || a.adj_type}</td>
                     <td className="text-slate-400 text-xs">{a.adj_date}</td>
                     <td className="text-slate-400 text-xs">{a.remark}</td>
-                    <td><span className={a.status === 'approved' ? 'badge-green' : 'badge-gray'}>{a.status === 'approved' ? '已核准' : '草稿'}</span></td>
                     <td>
-                      <div className="flex gap-2">
-                        <button onClick={() => viewAdj(a.id)} className="btn-ghost">詳情</button>
-                        {a.status === 'draft' && <button onClick={() => approve(a.id)} className="btn-ghost text-emerald-600">核准</button>}
+                    <td>
+                      <div className="flex gap-1 flex-wrap items-center">
+                        <StatusFlow compact steps={ADJ_STEPS} current={a.status}
+                          actions={getAdjActions(a.status)}
+                          onAction={() => approve(a.id)} />
+                        <button onClick={() => viewAdj(a.id)} className="btn-ghost ml-1">詳情</button>
                         {a.status === 'draft' && <button onClick={() => del(a.id)} className="btn-danger">刪除</button>}
                       </div>
                     </td>

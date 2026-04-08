@@ -3,6 +3,7 @@ import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
+import { StatusFlow, PO_STEPS, getPOActions } from '@/components/StatusFlow'
 
 type PoItem = { material_code:string; material_name:string; spec:string; unit:string; quantity:number; unit_price:number; total_price:number; currency:string; remark:string; po_ref:string; thickness:number|string }
 type Po = { id:number; po_number:string; supplier_name:string; status:string; total_amount:number; currency:string; remark:string; created_at:string; approved_at?:string; items?:PoItem[] }
@@ -26,7 +27,7 @@ function ChevronIcon({ open }: { open: boolean }) {
   )
 }
 
-type Supplier = { id: number; name: string; currency: string; supplier_code: string }
+import { StatusFlow, PO_STEPS, getPOActions } from '@/components/StatusFlow'
 type Material = { id: number; material_code: string; material_name: string; spec: string; unit: string; supplier_price: number; currency: string }
 
 export default function PoPage() {
@@ -314,10 +315,14 @@ export default function PoPage() {
                         <td className="px-4 py-3 text-slate-300 text-xs">{p.created_at?.slice(0,10)}</td>
                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center gap-1">
-                            {p.status === 'draft' && <button onClick={e => approve(p.id, e)} className="btn-ghost text-emerald-600">核准</button>}
-                            {p.status === 'approved' && <button onClick={e => changeStatus(p.id,'sent',e)} className="btn-ghost text-blue-600">發送</button>}
-                            {p.status === 'sent' && <button onClick={e => confirmReceipt(p, e)} className="btn-ghost text-violet-600">確認收貨</button>}
-                            <button onClick={e => { e.stopPropagation(); printPo(p.id, p.po_number, p.supplier_name) }} className="btn-ghost">🖨</button>
+                            <StatusFlow compact steps={PO_STEPS} current={p.status}
+                              actions={getPOActions(p.status)}
+                              onAction={async (toStatus) => {
+                                if (toStatus === 'approved') await approve(p.id, { stopPropagation: ()=>{} } as any)
+                                else if (toStatus === 'received') await confirmReceipt(p, { stopPropagation: ()=>{} } as any)
+                                else await changeStatus(p.id, toStatus, { stopPropagation: ()=>{} } as any)
+                              }} />
+                            <button onClick={e => { e.stopPropagation(); printPo(p.id, p.po_number, p.supplier_name) }} className="btn-ghost ml-1">🖨</button>
                             <button onClick={e => del(p.id, e)} className="btn-danger">刪除</button>
                           </div>
                         </td>

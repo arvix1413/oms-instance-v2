@@ -4,7 +4,12 @@ import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 
-type DNItem = { bom_id?:number|null; item_name:string; material_code:string; qty:number; shipped_qty:number; remark:string }
+'use client'
+import { useDialog } from '@/components/Dialog'
+import { useEffect, useState } from 'react'
+import { apiFetch } from '@/lib/api'
+import { usePagination, Pagination } from '@/lib/usePagination'
+import { StatusFlow, DN_STEPS, getDNActions } from '@/components/StatusFlow'
 type DN = { id:number; dn_number:string; customer_name:string; delivery_date:string; status:string; remark:string; created_at:string; items?:DNItem[] }
 type Customer = { id:number; customer_name:string; customer_code:string }
 type PendingOrder = { id:number; po_number:string; po_date:string; items_summary:string }
@@ -311,13 +316,10 @@ export default function DeliveryNotesPage() {
                     <td className="px-3 py-2 whitespace-nowrap"><span className={STATUS_MAP[dn.status]?.badge}>{STATUS_MAP[dn.status]?.label}</span></td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       <div className="flex gap-1 flex-wrap">
-                        {dn.status === 'draft' && (
-                          <button onClick={() => changeStatus(dn.id, 'confirmed')} className="btn-ghost text-blue-600">✓ 確認</button>
-                        )}
-                        {dn.status === 'confirmed' && (
-                          <button onClick={() => changeStatus(dn.id, 'shipped')} className="btn-ghost text-emerald-600">🚚 出貨</button>
-                        )}
-                        <button onClick={() => viewDN(dn.id)} className="btn-ghost">詳情</button>
+                        <StatusFlow compact steps={DN_STEPS} current={dn.status}
+                          actions={getDNActions(dn.status)}
+                          onAction={(toStatus) => changeStatus(dn.id, toStatus)} />
+                        <button onClick={() => viewDN(dn.id)} className="btn-ghost ml-1">詳情</button>
                         <button onClick={() => del(dn.id)} className="btn-danger">刪除</button>
                       </div>
                     </td>

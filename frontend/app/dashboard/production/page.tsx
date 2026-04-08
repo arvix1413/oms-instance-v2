@@ -3,6 +3,7 @@ import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
+import { StatusFlow, PROD_STEPS, getProdActions } from '@/components/StatusFlow'
 
 type ProdMat = {
   material_code: string; material_name: string; spec: string; unit: string
@@ -15,7 +16,7 @@ type Prod = {
   planned_start: string; planned_end: string; remark: string; created_at: string
   materials?: ProdMat[]
 }
-type BOM = { id: number; product_sku: string; product_name: string }
+import { StatusFlow, PROD_STEPS, getProdActions } from '@/components/StatusFlow'
 type CustomerOrder = { id: number; po_number: string; customer_name: string }
 
 const STATUS_MAP: Record<string, { label: string; badge: string }> = {
@@ -321,15 +322,12 @@ export default function ProductionPage() {
                     <td className="text-right">{p.planned_qty}</td>
                     <td className="text-right text-emerald-600">{p.produced_qty}</td>
                     <td className="text-slate-400 text-xs">{p.planned_start}{p.planned_end ? ` ~ ${p.planned_end}` : ''}</td>
-                    <td><span className={STATUS_MAP[p.status]?.badge}>{STATUS_MAP[p.status]?.label}</span></td>
                     <td>
-                      <div className="flex gap-2 flex-wrap">
-                        <button onClick={() => viewProd(p.id)} className="btn-ghost">詳情</button>
-                        {p.status === 'draft' && <button onClick={() => changeStatus(p.id, 'confirmed')} className="btn-ghost text-blue-600">確認</button>}
-                        {p.status === 'confirmed' && <button onClick={() => changeStatus(p.id, 'ready')} className="btn-ghost text-emerald-600">材料齊</button>}
-                        {p.status === 'shortage' && <button onClick={() => changeStatus(p.id, 'ready')} className="btn-ghost text-emerald-600">補齊</button>}
-                        {p.status === 'ready' && <button onClick={() => changeStatus(p.id, 'in_progress')} className="btn-ghost text-blue-600">開始</button>}
-                        {p.status === 'in_progress' && <button onClick={() => changeStatus(p.id, 'completed', p.planned_qty)} className="btn-ghost text-emerald-600">完工</button>}
+                      <div className="flex gap-1 flex-wrap items-center">
+                        <StatusFlow compact steps={PROD_STEPS} current={p.status}
+                          actions={getProdActions(p.status)}
+                          onAction={(toStatus) => changeStatus(p.id, toStatus, toStatus === 'completed' ? p.planned_qty : undefined)} />
+                        <button onClick={() => viewProd(p.id)} className="btn-ghost ml-1">詳情</button>
                         {p.status === 'draft' && <button onClick={() => del(p.id)} className="btn-danger">刪除</button>}
                       </div>
                     </td>

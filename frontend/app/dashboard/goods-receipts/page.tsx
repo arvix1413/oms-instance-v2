@@ -3,6 +3,7 @@ import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
+import { StatusFlow, GR_STEPS, getGRActions } from '@/components/StatusFlow'
 
 type GRItem = { po_item_id?: number; material_code: string; material_name: string; spec: string; unit: string; ordered_qty: number; received_qty: number; unit_price: number; currency: string; batch_no: string; remark: string }
 type GR = { id: number; gr_number: string; po_number: string; supplier_name: string; status: string; received_date: string; remark: string; created_at: string; items?: GRItem[] }
@@ -205,11 +206,12 @@ export default function GoodsReceiptsPage() {
                     <td className="font-medium">{gr.supplier_name}</td>
                     <td className="text-slate-400 text-xs">{gr.po_number}</td>
                     <td className="text-slate-400 text-xs">{gr.received_date}</td>
-                    <td><span className={gr.status === 'confirmed' ? 'badge-green' : 'badge-gray'}>{gr.status === 'confirmed' ? '已確認' : '草稿'}</span></td>
                     <td>
-                      <div className="flex gap-2">
-                        <button onClick={() => viewGR(gr.id)} className="btn-ghost">詳情</button>
-                        {gr.status === 'draft' && <button onClick={() => confirm(gr.id)} className="btn-ghost text-emerald-600">確認</button>}
+                      <div className="flex gap-1 flex-wrap items-center">
+                        <StatusFlow compact steps={GR_STEPS} current={gr.status}
+                          actions={getGRActions(gr.status)}
+                          onAction={() => confirm(gr.id)} />
+                        <button onClick={() => viewGR(gr.id)} className="btn-ghost ml-1">詳情</button>
                         {gr.status === 'draft' && <button onClick={() => del(gr.id)} className="btn-danger">刪除</button>}
                       </div>
                     </td>
