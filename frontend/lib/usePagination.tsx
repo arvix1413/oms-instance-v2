@@ -3,9 +3,13 @@ import { useState, useMemo } from 'react'
 export function usePagination<T>(items: T[], pageSize = 20) {
   const [page, setPage] = useState(1)
   const totalPages = Math.max(1, Math.ceil(items.length / pageSize))
-  const paged = useMemo(() => items.slice((page - 1) * pageSize, page * pageSize), [items, page, pageSize])
+
+  // Clamp page to valid range (handles filter reducing totalPages)
+  const safePage = Math.max(1, Math.min(page, totalPages))
+
+  const paged = useMemo(() => items.slice((safePage - 1) * pageSize, safePage * pageSize), [items, safePage, pageSize])
   const reset = () => setPage(1)
-  return { page, setPage, totalPages, paged, reset, total: items.length }
+  return { page: safePage, setPage, totalPages, paged, reset, total: items.length }
 }
 
 export function Pagination({ page, totalPages, setPage, total, pageSize = 20 }: {
