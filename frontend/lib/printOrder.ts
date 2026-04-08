@@ -59,7 +59,7 @@ export function generateOrderHTML(data: any): string {
 
   // Header
   parts.push('<div class="header">')
-  parts.push('<div class="company">CÔNG TY TNHH WAGON</div>')
+  parts.push('<div class="company">FAN YONG CO., LTD</div>')
   parts.push('<div class="doc-title">採購單 / Đơn đặt hàng</div>')
   parts.push('<div class="doc-subtitle">Purchase Order</div>')
   parts.push('</div>')
