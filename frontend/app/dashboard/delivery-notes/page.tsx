@@ -310,7 +310,13 @@ export default function DeliveryNotesPage() {
                     <td className="px-3 py-2 text-slate-400 whitespace-nowrap max-w-[150px] truncate" title={dn.remark}>{dn.remark||'—'}</td>
                     <td className="px-3 py-2 whitespace-nowrap"><span className={STATUS_MAP[dn.status]?.badge}>{STATUS_MAP[dn.status]?.label}</span></td>
                     <td className="px-3 py-2 whitespace-nowrap">
-                      <div className="flex gap-2">
+                      <div className="flex gap-1 flex-wrap">
+                        {dn.status === 'draft' && (
+                          <button onClick={() => changeStatus(dn.id, 'confirmed')} className="btn-ghost text-blue-600">✓ 確認</button>
+                        )}
+                        {dn.status === 'confirmed' && (
+                          <button onClick={() => changeStatus(dn.id, 'shipped')} className="btn-ghost text-emerald-600">🚚 出貨</button>
+                        )}
                         <button onClick={() => viewDN(dn.id)} className="btn-ghost">詳情</button>
                         <button onClick={() => del(dn.id)} className="btn-danger">刪除</button>
                       </div>
