@@ -27,7 +27,6 @@ function ChevronIcon({ open }: { open: boolean }) {
   )
 }
 
-import { StatusFlow, PO_STEPS, getPOActions } from '@/components/StatusFlow'
 type Material = { id: number; material_code: string; material_name: string; spec: string; unit: string; supplier_price: number; currency: string }
 
 export default function PoPage() {
