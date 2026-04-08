@@ -71,8 +71,8 @@ export function StatusFlow({ steps, current, actions, onAction, compact = false 
           const isCurrent = step.key === current
           return (
             <div key={step.key} className="flex items-center min-w-0">
-              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all
-                ${isCurrent ? `ring-2 ${sc.ring} ${sc.bg} ${sc.text}` : isDone ? 'text-slate-400 bg-slate-50' : 'text-slate-300 bg-white'}`}>
+              <div className={['flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all',
+                isCurrent ? `ring-2 ${sc.ring} ${sc.bg} ${sc.text}` : isDone ? 'text-slate-400 bg-slate-50' : 'text-slate-300 bg-white'].join(' ')}>
                 <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isCurrent ? sc.dot : isDone ? 'bg-slate-300' : 'bg-slate-200'}`} />
                 {step.label}
                 {isDone && <span className="text-slate-300 ml-0.5">✓</span>}
