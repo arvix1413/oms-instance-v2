@@ -126,6 +126,12 @@ export default function DeliveryNotesPage() {
   }
 
   const changeStatus = async (id: number, status: string) => {
+    const labels: Record<string, string> = {
+      confirmed: '確認此出貨單？',
+      shipped: '確認出貨？出貨後狀態不可撤銷',
+    }
+    const btnLabels: Record<string, string> = { confirmed: '確認', shipped: '確認出貨' }
+    if (!await confirmDialog(labels[status] || '確認變更狀態？', '', btnLabels[status] || '確認')) return
     await apiFetch(`/api/delivery-notes/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
     toast('狀態已更新'); load()
     if (viewing?.id === id) viewDN(id)

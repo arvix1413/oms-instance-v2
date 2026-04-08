@@ -120,6 +120,9 @@ export default function PoPage() {
 
   const changeStatus = async (id: number, status: string, e: React.MouseEvent) => {
     e.stopPropagation()
+    const labels: Record<string, string> = { sent: '確認發送此採購單？' }
+    const btnLabels: Record<string, string> = { sent: '確認發送' }
+    if (!await confirmDialog(labels[status] || '確認變更狀態？', '', btnLabels[status] || '確認')) return
     await apiFetch(`/api/po/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
     toast('狀態已更新'); load()
     // refresh items if expanded
