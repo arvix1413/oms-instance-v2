@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, CO_STEPS } from '@/components/StatusFlow'
+import { generateOrderHTML } from '@/lib/printOrder'
 
 // Customer order actions based on current status
 function getCOActions(status: string) {
@@ -48,7 +49,8 @@ export default function CustomerOrdersPage() {
   const [creating, setCreating] = useState(false)
   const [form, setForm] = useState({
     po_date:'', po_number:'', customer_id:'', remark:'',
-    tax_rate: 8, delivery_date:'', person_in_charge:'', payment_terms:'',
+    tax_rate: 8, currency: 'VND', delivery_date:'', delivery_address:'', 
+    person_in_charge:'', payment_terms:'',
     items:[emptyItem()]
   })
   const [loading, setLoading] = useState(true)
@@ -81,11 +83,16 @@ export default function CustomerOrdersPage() {
     try {
       await apiFetch('/api/customer-orders', { method:'POST', body:JSON.stringify({ ...form, items: validItems }) })
       toast('建立成功'); setCreating(false)
-      setForm({ po_date:'', po_number:'', customer_id:'', remark:'', tax_rate:8, delivery_date:'', person_in_charge:'', payment_terms:'', items:[emptyItem()] }); load()
+      setForm({ po_date:'', po_number:'', customer_id:'', remark:'', tax_rate:8, currency:'VND', delivery_date:'', delivery_address:'', person_in_charge:'', payment_terms:'', items:[emptyItem()] }); load()
     } catch(e:any){ toast('錯誤：'+e.message, 'error') }
   }
 
-  const del = async (id:number) => {
+  const printOrder = async (orderId: number) => {
+    const data = await apiFetch<any>(`/api/customer-orders/${orderId}`)
+    const html = generateOrderHTML(data)
+    const w = window.open('', '_blank', 'width=800,height=1000')
+    if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500) }
+  }
     if (!await confirmDialog('確定刪除？')) return
     await apiFetch(`/api/customer-orders/${id}`, { method:'DELETE' }); load()
   }
@@ -165,6 +172,10 @@ export default function CustomerOrdersPage() {
               <input type="date" className={inp} value={form.delivery_date} onChange={e=>setForm(p=>({...p,delivery_date:e.target.value}))} />
             </div>
             <div>
+              <label className="block text-[11px] text-slate-500 mb-1.5">交貨地點</label>
+              <input className={inp} value={form.delivery_address} onChange={e=>setForm(p=>({...p,delivery_address:e.target.value}))} placeholder="交貨地址" />
+            </div>
+            <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">負責人</label>
               <input className={inp} value={form.person_in_charge} onChange={e=>setForm(p=>({...p,person_in_charge:e.target.value}))} />
             </div>
@@ -173,10 +184,18 @@ export default function CustomerOrdersPage() {
               <input className={inp} value={form.payment_terms} onChange={e=>setForm(p=>({...p,payment_terms:e.target.value}))} placeholder="如：月結30天" />
             </div>
             <div>
+              <label className="block text-[11px] text-slate-500 mb-1.5">幣種</label>
+              <select className={inp} value={form.currency} onChange={e=>setForm(p=>({...p,currency:e.target.value}))}>
+                <option value="VND">VND</option>
+                <option value="USD">USD</option>
+                <option value="CNY">CNY</option>
+              </select>
+            </div>
+            <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">稅率 (%)</label>
               <input type="number" className={inp} value={form.tax_rate} min={0} max={100} onChange={e=>setForm(p=>({...p,tax_rate:Number(e.target.value)}))} />
             </div>
-            <div>
+            <div className="md:col-span-3">
               <label className="block text-[11px] text-slate-500 mb-1.5">備註</label>
               <input className={inp} value={form.remark} onChange={e=>setForm(p=>({...p,remark:e.target.value}))} />
             </div>
@@ -282,7 +301,10 @@ export default function CustomerOrdersPage() {
                             onAction={(toStatus) => changeStatus(o.id, toStatus)} />
                         </td>
                         <td className="px-4 py-3" onClick={e=>e.stopPropagation()}>
-                          <button onClick={()=>del(o.id)} className="btn-danger">刪除</button>
+                          <div className="flex gap-1">
+                            <button onClick={e=>{e.stopPropagation();printOrder(o.id)}} className="btn-ghost">🖨</button>
+                            <button onClick={()=>del(o.id)} className="btn-danger">刪除</button>
+                          </div>
                         </td>
                       </tr>
                       {isOpen && (

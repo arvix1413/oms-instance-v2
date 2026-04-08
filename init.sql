@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS customers (
   tax_id VARCHAR(100),
   contact VARCHAR(255),
   phone VARCHAR(100),
+  fax VARCHAR(100) COMMENT '传真',
   email VARCHAR(255),
   address TEXT,
   main_products TEXT,
@@ -125,12 +126,25 @@ CREATE TABLE IF NOT EXISTS customer_orders (
   customer_name VARCHAR(255) NOT NULL,
   status VARCHAR(50) DEFAULT 'pending',
   remark TEXT,
+  tax_rate DECIMAL(5,2) DEFAULT 8.00 COMMENT '税率(%)',
+  tax_amount DECIMAL(15,2) DEFAULT 0 COMMENT '税额',
+  total_amount DECIMAL(15,2) DEFAULT 0 COMMENT '含税总计',
+  currency VARCHAR(20) DEFAULT 'VND' COMMENT '币种',
+  delivery_date DATE COMMENT '预计交货日期',
+  delivery_address TEXT COMMENT '交货地点',
+  person_in_charge VARCHAR(100) COMMENT '负责人',
+  payment_terms VARCHAR(100) COMMENT '付款方式',
+  received_amount DECIMAL(15,2) DEFAULT 0 COMMENT '已收金额',
+  payment_status VARCHAR(50) DEFAULT 'unpaid' COMMENT '付款状态',
+  payment_date DATE COMMENT '付款日期',
+  payment_note TEXT COMMENT '付款备注',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS customer_order_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
   order_id INT NOT NULL,
+  bom_id INT COMMENT 'BOM ID',
   item_name VARCHAR(255),
   material_code VARCHAR(100),
   spec TEXT,

@@ -374,6 +374,8 @@ app.patch('/api/po/:id/receive', authMiddleware, canWrite, async c => {
 // ── Customer Orders ───────────────────────────────────────────────────────────
 app.get('/api/customer-orders', authMiddleware, async c => c.json(await query(`
   SELECT co.id, co.po_date, co.po_number, co.customer_id, co.status, co.remark, co.created_at,
+         co.tax_rate, co.tax_amount, co.total_amount, co.currency,
+         co.delivery_date, co.delivery_address, co.person_in_charge, co.payment_terms,
          co.received_amount, co.payment_status, co.payment_date, co.payment_note,
          c.customer_name, c.customer_code
   FROM customer_orders co LEFT JOIN customers c ON co.customer_id = c.id
@@ -405,8 +407,10 @@ app.get('/api/customer-orders/pending', authMiddleware, async c => {
 app.get('/api/customer-orders/:id', authMiddleware, async c => {
   const order = await queryOne<any>(`
     SELECT co.id, co.po_date, co.po_number, co.customer_id, co.status, co.remark, co.created_at,
+           co.tax_rate, co.tax_amount, co.total_amount, co.currency,
+           co.delivery_date, co.delivery_address, co.person_in_charge, co.payment_terms,
            co.received_amount, co.payment_status, co.payment_date, co.payment_note,
-           c.customer_name, c.customer_code
+           c.customer_name, c.customer_code, c.address, c.phone, c.fax, c.email, c.tax_id
     FROM customer_orders co LEFT JOIN customers c ON co.customer_id = c.id
     WHERE co.id=?`, [c.req.param('id')])
   if (!order) return c.json({ error: 'Not found' }, 404)
@@ -429,10 +433,10 @@ app.post('/api/customer-orders', authMiddleware, canWrite, async c => {
     const taxRate = parseFloat(b.tax_rate) || 0
     const taxAmount = Math.round(subtotal * taxRate / 100 * 100) / 100
     const totalAmount = subtotal + taxAmount
-    const r = await execute('INSERT INTO customer_orders (po_date,po_number,customer_id,status,remark,tax_rate,tax_amount,total_amount,delivery_date,person_in_charge,payment_terms,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+    const r = await execute('INSERT INTO customer_orders (po_date,po_number,customer_id,status,remark,tax_rate,tax_amount,total_amount,currency,delivery_date,delivery_address,person_in_charge,payment_terms,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
       [b.po_date||null, b.po_number, b.customer_id, b.status||'pending', b.remark||'',
-       taxRate, taxAmount, totalAmount,
-       b.delivery_date||null, b.person_in_charge||'', b.payment_terms||cust?.payment_terms||'',
+       taxRate, taxAmount, totalAmount, b.currency||'VND',
+       b.delivery_date||null, b.delivery_address||'', b.person_in_charge||'', b.payment_terms||cust?.payment_terms||'',
        now8()])
     const orderId = r.insertId
     if (b.items?.length) {
