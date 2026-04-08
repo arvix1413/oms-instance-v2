@@ -7,17 +7,22 @@ export function generateOrderHTML(data: any): string {
 
   const itemRows = items.map((item: any, i: number) => {
     const amt = (Number(item.qty)||0) * (Number(item.unit_price)||0)
-    // Use spec from BOM table
-    const specText = item.spec ? '<div style="font-size:9px;color:#666;margin-top:2px">' + item.spec + '</div>' : ''
+    
+    // Build product description with multiple lines like in the image
+    const productLines = []
+    if (item.product_name) productLines.push(item.product_name)
+    if (item.product_sku) productLines.push('(料號號碼: ' + item.product_sku + ')')
+    if (item.spec) productLines.push('Quy cách: ' + item.spec)
+    
+    const productDesc = productLines.map((line, idx) => {
+      if (idx === 0) return '<div style="font-weight:600;font-size:11px;margin-bottom:2px">' + line + '</div>'
+      return '<div style="font-size:9px;color:#666;margin-top:2px">' + line + '</div>'
+    }).join('')
     
     return [
       '<tr>',
       '<td style="border:1px solid #333;text-align:center;padding:8px 6px;font-size:11px">' + (i+1) + '</td>',
-      '<td style="border:1px solid #333;padding:8px 10px">',
-      '<div style="font-weight:600;font-size:11px;margin-bottom:2px">' + (item.product_name || '—') + '</div>',
-      '<div style="font-size:9px;color:#666;font-family:monospace">SKU: ' + (item.product_sku || '') + '</div>',
-      specText,
-      '</td>',
+      '<td style="border:1px solid #333;padding:8px 10px">' + productDesc + '</td>',
       '<td style="border:1px solid #333;padding:8px 10px;text-align:center;font-size:11px">' + (item.unit || 'PCS') + '</td>',
       '<td style="border:1px solid #333;padding:8px 10px;text-align:right;font-size:11px;font-weight:600">' + Number(item.qty).toLocaleString() + '</td>',
       '<td style="border:1px solid #333;padding:8px 10px;text-align:right;font-size:11px;font-weight:600">' + amt.toLocaleString() + '</td>',
@@ -132,7 +137,21 @@ export function generateOrderHTML(data: any): string {
   // Notes
   parts.push('<div class="notes">')
   parts.push('<div class="notes-title">備註/Ghi chú:</div>')
-  parts.push('<div>' + (data.remark || '—') + '</div>')
+  if (data.remark) {
+    parts.push('<div>' + data.remark + '</div>')
+  }
+  parts.push('</div>')
+
+  // Terms and conditions
+  parts.push('<div style="border:1px solid #333;padding:8px 12px;margin-bottom:8mm;font-size:9px;line-height:1.6">')
+  parts.push('<div style="font-weight:700;margin-bottom:4px">Ghi chú注释：</div>')
+  parts.push('<div>1. Nhà cung ứng phải theo ngày ghi trên đơn hàng, quy cách, số lượng, đơn giá để giao hàng. Nếu có chất lượng không đạt, giao hàng không đúng quy cách, số lượng, đơn giá thì chúng tôi sẽ không nhận hàng. Quy cách và số lượng phải theo ngày ghi trên đơn hàng để giao hàng, nếu không chúng tôi sẽ không nhận hàng.</div>')
+  parts.push('<div style="margin-top:4px">供应商必须按照订单上注明的交货日期、规格、数量、单价交货。如有质量不合格、交货规格、数量、单价不符，我们将不予收货。规格和数量必须按照订单上注明的交货日期交货，否则我们将不予收货。</div>')
+  parts.push('<div style="margin-top:4px">2. Sau khi đơn hàng được xác nhận thì không được thay đổi bất cứ nội dung nào trên đơn hàng đã ký (nếu có thay đổi thì phải được sự chấp thuận của chúng tôi).</div>')
+  parts.push('<div style="margin-top:4px">订单确认后，不得更改订单上已签署的任何内容（如有更改，必须经我们同意）。</div>')
+  parts.push('<div style="margin-top:4px">3. Lưu hàng dự trữ có nghĩa là mất đơn hàng đã ký (nếu theo đơn).</div>')
+  parts.push('<div style="margin-top:4px">P.S: Khi nhận được đơn hàng này, vui lòng ký tên và chứng chỉ của chúng tôi.</div>')
+  parts.push('<div style="margin-top:4px">收到本订单后，请签名并盖章回传给我们。</div>')
   parts.push('</div>')
 
   // Footer signatures
