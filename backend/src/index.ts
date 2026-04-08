@@ -538,17 +538,23 @@ app.get('/api/delivery-notes/:id', authMiddleware, async c => {
 app.post('/api/delivery-notes', authMiddleware, canWrite, async c => {
   try {
     const b = await c.req.json(); const u = c.get('user')
+    // Get customer name from customer_id if not provided
+    let customerName = b.customer_name || ''
+    if (!customerName && b.customer_id) {
+      const cust = await queryOne<any>('SELECT customer_name FROM customers WHERE id=?', [b.customer_id])
+      customerName = cust?.customer_name || ''
+    }
     const dnNum = `DN${Date.now()}`
     const r = await execute('INSERT INTO delivery_notes (dn_number,customer_id,customer_name,customer_order_id,delivery_date,status,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?)',
-      [dnNum,b.customer_id||null,b.customer_name,b.customer_order_id||null,b.delivery_date||null,'draft',b.remark||'',u.userId,now8()])
+      [dnNum, b.customer_id||null, customerName, b.customer_order_id||null, b.delivery_date||null, 'draft', b.remark||'', u.userId, now8()])
     const dnId = r.insertId
     if (b.items?.length) {
       for (const item of b.items) {
         await execute('INSERT INTO delivery_note_items (dn_id,item_name,material_code,spec,unit,qty,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?)',
-          [dnId,item.item_name,item.material_code||'',item.spec||'',item.unit||'PCS',item.qty,item.remark||'',item.po_ref||'',item.thickness||null])
+          [dnId, item.item_name||'', item.material_code||'', item.spec||'', item.unit||'PCS', item.qty||0, item.remark||'', item.po_ref||'', item.thickness||null])
       }
     }
-    await audit(u, 'CREATE', '出貨單', dnId, `${dnNum} / ${b.customer_name}`)
+    await audit(u, 'CREATE', '出貨單', dnId, `${dnNum} / ${customerName}`)
     return c.json({ id: dnId, dn_number: dnNum }, 201)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
