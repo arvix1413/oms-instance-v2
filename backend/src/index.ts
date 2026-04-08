@@ -423,9 +423,17 @@ app.post('/api/customer-orders', authMiddleware, canWrite, async c => {
   try {
     const b = await c.req.json()
     if (!b.po_number || !b.customer_id) return c.json({ error: 'po_number and customer_id required' }, 400)
-    const cust = await queryOne<any>('SELECT customer_name FROM customers WHERE id=?', [b.customer_id])
-    const r = await execute('INSERT INTO customer_orders (po_date,po_number,customer_id,status,remark,created_at) VALUES (?,?,?,?,?,?)',
-      [b.po_date||null, b.po_number, b.customer_id, b.status||'pending', b.remark||'', now8()])
+    const cust = await queryOne<any>('SELECT customer_name, payment_terms FROM customers WHERE id=?', [b.customer_id])
+    // Calculate tax and total
+    const subtotal = (b.items||[]).reduce((s: number, i: any) => s + (i.qty||0) * (i.unit_price||0), 0)
+    const taxRate = parseFloat(b.tax_rate) || 0
+    const taxAmount = Math.round(subtotal * taxRate / 100 * 100) / 100
+    const totalAmount = subtotal + taxAmount
+    const r = await execute('INSERT INTO customer_orders (po_date,po_number,customer_id,status,remark,tax_rate,tax_amount,total_amount,delivery_date,person_in_charge,payment_terms,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+      [b.po_date||null, b.po_number, b.customer_id, b.status||'pending', b.remark||'',
+       taxRate, taxAmount, totalAmount,
+       b.delivery_date||null, b.person_in_charge||'', b.payment_terms||cust?.payment_terms||'',
+       now8()])
     const orderId = r.insertId
     if (b.items?.length) {
       for (const item of b.items) {

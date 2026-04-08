@@ -20,7 +20,7 @@ function getCOActions(status: string) {
 }
 
 type OrderItem = { id?:number; bom_id:number|null; qty:number; unit_price:number; rta_date:string; arrived_qty?:number; arrived_date?:string; balance?:number; status?:string; product_sku?:string; product_name?:string }
-type Order = { id:number; po_date:string; po_number:string; customer_id:number; customer_name:string; customer_code:string; status:string; remark:string; created_at:string; items?:OrderItem[] }
+type Order = { id:number; po_date:string; po_number:string; customer_id:number; customer_name:string; customer_code:string; status:string; remark:string; created_at:string; items?:OrderItem[]; tax_rate?:number; tax_amount?:number; total_amount?:number; delivery_date?:string; person_in_charge?:string; payment_terms?:string }
 type BOM = { id:number; product_sku:string; product_name:string; company_price?:number; unit?:string }
 type Customer = { id:number; customer_code:string; customer_name:string }
 const emptyItem = (): OrderItem => ({ bom_id:null, qty:0, unit_price:0, rta_date:'' })
@@ -46,7 +46,11 @@ export default function CustomerOrdersPage() {
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [loadedItems, setLoadedItems] = useState<Record<number, OrderItem[]>>({})
   const [creating, setCreating] = useState(false)
-  const [form, setForm] = useState({ po_date:'', po_number:'', customer_id:'', remark:'', items:[emptyItem()] })
+  const [form, setForm] = useState({
+    po_date:'', po_number:'', customer_id:'', remark:'',
+    tax_rate: 8, delivery_date:'', person_in_charge:'', payment_terms:'',
+    items:[emptyItem()]
+  })
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
@@ -77,7 +81,7 @@ export default function CustomerOrdersPage() {
     try {
       await apiFetch('/api/customer-orders', { method:'POST', body:JSON.stringify({ ...form, items: validItems }) })
       toast('建立成功'); setCreating(false)
-      setForm({ po_date:'', po_number:'', customer_id:'', remark:'', items:[emptyItem()] }); load()
+      setForm({ po_date:'', po_number:'', customer_id:'', remark:'', tax_rate:8, delivery_date:'', person_in_charge:'', payment_terms:'', items:[emptyItem()] }); load()
     } catch(e:any){ toast('錯誤：'+e.message, 'error') }
   }
 
@@ -146,12 +150,31 @@ export default function CustomerOrdersPage() {
             </div>
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">客戶 *</label>
-              <select className={inp} value={form.customer_id} onChange={e=>setForm(p=>({...p,customer_id:e.target.value}))}>
+              <select className={inp} value={form.customer_id} onChange={e=>{
+                const cust = customers.find(c=>String(c.id)===e.target.value)
+                setForm(p=>({...p, customer_id:e.target.value, payment_terms: (cust as any)?.payment_terms||p.payment_terms }))
+              }}>
                 <option value="">-- 選擇客戶 --</option>
                 {customers.map(c=>(
                   <option key={c.id} value={String(c.id)}>{c.customer_name}{c.customer_code?` (${c.customer_code})`:''}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className="block text-[11px] text-slate-500 mb-1.5">預計交貨日</label>
+              <input type="date" className={inp} value={form.delivery_date} onChange={e=>setForm(p=>({...p,delivery_date:e.target.value}))} />
+            </div>
+            <div>
+              <label className="block text-[11px] text-slate-500 mb-1.5">負責人</label>
+              <input className={inp} value={form.person_in_charge} onChange={e=>setForm(p=>({...p,person_in_charge:e.target.value}))} />
+            </div>
+            <div>
+              <label className="block text-[11px] text-slate-500 mb-1.5">付款方式</label>
+              <input className={inp} value={form.payment_terms} onChange={e=>setForm(p=>({...p,payment_terms:e.target.value}))} placeholder="如：月結30天" />
+            </div>
+            <div>
+              <label className="block text-[11px] text-slate-500 mb-1.5">稅率 (%)</label>
+              <input type="number" className={inp} value={form.tax_rate} min={0} max={100} onChange={e=>setForm(p=>({...p,tax_rate:Number(e.target.value)}))} />
             </div>
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">備註</label>
@@ -201,6 +224,18 @@ export default function CustomerOrdersPage() {
               </tbody>
             </table>
           </div>
+          {/* Tax summary */}
+          {(() => {
+            const subtotal = form.items.reduce((s,i) => s + (i.qty||0)*(i.unit_price||0), 0)
+            const taxAmt = Math.round(subtotal * (form.tax_rate||0) / 100 * 100) / 100
+            return (
+              <div className="flex justify-end mt-3 text-xs text-slate-500 gap-6">
+                <span>小計：<span className="font-semibold text-slate-700">{subtotal.toLocaleString()}</span></span>
+                <span>稅額 ({form.tax_rate}%)：<span className="font-semibold text-slate-700">{taxAmt.toLocaleString()}</span></span>
+                <span>含稅總計：<span className="font-bold text-slate-900 text-sm">{(subtotal+taxAmt).toLocaleString()}</span></span>
+              </div>
+            )
+          })()}
           <div className="flex gap-2 mt-4">
             <button onClick={save} className="btn-primary">建立訂單</button>
             <button onClick={()=>setCreating(false)} className="btn-ghost border border-slate-200">取消</button>
@@ -220,6 +255,8 @@ export default function CustomerOrdersPage() {
                   <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">PO No.</th>
                   <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">客戶</th>
                   <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">PO Date</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">交貨日</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider">含稅總計</th>
                   <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">狀態</th>
                   <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">操作</th>
                 </tr>
@@ -237,6 +274,8 @@ export default function CustomerOrdersPage() {
                         <td className="px-4 py-3 font-mono text-xs text-blue-600">{o.po_number}</td>
                         <td className="px-4 py-3 text-slate-800 font-medium max-w-[220px] truncate" title={o.customer_name}>{o.customer_name}</td>
                         <td className="px-4 py-3 text-slate-400 text-xs">{o.po_date}</td>
+                        <td className="px-4 py-3 text-slate-400 text-xs">{o.delivery_date||'—'}</td>
+                        <td className="px-4 py-3 text-right font-semibold text-slate-800">{o.total_amount ? Number(o.total_amount).toLocaleString() : '—'}</td>
                         <td className="px-4 py-3">
                           <StatusFlow compact steps={CO_STEPS} current={o.status}
                             actions={getCOActions(o.status)}
@@ -248,7 +287,7 @@ export default function CustomerOrdersPage() {
                       </tr>
                       {isOpen && (
                         <tr key={`${o.id}-items`} className="border-b border-slate-100">
-                          <td colSpan={6} className="px-0 py-0">
+                          <td colSpan={8} className="px-0 py-0">
                             <div className="bg-slate-50/50 border-t border-slate-100">
                               {items === undefined ? (
                                 <div className="px-8 py-4 text-xs text-slate-400 flex items-center gap-2">
@@ -288,7 +327,7 @@ export default function CustomerOrdersPage() {
                     </>
                   )
                 })}
-                {paged.length===0 && <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">尚無訂單</td></tr>}
+                {paged.length===0 && <tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400">尚無訂單</td></tr>}
               </tbody>
             </table>
             <Pagination page={page} totalPages={totalPages} setPage={setPage} total={total} />
