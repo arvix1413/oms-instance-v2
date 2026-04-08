@@ -19,3 +19,13 @@ alter-tables.sql
 *.png
 playwright-report/
 *.zip
+# one-off scripts
+e2e-flow.js
+import-materials.js
+migrate-d1-to-mysql.js
+migrate-new-modules.sql
+patch-cleanup.js
+patch-dialog.js
+deploy-local.sh
+start-local.sh
+backend/import-materials.js
