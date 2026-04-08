@@ -16,7 +16,6 @@ type Prod = {
   planned_start: string; planned_end: string; remark: string; created_at: string
   materials?: ProdMat[]
 }
-import { StatusFlow, PROD_STEPS, getProdActions } from '@/components/StatusFlow'
 type CustomerOrder = { id: number; po_number: string; customer_name: string }
 
 const STATUS_MAP: Record<string, { label: string; badge: string }> = {
