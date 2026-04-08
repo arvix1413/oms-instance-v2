@@ -3,13 +3,9 @@ import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
-
-'use client'
-import { useDialog } from '@/components/Dialog'
-import { useEffect, useState } from 'react'
-import { apiFetch } from '@/lib/api'
-import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, DN_STEPS, getDNActions } from '@/components/StatusFlow'
+
+type DNItem = { bom_id?:number|null; item_name:string; material_code:string; qty:number; shipped_qty:number; remark:string }
 type DN = { id:number; dn_number:string; customer_name:string; delivery_date:string; status:string; remark:string; created_at:string; items?:DNItem[] }
 type Customer = { id:number; customer_name:string; customer_code:string }
 type PendingOrder = { id:number; po_number:string; po_date:string; items_summary:string }
