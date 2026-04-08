@@ -93,6 +93,8 @@ export default function CustomerOrdersPage() {
     const w = window.open('', '_blank', 'width=800,height=1000')
     if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500) }
   }
+
+  const del = async (id: number) => {
     if (!await confirmDialog('確定刪除？')) return
     await apiFetch(`/api/customer-orders/${id}`, { method:'DELETE' }); load()
   }
