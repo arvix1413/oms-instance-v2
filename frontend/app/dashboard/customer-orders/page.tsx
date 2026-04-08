@@ -5,6 +5,20 @@ import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, CO_STEPS } from '@/components/StatusFlow'
 
+// Customer order actions based on current status
+function getCOActions(status: string) {
+  if (status === 'pending')   return [
+    { label: '完成', toStatus: 'completed', icon: '✓', color: 'primary' as const },
+    { label: '延遲', toStatus: 'delay',     icon: '⚠', color: 'warning' as const },
+  ]
+  if (status === 'partial')   return [
+    { label: '完成', toStatus: 'completed', icon: '✓', color: 'primary' as const },
+    { label: '延遲', toStatus: 'delay',     icon: '⚠', color: 'warning' as const },
+  ]
+  if (status === 'delay')     return [{ label: '恢復待出貨', toStatus: 'pending', icon: '↩' }]
+  return []
+}
+
 type OrderItem = { id?:number; bom_id:number|null; qty:number; unit_price:number; rta_date:string; arrived_qty?:number; arrived_date?:string; balance?:number; status?:string; product_sku?:string; product_name?:string }
 type Order = { id:number; po_date:string; po_number:string; customer_id:number; customer_name:string; customer_code:string; status:string; remark:string; created_at:string; items?:OrderItem[] }
 type BOM = { id:number; product_sku:string; product_name:string; company_price?:number; unit?:string }
@@ -70,6 +84,23 @@ export default function CustomerOrdersPage() {
   const del = async (id:number) => {
     if (!await confirmDialog('確定刪除？')) return
     await apiFetch(`/api/customer-orders/${id}`, { method:'DELETE' }); load()
+  }
+
+  const changeStatus = async (id: number, status: string) => {
+    const labels: Record<string, string> = {
+      completed: '確認此訂單已全部完成？',
+      delay:     '確認標記為延遲？',
+      pending:   '確認恢復為待出貨狀態？',
+      partial:   '確認標記為部分出貨？',
+    }
+    const btnLabels: Record<string, string> = {
+      completed: '確認完成', delay: '標記延遲', pending: '恢復待出貨', partial: '部分出貨',
+    }
+    if (!await confirmDialog(labels[status] || '確認變更狀態？', '', btnLabels[status] || '確認')) return
+    try {
+      await apiFetch(`/api/customer-orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
+      toast('狀態已更新'); load()
+    } catch (e: any) { toast('錯誤：' + e.message, 'error') }
   }
 
   const addItem = () => setForm(p=>({...p, items:[...p.items, emptyItem()]}))
@@ -207,7 +238,9 @@ export default function CustomerOrdersPage() {
                         <td className="px-4 py-3 text-slate-800 font-medium max-w-[220px] truncate" title={o.customer_name}>{o.customer_name}</td>
                         <td className="px-4 py-3 text-slate-400 text-xs">{o.po_date}</td>
                         <td className="px-4 py-3">
-                          <StatusFlow compact steps={CO_STEPS} current={o.status} actions={[]} onAction={()=>{}} />
+                          <StatusFlow compact steps={CO_STEPS} current={o.status}
+                            actions={getCOActions(o.status)}
+                            onAction={(toStatus) => changeStatus(o.id, toStatus)} />
                         </td>
                         <td className="px-4 py-3" onClick={e=>e.stopPropagation()}>
                           <button onClick={()=>del(o.id)} className="btn-danger">刪除</button>

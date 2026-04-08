@@ -459,6 +459,16 @@ app.post('/api/customer-orders', authMiddleware, canWrite, async c => {
     return c.json({ id: orderId, dn_id: dnId, dn_number: dnNum }, 201)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
+app.patch('/api/customer-orders/:id/status', authMiddleware, canWrite, async c => {
+  const id = c.req.param('id')
+  const { status } = await c.req.json()
+  const valid = ['pending', 'partial', 'completed', 'delay']
+  if (!valid.includes(status)) return c.json({ error: 'Invalid status' }, 400)
+  await execute('UPDATE customer_orders SET status=? WHERE id=?', [status, id])
+  const row = await queryOne<any>('SELECT po_number FROM customer_orders WHERE id=?', [id])
+  await audit(c.get('user'), 'STATUS_CHANGE', '客戶訂單', id, `${row?.po_number} → ${status}`)
+  return c.json({ ok: true })
+})
 app.delete('/api/customer-orders/:id', authMiddleware, canApprove, async c => {
   const id = c.req.param('id')
   const row = await queryOne<any>(`
