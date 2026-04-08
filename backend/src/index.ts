@@ -440,7 +440,7 @@ app.post('/api/customer-orders', authMiddleware, canWrite, async c => {
     const dnNum = `DN${Date.now()}`
     const dnR = await execute(
       'INSERT INTO delivery_notes (dn_number,customer_id,customer_name,customer_order_id,delivery_date,status,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?)',
-      [dnNum, b.customer_id, cust?.customer_name||'', orderId, b.po_date||null, 'draft', b.remark||'', u.userId, now8()]
+      [dnNum, b.customer_id, cust?.customer_name||'', orderId, b.po_date||null, 'draft', b.remark||'', c.get('user').userId, now8()]
     )
     const dnId = dnR.insertId
     if (b.items?.length) {
