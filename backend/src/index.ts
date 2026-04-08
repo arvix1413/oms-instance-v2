@@ -372,15 +372,40 @@ app.patch('/api/po/:id/receive', authMiddleware, canWrite, async c => {
 })
 
 // ── Customer Orders ───────────────────────────────────────────────────────────
-app.get('/api/customer-orders', authMiddleware, async c => c.json(await query(`
-  SELECT co.id, co.po_date, co.po_number, co.customer_id, co.status, co.remark, co.created_at,
-         co.tax_rate, co.tax_amount, co.total_amount, co.currency,
-         co.delivery_date, co.delivery_address, co.person_in_charge, co.payment_terms,
-         co.received_amount, co.payment_status, co.payment_date, co.payment_note,
-         c.customer_name, c.customer_code
-  FROM customer_orders co LEFT JOIN customers c ON co.customer_id = c.id
-  ORDER BY co.created_at DESC
-`)))
+app.get('/api/customer-orders', authMiddleware, async c => {
+  try {
+    // Try with all fields first
+    const orders = await query(`
+      SELECT co.id, co.po_date, co.po_number, co.customer_id, co.status, co.remark, co.created_at,
+             COALESCE(co.tax_rate, 8) as tax_rate, 
+             COALESCE(co.tax_amount, 0) as tax_amount, 
+             COALESCE(co.total_amount, 0) as total_amount, 
+             COALESCE(co.currency, 'VND') as currency,
+             co.delivery_date, co.delivery_address, co.person_in_charge, co.payment_terms,
+             COALESCE(co.received_amount, 0) as received_amount, 
+             COALESCE(co.payment_status, 'unpaid') as payment_status, 
+             co.payment_date, co.payment_note,
+             c.customer_name, c.customer_code
+      FROM customer_orders co LEFT JOIN customers c ON co.customer_id = c.id
+      ORDER BY co.created_at DESC
+    `)
+    return c.json(orders)
+  } catch (e: any) {
+    console.error('Error fetching customer orders:', e.message)
+    // Fallback to basic query if new columns don't exist
+    try {
+      const orders = await query(`
+        SELECT co.id, co.po_date, co.po_number, co.customer_id, co.status, co.remark, co.created_at,
+               c.customer_name, c.customer_code
+        FROM customer_orders co LEFT JOIN customers c ON co.customer_id = c.id
+        ORDER BY co.created_at DESC
+      `)
+      return c.json(orders)
+    } catch (fallbackError: any) {
+      return c.json({ error: fallbackError.message }, 500)
+    }
+  }
+})
 // Must be before /:id to avoid 'pending' being treated as an id
 app.get('/api/customer-orders/pending', authMiddleware, async c => {
   const customerId = c.req.query('customer_id')

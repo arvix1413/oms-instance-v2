@@ -56,7 +56,16 @@ export default function CustomerOrdersPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
-  const load = () => apiFetch<Order[]>('/api/customer-orders').then(setOrders).finally(()=>setLoading(false))
+  const load = () => apiFetch<Order[]>('/api/customer-orders')
+    .then(data => {
+      console.log('Loaded orders:', data)
+      setOrders(data)
+    })
+    .catch(err => {
+      console.error('Failed to load orders:', err)
+      toast('載入訂單失敗：' + err.message, 'error')
+    })
+    .finally(()=>setLoading(false))
   useEffect(()=>{
     load()
     apiFetch<BOM[]>('/api/bom').then(setBoms).catch(()=>{})
