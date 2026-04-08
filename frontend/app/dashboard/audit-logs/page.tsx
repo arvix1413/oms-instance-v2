@@ -149,7 +149,7 @@ export default function AuditLogsPage() {
                 )}
               </tbody>
             </table>
-            <Pagination page={page} totalPages={totalPages} setPage={setPage} total={filteredTotal} />
+            <Pagination page={page} totalPages={totalPages} setPage={setPage} total={filteredTotal} pageSize={50} />
           </>
         )}
       </div>

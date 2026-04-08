@@ -199,7 +199,7 @@ export default function BomPage() {
                 </tbody>
               </table>
             </div>
-            <Pagination page={page} totalPages={totalPages} setPage={setPage} total={total} />
+            <Pagination page={page} totalPages={totalPages} setPage={setPage} total={total} pageSize={30} />
           </>
         )}
       </div>
