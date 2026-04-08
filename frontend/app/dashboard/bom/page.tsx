@@ -8,11 +8,12 @@ type Bom = {
   id:number; product_sku:string; product_name:string; material_name:string; spec:string; unit:string
   supplier_id:number|null; supplier_name:string; supplier_price:number; company_price:number
   currency:string; category:string; version:string; status:string; created_at:string
+  cert_code:string; brand:string
 }
 const empty = (): Partial<Bom> => ({
   product_sku:'', product_name:'', material_name:'', spec:'', unit:'PCS',
   supplier_id:null, supplier_name:'', supplier_price:0, company_price:0,
-  currency:'VND', category:'', version:'V1'
+  currency:'VND', category:'', version:'V1', cert_code:'', brand:''
 })
 
 type Supplier = { id:number; name:string; currency:string }
@@ -82,10 +83,10 @@ export default function BomPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-slate-800">BOM 表管理</h1>
+          <h1 className="text-xl font-bold text-slate-800">材料明細</h1>
           <p className="text-xs text-slate-500 mt-0.5">物料編號、規格、供應商單價、公司售價</p>
         </div>
-        <button onClick={()=>setEditing(empty())} className="btn-primary">+ 建立 BOM</button>
+        <button onClick={()=>setEditing(empty())} className="btn-primary">+ 建立材料</button>
       </div>
 
       {/* Edit / Create Modal */}
@@ -93,7 +94,7 @@ export default function BomPage() {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <h2 className="text-base font-semibold text-slate-800">{editing.id ? '編輯 BOM' : '建立 BOM'}</h2>
+              <h2 className="text-base font-semibold text-slate-800">{editing.id ? '編輯材料' : '建立材料'}</h2>
               <button onClick={()=>setEditing(null)} className="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
             </div>
             <div className="p-6 grid grid-cols-2 gap-4">
@@ -142,10 +143,18 @@ export default function BomPage() {
                 <label className="block text-[11px] text-slate-500 mb-1.5">公司售價</label>
                 <input type="number" className={inp} value={editing.company_price||''} onChange={e=>setEditing(p=>({...p,company_price:Number(e.target.value)}))} />
               </div>
+              <div>
+                <label className="block text-[11px] text-slate-500 mb-1.5">認證機構代碼</label>
+                <input className={inp} value={editing.cert_code||''} onChange={e=>setEditing(p=>({...p,cert_code:e.target.value}))} placeholder="如：CE, RoHS..." />
+              </div>
+              <div>
+                <label className="block text-[11px] text-slate-500 mb-1.5">品牌</label>
+                <input className={inp} value={editing.brand||''} onChange={e=>setEditing(p=>({...p,brand:e.target.value}))} />
+              </div>
             </div>
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
               <button onClick={()=>setEditing(null)} className="btn-ghost">取消</button>
-              <button onClick={save} className="btn-primary">{editing.id ? '儲存修改' : '建立 BOM'}</button>
+              <button onClick={save} className="btn-primary">{editing.id ? '儲存修改' : '建立材料'}</button>
             </div>
           </div>
         </div>
@@ -169,7 +178,7 @@ export default function BomPage() {
               <table className="w-full text-sm" style={{minWidth:1000}}>
                 <thead>
                   <tr className="border-b border-slate-200">
-                    {['分類','物料編號','產品名稱','材料名稱','規格','單位','供應商','供應商單價','公司售價','幣別','操作'].map(h=>(
+                    {['分類','物料編號','產品名稱','材料名稱','規格','單位','品牌','認證代碼','供應商','供應商單價','公司售價','幣別','操作'].map(h=>(
                       <th key={h} className="px-3 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -183,6 +192,8 @@ export default function BomPage() {
                       <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap">{b.material_name||'—'}</td>
                       <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap max-w-[120px] truncate" title={b.spec}>{b.spec||'—'}</td>
                       <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap">{b.unit}</td>
+                      <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap">{b.brand||'—'}</td>
+                      <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap">{b.cert_code||'—'}</td>
                       <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap max-w-[140px] truncate" title={b.supplier_name}>{b.supplier_name||'—'}</td>
                       <td className="px-3 py-2.5 text-right text-slate-600 whitespace-nowrap">{Number(b.supplier_price).toLocaleString()}</td>
                       <td className="px-3 py-2.5 text-right font-semibold text-slate-800 whitespace-nowrap">{Number(b.company_price).toLocaleString()}</td>

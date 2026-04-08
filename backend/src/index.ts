@@ -237,10 +237,10 @@ app.post('/api/bom', authMiddleware, canWrite, async c => {
     const existing = await queryOne<any>('SELECT id FROM bom WHERE product_sku=?', [b.product_sku])
     if (existing) return c.json({ error: `SKU「${b.product_sku}」已存在，請使用不同的 SKU` }, 409)
     const u = c.get('user')
-    const r = await execute(`INSERT INTO bom (product_sku,product_name,material_name,spec,unit,supplier_id,supplier_name,supplier_price,company_price,currency,category,version,status,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    const r = await execute(`INSERT INTO bom (product_sku,product_name,material_name,spec,unit,supplier_id,supplier_name,supplier_price,company_price,currency,category,cert_code,brand,version,status,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [b.product_sku, b.product_name, b.material_name||'', b.spec||'', b.unit||'PCS',
        b.supplier_id||null, b.supplier_name||'', b.supplier_price||0, b.company_price||0,
-       b.currency||'VND', b.category||'', b.version||'V1', 'active', u.userId, now8()])
+       b.currency||'VND', b.category||'', b.cert_code||'', b.brand||'', b.version||'V1', 'active', u.userId, now8()])
     const bomId = r.insertId
     if (b.items?.length) {
       for (const item of b.items) {
@@ -255,10 +255,10 @@ app.post('/api/bom', authMiddleware, canWrite, async c => {
 app.put('/api/bom/:id', authMiddleware, canWrite, async c => {
   try {
     const id = c.req.param('id'); const b = await c.req.json(); const u = c.get('user')
-    await execute(`UPDATE bom SET product_sku=?,product_name=?,material_name=?,spec=?,unit=?,supplier_id=?,supplier_name=?,supplier_price=?,company_price=?,currency=?,category=?,version=? WHERE id=?`,
+    await execute(`UPDATE bom SET product_sku=?,product_name=?,material_name=?,spec=?,unit=?,supplier_id=?,supplier_name=?,supplier_price=?,company_price=?,currency=?,category=?,cert_code=?,brand=?,version=? WHERE id=?`,
       [b.product_sku, b.product_name, b.material_name||'', b.spec||'', b.unit||'PCS',
        b.supplier_id||null, b.supplier_name||'', b.supplier_price||0, b.company_price||0,
-       b.currency||'VND', b.category||'', b.version||'V1', id])
+       b.currency||'VND', b.category||'', b.cert_code||'', b.brand||'', b.version||'V1', id])
     await execute('DELETE FROM bom_items WHERE bom_id=?', [id])
     if (b.items?.length) {
       for (const item of b.items) {
