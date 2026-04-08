@@ -7,13 +7,16 @@ export function generateOrderHTML(data: any): string {
 
   const itemRows = items.map((item: any, i: number) => {
     const amt = (Number(item.qty)||0) * (Number(item.unit_price)||0)
+    // Use spec from BOM table
+    const specText = item.spec ? '<div style="font-size:9px;color:#666;margin-top:2px">' + item.spec + '</div>' : ''
+    
     return [
       '<tr>',
       '<td style="border:1px solid #333;text-align:center;padding:8px 6px;font-size:11px">' + (i+1) + '</td>',
       '<td style="border:1px solid #333;padding:8px 10px">',
       '<div style="font-weight:600;font-size:11px;margin-bottom:2px">' + (item.product_name || '—') + '</div>',
       '<div style="font-size:9px;color:#666;font-family:monospace">SKU: ' + (item.product_sku || '') + '</div>',
-      item.spec ? '<div style="font-size:9px;color:#666;margin-top:2px">' + item.spec + '</div>' : '',
+      specText,
       '</td>',
       '<td style="border:1px solid #333;padding:8px 10px;text-align:center;font-size:11px">' + (item.unit || 'PCS') + '</td>',
       '<td style="border:1px solid #333;padding:8px 10px;text-align:right;font-size:11px;font-weight:600">' + Number(item.qty).toLocaleString() + '</td>',

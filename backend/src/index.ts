@@ -442,7 +442,7 @@ app.get('/api/customer-orders/:id', authMiddleware, async c => {
   const items = await query(`
     SELECT ci.id, ci.order_id, ci.bom_id, ci.qty, ci.unit_price, ci.rta_date,
            ci.arrived_qty, ci.arrived_date, ci.balance, ci.status,
-           b.product_sku, b.product_name, b.version
+           b.product_sku, b.product_name, b.version, b.spec, b.unit
     FROM customer_order_items ci
     LEFT JOIN bom b ON ci.bom_id = b.id
     WHERE ci.order_id=?`, [c.req.param('id')])
