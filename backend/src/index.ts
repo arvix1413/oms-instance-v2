@@ -543,7 +543,15 @@ app.delete('/api/delivery-notes/:id', authMiddleware, canApprove, async c => {
 })
 
 // ── Inventory ─────────────────────────────────────────────────────────────────
-app.get('/api/inventory', authMiddleware, async c => c.json(await query('SELECT * FROM inventory ORDER BY product_code')))
+// Real-time inventory from materials.current_stock
+app.get('/api/inventory', authMiddleware, async c => c.json(await query(`
+  SELECT m.id, m.material_code as product_code, m.material_name as product_name,
+         m.spec, m.unit, m.current_stock as closing_balance,
+         m.category, s.name as supplier_name, m.currency
+  FROM materials m
+  LEFT JOIN suppliers s ON m.supplier_id = s.id
+  ORDER BY m.category, m.material_code
+`)))
 app.post('/api/inventory', authMiddleware, canWrite, async c => {
   try {
     const b = await c.req.json()
