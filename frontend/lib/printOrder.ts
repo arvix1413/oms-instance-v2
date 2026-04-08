@@ -8,21 +8,12 @@ export function generateOrderHTML(data: any): string {
   const itemRows = items.map((item: any, i: number) => {
     const amt = (Number(item.qty)||0) * (Number(item.unit_price)||0)
     
-    // Build product description with multiple lines like in the image
-    const productLines = []
-    if (item.product_name) productLines.push(item.product_name)
-    if (item.product_sku) productLines.push('(料號號碼: ' + item.product_sku + ')')
-    if (item.spec) productLines.push('Quy cách: ' + item.spec)
-    
-    const productDesc = productLines.map((line, idx) => {
-      if (idx === 0) return '<div style="font-weight:600;font-size:11px;margin-bottom:2px">' + line + '</div>'
-      return '<div style="font-size:9px;color:#666;margin-top:2px">' + line + '</div>'
-    }).join('')
-    
     return [
       '<tr>',
       '<td style="border:1px solid #333;text-align:center;padding:8px 6px;font-size:11px">' + (i+1) + '</td>',
-      '<td style="border:1px solid #333;padding:8px 10px">' + productDesc + '</td>',
+      '<td style="border:1px solid #333;padding:8px 10px;font-size:11px;font-weight:600">' + (item.product_name || '—') + '</td>',
+      '<td style="border:1px solid #333;padding:8px 10px;font-size:10px;color:#666;font-family:monospace">' + (item.product_sku || '—') + '</td>',
+      '<td style="border:1px solid #333;padding:8px 10px;font-size:10px;color:#666">' + (item.spec || '—') + '</td>',
       '<td style="border:1px solid #333;padding:8px 10px;text-align:center;font-size:11px">' + (item.unit || 'PCS') + '</td>',
       '<td style="border:1px solid #333;padding:8px 10px;text-align:right;font-size:11px;font-weight:600">' + Number(item.qty).toLocaleString() + '</td>',
       '<td style="border:1px solid #333;padding:8px 10px;text-align:right;font-size:11px;font-weight:600">' + amt.toLocaleString() + '</td>',
@@ -106,10 +97,12 @@ export function generateOrderHTML(data: any): string {
   parts.push('<table>')
   parts.push('<thead><tr>')
   parts.push('<th style="width:40px">STT</th>')
-  parts.push('<th>料號/品名<br/>Mã hàng/Tên hàng</th>')
-  parts.push('<th style="width:80px">單位<br/>Đơn vị tính</th>')
-  parts.push('<th style="width:100px">數量<br/>Số lượng</th>')
-  parts.push('<th style="width:120px">金額<br/>Thành tiền</th>')
+  parts.push('<th style="width:180px">品名<br/>Tên hàng</th>')
+  parts.push('<th style="width:100px">料號<br/>Mã hàng</th>')
+  parts.push('<th style="width:120px">規格<br/>Quy cách</th>')
+  parts.push('<th style="width:60px">單位<br/>Đơn vị</th>')
+  parts.push('<th style="width:80px">數量<br/>Số lượng</th>')
+  parts.push('<th style="width:100px">金額<br/>Thành tiền</th>')
   parts.push('</tr></thead>')
   parts.push('<tbody>' + itemRows + '</tbody>')
   parts.push('</table>')
