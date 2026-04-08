@@ -48,7 +48,7 @@ export default function StockAdjustmentsPage() {
   }
 
   const approve = async (id: number) => {
-    if (!await confirmDialog('確認核准庫存調整？', '核准後將更新材料庫存，此操作不可撤銷')) return
+    if (!await confirmDialog('確認核准庫存調整？', '核准後將更新材料庫存，此操作不可撤銷', '確認核准')) return
     try {
       await apiFetch(`/api/stock-adjustments/${id}/approve`, { method: 'PATCH' })
       toast('庫存調整已核准，庫存已更新'); load()

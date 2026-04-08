@@ -6,11 +6,11 @@ type ToastType = 'success' | 'error' | 'info'
 type Toast = { id: number; msg: string; type: ToastType }
 
 // ── Confirm ───────────────────────────────────────────────────────────────────
-type ConfirmState = { open: boolean; title: string; desc: string; resolve: (v: boolean) => void }
+type ConfirmState = { open: boolean; title: string; desc: string; confirmLabel: string; resolve: (v: boolean) => void }
 
 type DialogCtx = {
   toast: (msg: string, type?: ToastType) => void
-  confirm: (title: string, desc?: string) => Promise<boolean>
+  confirm: (title: string, desc?: string, confirmLabel?: string) => Promise<boolean>
 }
 
 const Ctx = createContext<DialogCtx>({ toast: () => {}, confirm: async () => false })
@@ -20,7 +20,7 @@ export function useDialog() { return useContext(Ctx) }
 export function DialogProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [confirmState, setConfirmState] = useState<ConfirmState>({
-    open: false, title: '', desc: '', resolve: () => {}
+    open: false, title: '', desc: '', confirmLabel: '確認', resolve: () => {}
   })
 
   const toast = useCallback((msg: string, type: ToastType = 'success') => {
@@ -29,9 +29,9 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 3500)
   }, [])
 
-  const confirm = useCallback((title: string, desc = '') => {
+  const confirm = useCallback((title: string, desc = '', confirmLabel = '確認刪除') => {
     return new Promise<boolean>(resolve => {
-      setConfirmState({ open: true, title, desc, resolve })
+      setConfirmState({ open: true, title, desc, confirmLabel, resolve })
     })
   }, [])
 
@@ -111,7 +111,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
               </button>
               <button onClick={() => handleConfirm(true)}
                 className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-sm font-semibold text-white transition-colors shadow-sm">
-                確認刪除
+                {confirmState.confirmLabel}
               </button>
             </div>
           </div>

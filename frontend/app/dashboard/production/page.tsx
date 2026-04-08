@@ -104,7 +104,11 @@ export default function ProductionPage() {
       completed:   '確認完工？完工後將扣減材料庫存',
       cancelled:   '確定作廢此生產單？此操作不可撤銷',
     }
-    if (!await confirmDialog(labels[status] || `確定切換狀態？`)) return
+    const btnLabels: Record<string, string> = {
+      confirmed: '確認建立', shortage: '標記缺料', ready: '確認齊備',
+      in_progress: '開始生產', completed: '確認完工', cancelled: '確認作廢',
+    }
+    if (!await confirmDialog(labels[status] || `確定切換狀態？`, '', btnLabels[status] || '確認')) return
     try {
       await apiFetch(`/api/production/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, produced_qty: producedQty }) })
       toast('狀態已更新'); load()

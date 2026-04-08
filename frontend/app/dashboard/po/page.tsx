@@ -108,7 +108,7 @@ export default function PoPage() {
 
   const confirmReceipt = async (po: Po, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!await confirmDialog('確認收貨？', '確認後將更新材料庫存，此操作不可撤銷')) return
+    if (!await confirmDialog('確認收貨？', '確認後將更新材料庫存，此操作不可撤銷', '確認收貨')) return
     try {
       await apiFetch(`/api/po/${po.id}/receive`, { method: 'PATCH' })
       toast('收貨完成，庫存已更新')

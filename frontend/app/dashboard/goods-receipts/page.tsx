@@ -52,7 +52,7 @@ export default function GoodsReceiptsPage() {
   }
 
   const confirm = async (id: number) => {
-    if (!await confirmDialog('確認進貨？', '確認後將更新材料庫存，此操作不可撤銷')) return
+    if (!await confirmDialog('確認進貨？', '確認後將更新材料庫存，此操作不可撤銷', '確認進貨')) return
     try {
       await apiFetch(`/api/goods-receipts/${id}/confirm`, { method: 'PATCH' })
       toast('進貨已確認，庫存已更新')
