@@ -379,6 +379,24 @@ app.get('/api/customer-orders', authMiddleware, async c => c.json(await query(`
   FROM customer_orders co LEFT JOIN customers c ON co.customer_id = c.id
   ORDER BY co.created_at DESC
 `)))
+// Must be before /:id to avoid 'pending' being treated as an id
+app.get('/api/customer-orders/pending', authMiddleware, async c => {
+  const customerId = c.req.query('customer_id')
+  if (!customerId) return c.json([])
+  const orders = await query(`
+    SELECT co.id, co.po_number, co.po_date, co.status,
+           c.customer_name,
+           GROUP_CONCAT(b.product_name ORDER BY ci.id SEPARATOR ', ') as items_summary
+    FROM customer_orders co
+    LEFT JOIN customers c ON co.customer_id = c.id
+    LEFT JOIN customer_order_items ci ON ci.order_id = co.id
+    LEFT JOIN bom b ON ci.bom_id = b.id
+    WHERE co.customer_id = ? AND co.status = 'pending'
+    GROUP BY co.id
+    ORDER BY co.created_at DESC
+  `, [customerId])
+  return c.json(orders)
+})
 app.get('/api/customer-orders/:id', authMiddleware, async c => {
   const order = await queryOne<any>(`
     SELECT co.id, co.po_date, co.po_number, co.customer_id, co.status, co.remark, co.created_at,
