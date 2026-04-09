@@ -167,6 +167,13 @@ export default function PoPage() {
     const total = items.reduce((s, i) => s + i.total_price, 0)
     const currency = items[0]?.currency || data.currency || 'VND'
 
+    // 取当前用户签名
+    const storedUser = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('oms_user') || 'null') : null
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://oms-backend.arvix1413.workers.dev'
+    const signatureUrl = storedUser?.signature_url
+      ? (storedUser.signature_url.startsWith('http') ? storedUser.signature_url : `${apiBase}${storedUser.signature_url}`)
+      : null
+
     const itemRows = items.map((item, idx) => `
       <tr>
         <td style="text-align:center">${idx + 1}</td>
@@ -291,6 +298,7 @@ export default function PoPage() {
         </div>
         <div class="sign-box">
           <div class="sign-label">採購確認 / Người lập biểu xác nhận</div>
+          ${signatureUrl ? `<div style="margin-bottom:4px;text-align:center"><img src="${signatureUrl}" style="max-height:48px;max-width:160px;object-fit:contain" /></div>` : '<div style="height:48px"></div>'}
           <div class="sign-line">FAN YONG CO., LTD</div>
         </div>
       </div>

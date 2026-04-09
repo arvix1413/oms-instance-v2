@@ -217,31 +217,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </nav>
 
         {/* User */}
-        <div className="px-4 py-4 border-t border-slate-100">
-          <div className="flex items-center gap-2.5 mb-2.5">
-            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-700">
+        <div className="px-3 py-3 border-t border-slate-100">
+          <Link href="/dashboard/profile" className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-slate-50 transition-colors group mb-1">
+            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-700 flex-shrink-0">
               {user?.name?.charAt(0) || 'U'}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold text-slate-700 truncate">{user?.name}</div>
+              <div className="text-xs font-semibold text-slate-700 truncate group-hover:text-blue-600 transition-colors">{user?.name}</div>
               <div className="text-[10px] text-slate-400 truncate">{user?.email}</div>
             </div>
-          </div>
-          {role && (
-            <div className="flex items-center gap-1.5 mb-2.5">
-              <span className={`w-1.5 h-1.5 rounded-full ${ROLE_DOT[role] || 'bg-slate-400'}`} />
-              <span className="text-[11px] text-slate-400">{ROLE_LABELS[role]}</span>
-            </div>
-          )}
-          <button onClick={logout}
-            className="flex items-center gap-1.5 text-[12px] text-slate-400 hover:text-red-500 transition-colors">
-            <IconLogout />登出
-          </button>
-          <Link href="/dashboard/profile"
-            className="flex items-center gap-1.5 text-[12px] text-slate-400 hover:text-blue-600 transition-colors mt-1.5">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-            個人資料 / 修改密碼
+            {role && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${ROLE_DOT[role] || 'bg-slate-400'}`} />}
           </Link>
+          <button onClick={logout}
+            className="w-full flex items-center gap-1.5 px-2 py-1.5 text-[12px] text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+            <IconLogout />登出系統
+          </button>
         </div>
       </aside>
 

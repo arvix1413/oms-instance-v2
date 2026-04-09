@@ -1,4 +1,4 @@
-export function generateOrderHTML(data: any): string {
+export function generateOrderHTML(data: any, signatureUrl?: string): string {
   const items: any[] = data.items || []
   const subtotal = items.reduce((s: number, i: any) => s + (Number(i.qty)||0) * (Number(i.unit_price)||0), 0)
   const taxRate = Number(data.tax_rate) || 0
@@ -157,6 +157,11 @@ export function generateOrderHTML(data: any): string {
   parts.push('<div class="footer">')
   parts.push('<div class="sign-box">')
   parts.push('<div class="sign-label">供應商確認/NCC xác nhận</div>')
+  if (signatureUrl) {
+    parts.push('<div style="margin-bottom:4px;text-align:center"><img src="' + signatureUrl + '" style="max-height:48px;max-width:160px;object-fit:contain" /></div>')
+  } else {
+    parts.push('<div style="height:48px"></div>')
+  }
   parts.push('<div class="sign-line">FAN YONG CO., LTD</div>')
   parts.push('</div>')
   parts.push('<div class="sign-box">')
