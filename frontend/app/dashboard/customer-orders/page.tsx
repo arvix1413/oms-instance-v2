@@ -210,8 +210,8 @@ export default function CustomerOrdersPage() {
               <input type="number" className={inp} value={form.tax_rate} min={0} max={100} onChange={e=>setForm(p=>({...p,tax_rate:Number(e.target.value)}))} />
             </div>
             <div className="md:col-span-3">
-              <label className="block text-[11px] text-slate-500 mb-1.5">備註</label>
-              <input className={inp} value={form.remark} onChange={e=>setForm(p=>({...p,remark:e.target.value}))} />
+              <label className="block text-[11px] text-slate-500 mb-1.5">備註（交易條件、特殊要求等）</label>
+              <textarea className={inp} rows={3} value={form.remark} onChange={e=>setForm(p=>({...p,remark:e.target.value}))} placeholder="可輸入交易條件、付款方式、交貨要求等資訊..." />
             </div>
           </div>
 

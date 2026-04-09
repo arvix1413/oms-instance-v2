@@ -212,8 +212,8 @@ export default function DeliveryNotesPage() {
               <input type="date" className="oms-input" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} />
             </div>
             <div>
-              <label className="block text-[11px] text-slate-500 mb-1.5">備註</label>
-              <input className="oms-input" value={remark} onChange={e => setRemark(e.target.value)} />
+              <label className="block text-[11px] text-slate-500 mb-1.5">備註（交易條件、特殊要求等）</label>
+              <textarea className="oms-input" rows={3} value={remark} onChange={e => setRemark(e.target.value)} placeholder="可輸入交易條件、付款方式、交貨要求等資訊..." />
             </div>
           </div>
 
