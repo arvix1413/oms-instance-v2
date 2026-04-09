@@ -136,3 +136,4 @@ npm run dev   # port 3000
 ```
 
 腳本會自動打包代碼、上傳到伺服器、build image、push 到 Docker Hub、重啟容器。
+# Trigger build Thu Apr  9 13:24:50 +08 2026
