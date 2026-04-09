@@ -120,8 +120,9 @@ export function SearchableSelect<T extends { id: number | string }>({
                 <div
                   key={opt.id}
                   className={`px-3 py-2 text-xs cursor-pointer hover:bg-blue-50 ${String(opt.id) === value ? 'bg-blue-100 text-blue-700' : 'text-slate-700'}`}
-                  onClick={() => {
-                    console.log('SearchableSelect onClick triggered:', opt.id)
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
                     onChange(String(opt.id))
                     setIsOpen(false)
                     setSearchTerm('')

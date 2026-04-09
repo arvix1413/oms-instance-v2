@@ -58,10 +58,7 @@ export default function CustomerOrdersPage() {
   const [search, setSearch] = useState('')
 
   const load = () => apiFetch<Order[]>('/api/customer-orders')
-    .then(data => {
-      console.log('Loaded orders:', data)
-      setOrders(data)
-    })
+    .then(setOrders)
     .catch(err => {
       console.error('Failed to load orders:', err)
       toast('載入訂單失敗：' + err.message, 'error')
@@ -135,9 +132,7 @@ export default function CustomerOrdersPage() {
 
   // When BOM selected, auto-fill unit_price, spec, unit, image_url from BOM
   const onSelectBom = (i:number, bomId:string) => {
-    console.log('onSelectBom called:', { i, bomId, bomsCount: boms.length })
     const bom = boms.find(b => String(b.id) === bomId)
-    console.log('Found BOM:', bom)
     const updates: Partial<OrderItem> = { bom_id: bomId ? Number(bomId) : null }
     
     if (bom) {
@@ -145,9 +140,6 @@ export default function CustomerOrdersPage() {
       if (bom.spec) updates.spec = bom.spec
       if (bom.unit) updates.unit = bom.unit
       if (bom.image_url) updates.image_url = bom.image_url
-      console.log('Updates:', updates)
-    } else {
-      console.log('BOM not found!')
     }
     
     setForm(p => ({
