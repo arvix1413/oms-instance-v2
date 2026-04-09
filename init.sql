@@ -68,7 +68,19 @@ CREATE TABLE IF NOT EXISTS bom (
   version VARCHAR(50) DEFAULT 'V1',
   status VARCHAR(50) DEFAULT 'active',
   created_by INT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  spec TEXT,
+  unit VARCHAR(50) DEFAULT 'PCS',
+  supplier_id INT,
+  supplier_name VARCHAR(255),
+  supplier_price DECIMAL(15,2) DEFAULT 0,
+  company_price DECIMAL(15,2) DEFAULT 0,
+  currency VARCHAR(20) DEFAULT 'VND',
+  category VARCHAR(100),
+  cert_code VARCHAR(100),
+  brand VARCHAR(100),
+  image_url TEXT COMMENT '产品图片',
+  material_name VARCHAR(255)
 );
 
 CREATE TABLE IF NOT EXISTS bom_items (

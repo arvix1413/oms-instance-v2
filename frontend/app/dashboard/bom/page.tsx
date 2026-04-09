@@ -1,19 +1,19 @@
 'use client'
 import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
-import { apiFetch } from '@/lib/api'
+import { apiFetch, API, getToken } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 
 type Bom = {
   id:number; product_sku:string; product_name:string; material_name:string; spec:string; unit:string
   supplier_id:number|null; supplier_name:string; supplier_price:number; company_price:number
   currency:string; category:string; version:string; status:string; created_at:string
-  cert_code:string; brand:string
+  cert_code:string; brand:string; image_url:string
 }
 const empty = (): Partial<Bom> => ({
   product_sku:'', product_name:'', material_name:'', spec:'', unit:'PCS',
   supplier_id:null, supplier_name:'', supplier_price:0, company_price:0,
-  currency:'VND', category:'', version:'V1', cert_code:'', brand:''
+  currency:'VND', category:'', version:'V1', cert_code:'', brand:'', image_url:''
 })
 
 type Supplier = { id:number; name:string; currency:string }
@@ -32,6 +32,7 @@ export default function BomPage() {
   const [boms, setBoms] = useState<Bom[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [editing, setEditing] = useState<Partial<Bom>|null>(null)
+  const [uploading, setUploading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [catFilter, setCatFilter] = useState('')
@@ -41,6 +42,15 @@ export default function BomPage() {
     load()
     apiFetch<Supplier[]>('/api/suppliers').then(setSuppliers).catch(()=>{})
   },[])
+
+  const uploadImage = async (file: File) => {
+    setUploading(true)
+    try {
+      const fd = new FormData(); fd.append('file', file)
+      const res = await fetch(`${API}/api/upload`, { method: 'POST', headers: { Authorization: `Bearer ${getToken()}` }, body: fd })
+      return (await res.json()).url || ''
+    } finally { setUploading(false) }
+  }
 
   const save = async () => {
     if (!editing) return
@@ -151,6 +161,15 @@ export default function BomPage() {
                 <label className="block text-[11px] text-slate-500 mb-1.5">品牌</label>
                 <input className={inp} value={editing.brand||''} onChange={e=>setEditing(p=>({...p,brand:e.target.value}))} />
               </div>
+              <div className="col-span-2">
+                <label className="block text-[11px] text-slate-500 mb-1.5">產品圖片</label>
+                <div className="flex items-center gap-3">
+                  {editing.image_url && <img src={editing.image_url} alt="" className="w-12 h-12 object-cover rounded border" onError={e=>{(e.target as HTMLImageElement).style.display='none'}} />}
+                  <input type="file" accept="image/*" onChange={async e => { const f = e.target.files?.[0]; if (f) { const url = await uploadImage(f); setEditing(p=>({...p,image_url:url})) } }} className="text-sm" />
+                  {uploading && <span className="text-xs text-slate-400">上傳中...</span>}
+                </div>
+                <input className={`${inp} mt-2`} placeholder="或輸入圖片 URL" value={editing.image_url||''} onChange={e=>setEditing(p=>({...p,image_url:e.target.value}))} />
+              </div>
             </div>
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
               <button onClick={()=>setEditing(null)} className="btn-ghost">取消</button>
@@ -178,7 +197,7 @@ export default function BomPage() {
               <table className="w-full text-sm" style={{minWidth:1000}}>
                 <thead>
                   <tr className="border-b border-slate-200">
-                    {['分類','物料編號','產品名稱','材料名稱','規格','單位','品牌','認證代碼','供應商','供應商單價','公司售價','幣別','操作'].map(h=>(
+                    {['圖片','分類','物料編號','產品名稱','材料名稱','規格','單位','品牌','認證代碼','供應商','供應商單價','公司售價','幣別','操作'].map(h=>(
                       <th key={h} className="px-3 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -186,6 +205,9 @@ export default function BomPage() {
                 <tbody>
                   {paged.map(b=>(
                     <tr key={b.id} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="px-3 py-2.5">
+                        {b.image_url ? <img src={b.image_url} alt="" className="w-9 h-9 object-cover rounded-lg border border-slate-200" onError={e=>{(e.target as HTMLImageElement).style.display='none'}} /> : <div className="w-9 h-9 bg-slate-100 rounded-lg flex items-center justify-center text-slate-300 text-xs">無</div>}
+                      </td>
                       <td className="px-3 py-2.5 text-xs text-slate-400 whitespace-nowrap">{b.category||'—'}</td>
                       <td className="px-3 py-2.5 font-mono text-xs text-blue-600 whitespace-nowrap">{b.product_sku}</td>
                       <td className="px-3 py-2.5 text-slate-800 font-medium max-w-[200px] truncate" title={b.product_name}>{b.product_name}</td>
@@ -206,7 +228,7 @@ export default function BomPage() {
                       </td>
                     </tr>
                   ))}
-                  {paged.length===0 && <tr><td colSpan={11} className="text-center py-12 text-slate-400">尚無 BOM 資料</td></tr>}
+                  {paged.length===0 && <tr><td colSpan={14} className="text-center py-12 text-slate-400">尚無 BOM 資料</td></tr>}
                 </tbody>
               </table>
             </div>
