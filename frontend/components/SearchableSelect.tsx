@@ -121,6 +121,7 @@ export function SearchableSelect<T extends { id: number | string }>({
                   key={opt.id}
                   className={`px-3 py-2 text-xs cursor-pointer hover:bg-blue-50 ${String(opt.id) === value ? 'bg-blue-100 text-blue-700' : 'text-slate-700'}`}
                   onClick={() => {
+                    alert(`SearchableSelect onClick: id=${opt.id}`)
                     onChange(String(opt.id))
                     setIsOpen(false)
                     setSearchTerm('')
