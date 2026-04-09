@@ -10,10 +10,12 @@ export function clearToken() { localStorage.removeItem('oms_token') }
 
 export async function apiFetch<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const token = getToken()
+  // Don't set Content-Type for FormData (let browser set multipart boundary)
+  const isFormData = opts.body instanceof FormData
   const res = await fetch(`${API}${path}`, {
     ...opts,
     headers: {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(opts.headers || {}),
     },

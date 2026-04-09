@@ -39,7 +39,7 @@ export default function ProfilePage() {
     try {
       const form = new FormData()
       form.append('file', file)
-      const res = await apiFetch<{ url: string }>('/api/upload', { method: 'POST', body: form, headers: {} })
+      const res = await apiFetch<{ url: string }>('/api/upload', { method: 'POST', body: form })
       const result = await apiFetch<{ ok: boolean; user: any }>('/api/auth/signature', { method: 'POST', body: JSON.stringify({ signature_url: res.url }) })
       setSignatureUrl(res.url)
       if (result.user) localStorage.setItem('oms_user', JSON.stringify(result.user))
