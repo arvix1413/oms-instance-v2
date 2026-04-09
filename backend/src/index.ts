@@ -250,10 +250,8 @@ app.get('/api/bom/:id', authMiddleware, async c => {
     WHERE b.id=?`, [c.req.param('id')])
   if (!bom) return c.json({ error: 'Not found' }, 404)
   const items = await query(`
-    SELECT bi.*, m.material_name as mat_name, m.spec as mat_spec, m.unit as mat_unit, s.name as sup_name
+    SELECT bi.*, bi.material_name as mat_name, bi.spec as mat_spec, bi.unit as mat_unit
     FROM bom_items bi
-    LEFT JOIN materials m ON bi.material_code = m.material_code
-    LEFT JOIN suppliers s ON m.supplier_id = s.id
     WHERE bi.bom_id=?`, [c.req.param('id')])
   return c.json({ ...bom, items })
 })
@@ -385,11 +383,11 @@ app.patch('/api/po/:id/receive', authMiddleware, canWrite, async c => {
     const items = await query<any>('SELECT * FROM po_items WHERE po_id=?', [id])
     for (const item of items) {
       const qty = parseFloat(item.quantity) || 0
-      const mat = await queryOne<any>('SELECT id, current_stock FROM materials WHERE material_code=?', [item.material_code])
-      const before = parseFloat(mat?.current_stock) || 0
+      const bom = await queryOne<any>('SELECT id, current_stock FROM bom WHERE product_sku=?', [item.material_code])
+      const before = parseFloat(bom?.current_stock) || 0
       const after = before + qty
-      if (mat) {
-        await execute('UPDATE materials SET current_stock=? WHERE material_code=?', [after, item.material_code])
+      if (bom) {
+        await execute('UPDATE bom SET current_stock=? WHERE product_sku=?', [after, item.material_code])
       }
       await execute(
         'INSERT INTO stock_ledger (material_code,material_name,transaction_type,ref_type,ref_id,ref_number,qty_change,qty_before,qty_after,unit,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
@@ -668,25 +666,24 @@ app.delete('/api/delivery-notes/:id', authMiddleware, canApprove, async c => {
 })
 
 // ── Inventory ─────────────────────────────────────────────────────────────────
-// Real-time inventory from materials.current_stock
+// Real-time inventory from bom.current_stock
 app.get('/api/inventory', authMiddleware, async c => c.json(await query(`
-  SELECT m.id, m.material_code as product_code, m.material_name as product_name,
-         m.spec, m.unit, m.current_stock as closing_balance,
-         m.category, s.name as supplier_name, m.currency
-  FROM materials m
-  LEFT JOIN suppliers s ON m.supplier_id = s.id
-  ORDER BY m.category, m.material_code
+  SELECT b.id, b.product_sku as product_code, b.product_name,
+         b.spec, b.unit, COALESCE(b.current_stock, 0) as closing_balance,
+         b.category, s.name as supplier_name, b.currency, b.image_url
+  FROM bom b
+  LEFT JOIN suppliers s ON b.supplier_id = s.id
+  ORDER BY b.category, b.product_sku
 `)))
 
 // BOM-based inventory: only show stock for items that exist in BOM
 app.get('/api/inventory/bom', authMiddleware, async c => c.json(await query(`
   SELECT b.id, b.product_sku as product_code, b.product_name,
          b.spec, b.unit, b.category,
-         COALESCE(m.current_stock, 0) as closing_balance,
+         COALESCE(b.current_stock, 0) as closing_balance,
          s.name as supplier_name, b.currency,
          b.image_url
   FROM bom b
-  LEFT JOIN materials m ON m.material_code = b.product_sku
   LEFT JOIN suppliers s ON b.supplier_id = s.id
   ORDER BY b.category, b.product_sku
 `)))
@@ -922,8 +919,8 @@ app.get('/api/goods-receipts/:id', authMiddleware, async c => {
     WHERE gr.id=?`, [c.req.param('id')])
   if (!gr) return c.json({ error: 'Not found' }, 404)
   const items = await query(`
-    SELECT gri.*, m.material_name, m.spec, m.unit
-    FROM goods_receipt_items gri LEFT JOIN materials m ON gri.material_code = m.material_code
+    SELECT gri.*, b.product_name as material_name, b.spec, b.unit
+    FROM goods_receipt_items gri LEFT JOIN bom b ON gri.material_code = b.product_sku
     WHERE gri.gr_id=?`, [c.req.param('id')])
   return c.json({ ...gr, items })
 })
@@ -957,11 +954,11 @@ app.patch('/api/goods-receipts/:id/confirm', authMiddleware, canApprove, async c
     const items = await query<any>('SELECT * FROM goods_receipt_items WHERE gr_id=?', [id])
     // Update stock for each item
     for (const item of items) {
-      const mat = await queryOne<any>('SELECT id, current_stock FROM materials WHERE material_code=?', [item.material_code])
-      const before = parseFloat(mat?.current_stock) || 0
+      const bom = await queryOne<any>('SELECT id, current_stock FROM bom WHERE product_sku=?', [item.material_code])
+      const before = parseFloat(bom?.current_stock) || 0
       const after = before + parseFloat(item.received_qty)
-      if (mat) {
-        await execute('UPDATE materials SET current_stock=? WHERE material_code=?', [after, item.material_code])
+      if (bom) {
+        await execute('UPDATE bom SET current_stock=? WHERE product_sku=?', [after, item.material_code])
       }
       // Write stock ledger
       await execute(
@@ -1004,13 +1001,13 @@ app.post('/api/production/check-stock', authMiddleware, async c => {
     let hasShortage = false
     for (const item of bomItems) {
       const needed = (item.quantity || 0) * qty
-      const mat = await queryOne<any>('SELECT current_stock, material_name FROM materials WHERE material_code=?', [item.material_code])
-      const stock = mat?.current_stock || 0
+      const bom = await queryOne<any>('SELECT current_stock, product_name FROM bom WHERE product_sku=?', [item.material_code])
+      const stock = parseFloat(bom?.current_stock) || 0
       const shortage = Math.max(0, needed - stock)
       if (shortage > 0) hasShortage = true
       result.push({
         material_code: item.material_code,
-        material_name: item.material_name || mat?.material_name || '',
+        material_name: item.material_name || bom?.product_name || '',
         spec: item.spec || '',
         unit: item.unit || 'PCS',
         planned_qty: needed,
@@ -1063,10 +1060,10 @@ app.patch('/api/production/:id/status', authMiddleware, canWrite, async c => {
       const mats = await query<any>('SELECT * FROM production_materials WHERE prod_id=?', [id])
       for (const mat of mats) {
         const qty = parseFloat(mat.issued_qty) > 0 ? parseFloat(mat.issued_qty) : parseFloat(mat.planned_qty) || 0
-        const m = await queryOne<any>('SELECT current_stock FROM materials WHERE material_code=?', [mat.material_code])
-        const before = parseFloat(m?.current_stock) || 0
+        const bom = await queryOne<any>('SELECT current_stock FROM bom WHERE product_sku=?', [mat.material_code])
+        const before = parseFloat(bom?.current_stock) || 0
         const after = Math.max(0, before - qty)
-        await execute('UPDATE materials SET current_stock=? WHERE material_code=?', [after, mat.material_code])
+        await execute('UPDATE bom SET current_stock=? WHERE product_sku=?', [after, mat.material_code])
         await execute('UPDATE production_materials SET issued_qty=? WHERE id=?', [qty, mat.id])
         await execute(
           'INSERT INTO stock_ledger (material_code,material_name,transaction_type,ref_type,ref_id,ref_number,qty_change,qty_before,qty_after,unit,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
@@ -1125,8 +1122,8 @@ app.post('/api/stock-adjustments', authMiddleware, canWrite, async c => {
     const adjId = r.insertId
     if (b.items?.length) {
       for (const item of b.items) {
-        const mat = await queryOne<any>('SELECT current_stock FROM materials WHERE material_code=?', [item.material_code])
-        const systemQty = mat?.current_stock || 0
+        const bom = await queryOne<any>('SELECT current_stock FROM bom WHERE product_sku=?', [item.material_code])
+        const systemQty = parseFloat(bom?.current_stock) || 0
         const diff = (item.actual_qty || 0) - systemQty
         await execute(
           'INSERT INTO stock_adjustment_items (adj_id,material_code,material_name,unit,system_qty,actual_qty,diff_qty,batch_no,remark) VALUES (?,?,?,?,?,?,?,?,?)',
@@ -1147,10 +1144,10 @@ app.patch('/api/stock-adjustments/:id/approve', authMiddleware, canApprove, asyn
     const items = await query<any>('SELECT * FROM stock_adjustment_items WHERE adj_id=?', [id])
     for (const item of items) {
       if (item.diff_qty === 0) continue
-      const mat = await queryOne<any>('SELECT current_stock FROM materials WHERE material_code=?', [item.material_code])
-      const before = mat?.current_stock || 0
+      const bom = await queryOne<any>('SELECT current_stock FROM bom WHERE product_sku=?', [item.material_code])
+      const before = parseFloat(bom?.current_stock) || 0
       const after = item.actual_qty
-      await execute('UPDATE materials SET current_stock=? WHERE material_code=?', [after, item.material_code])
+      await execute('UPDATE bom SET current_stock=? WHERE product_sku=?', [after, item.material_code])
       const txType = item.diff_qty > 0 ? 'ADJ_IN' : 'ADJ_OUT'
       await execute(
         'INSERT INTO stock_ledger (material_code,material_name,transaction_type,ref_type,ref_id,ref_number,qty_change,qty_before,qty_after,unit,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
@@ -1178,7 +1175,7 @@ app.get('/api/stats', authMiddleware, async c => {
     const now = new Date()
     const monthStart = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`
     const [materials, suppliers, customers, po, orders, monthOrders, allSales] = await Promise.all([
-      queryOne<any>('SELECT COUNT(*) as cnt FROM materials'),
+      queryOne<any>('SELECT COUNT(*) as cnt FROM bom'),
       queryOne<any>('SELECT COUNT(*) as cnt FROM suppliers'),
       queryOne<any>('SELECT COUNT(*) as cnt FROM customers'),
       queryOne<any>("SELECT COUNT(*) as cnt, COALESCE(SUM(total_amount),0) as total FROM purchase_orders WHERE status='received'"),
