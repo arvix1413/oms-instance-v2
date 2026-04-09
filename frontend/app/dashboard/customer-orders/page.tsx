@@ -38,6 +38,89 @@ function ChevronIcon({ open }: { open: boolean }) {
   )
 }
 
+// Searchable Select Component
+function SearchableSelect({ 
+  options, 
+  value, 
+  onChange, 
+  placeholder = '-- 選擇 --',
+  renderOption,
+  filterFn,
+  disabled = false
+}: { 
+  options: any[]
+  value: string
+  onChange: (val: string) => void
+  placeholder?: string
+  renderOption: (opt: any) => string
+  filterFn: (opt: any, search: string) => boolean
+  disabled?: boolean
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const containerRef = useState<HTMLDivElement | null>(null)[0]
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef && !containerRef.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [containerRef])
+
+  const filtered = searchTerm ? options.filter(opt => filterFn(opt, searchTerm.toLowerCase())) : options
+  const selected = options.find(opt => String(opt.id) === value)
+
+  return (
+    <div className="relative" ref={el => { if (el) (containerRef as any) = el }}>
+      <div 
+        className={`oms-input cursor-pointer flex items-center justify-between ${disabled ? 'bg-slate-100 cursor-not-allowed' : ''}`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+      >
+        <span className={selected ? 'text-slate-800' : 'text-slate-400'}>
+          {selected ? renderOption(selected) : placeholder}
+        </span>
+        <ChevronIcon open={isOpen} />
+      </div>
+      {isOpen && !disabled && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-hidden">
+          <div className="p-2 border-b border-slate-100">
+            <input
+              type="text"
+              className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="搜尋..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              onClick={e => e.stopPropagation()}
+            />
+          </div>
+          <div className="overflow-y-auto max-h-52">
+            {filtered.length === 0 ? (
+              <div className="px-3 py-2 text-xs text-slate-400 text-center">無符合結果</div>
+            ) : (
+              filtered.map(opt => (
+                <div
+                  key={opt.id}
+                  className={`px-3 py-2 text-xs cursor-pointer hover:bg-blue-50 ${String(opt.id) === value ? 'bg-blue-100 text-blue-700' : 'text-slate-700'}`}
+                  onClick={() => {
+                    onChange(String(opt.id))
+                    setIsOpen(false)
+                    setSearchTerm('')
+                  }}
+                >
+                  {renderOption(opt)}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function CustomerOrdersPage() {
   const { toast, confirm: confirmDialog } = useDialog()
 
@@ -47,7 +130,6 @@ export default function CustomerOrdersPage() {
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [loadedItems, setLoadedItems] = useState<Record<number, OrderItem[]>>({})
   const [creating, setCreating] = useState(false)
-  const [bomSearch, setBomSearch] = useState('')
   const [form, setForm] = useState({
     po_date:'', po_number:'', customer_id:'', remark:'',
     tax_rate: 8, currency: 'VND', delivery_date:'', delivery_address:'', 
@@ -155,11 +237,6 @@ export default function CustomerOrdersPage() {
     o.po_number.toLowerCase().includes(search.toLowerCase()) ||
     (o.customer_name||'').toLowerCase().includes(search.toLowerCase()))
   
-  const filteredBoms = boms.filter(b => !bomSearch ||
-    b.product_sku.toLowerCase().includes(bomSearch.toLowerCase()) ||
-    b.product_name.toLowerCase().includes(bomSearch.toLowerCase()) ||
-    (b.spec||'').toLowerCase().includes(bomSearch.toLowerCase()))
-  
   const { page, setPage, totalPages, paged, total } = usePagination(filtered, 20)
   const inp = 'oms-input text-xs py-1.5'
 
@@ -233,15 +310,7 @@ export default function CustomerOrdersPage() {
 
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-slate-600">訂單品項</span>
-            <div className="flex items-center gap-2">
-              <input 
-                className="oms-input text-xs py-1.5 w-64" 
-                placeholder="搜尋 BOM（料號、品名、規格）..." 
-                value={bomSearch} 
-                onChange={e=>setBomSearch(e.target.value)} 
-              />
-              <button onClick={addItem} className="btn-ghost text-blue-600">+ 新增品項</button>
-            </div>
+            <button onClick={addItem} className="btn-ghost text-blue-600">+ 新增品項</button>
           </div>
           <div className="overflow-x-auto rounded-lg border border-slate-200">
             <table className="w-full text-xs">
@@ -267,13 +336,18 @@ export default function CustomerOrdersPage() {
                       )}
                     </td>
                     <td className="p-1.5 min-w-[260px]">
-                      <select className={inp} style={{width:'100%'}} value={item.bom_id ? String(item.bom_id) : ''}
-                        onChange={e=>onSelectBom(i, e.target.value)}>
-                        <option value="">-- 選擇成品 BOM --</option>
-                        {filteredBoms.map(b=>(
-                          <option key={b.id} value={String(b.id)}>{b.product_sku} — {b.product_name}{b.spec ? ` (${b.spec})` : ''}</option>
-                        ))}
-                      </select>
+                      <SearchableSelect
+                        options={boms}
+                        value={item.bom_id ? String(item.bom_id) : ''}
+                        onChange={val => onSelectBom(i, val)}
+                        placeholder="-- 選擇成品 BOM --"
+                        renderOption={b => `${b.product_sku} — ${b.product_name}${b.spec ? ` (${b.spec})` : ''}`}
+                        filterFn={(b, search) => 
+                          b.product_sku.toLowerCase().includes(search) ||
+                          b.product_name.toLowerCase().includes(search) ||
+                          (b.spec||'').toLowerCase().includes(search)
+                        }
+                      />
                     </td>
                     <td className="p-1.5 min-w-[120px]">
                       <input className={inp} value={item.spec||''} onChange={e=>updateItem(i,'spec',e.target.value)} placeholder="規格" readOnly style={{backgroundColor:'#f8fafc'}} />
