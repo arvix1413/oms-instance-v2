@@ -575,11 +575,25 @@ app.get('/api/delivery-notes', authMiddleware, async c => c.json(await query(`
 `)))
 app.get('/api/delivery-notes/:id', authMiddleware, async c => {
   const dn = await queryOne<any>(`
-    SELECT dn.*, c.customer_name, c.customer_code
-    FROM delivery_notes dn LEFT JOIN customers c ON dn.customer_id = c.id
+    SELECT dn.*, c.customer_name, c.customer_code, c.address,
+           co.po_number as po_ref
+    FROM delivery_notes dn 
+    LEFT JOIN customers c ON dn.customer_id = c.id
+    LEFT JOIN customer_orders co ON dn.customer_order_id = co.id
     WHERE dn.id=?`, [c.req.param('id')])
   if (!dn) return c.json({ error: 'Not found' }, 404)
-  const items = await query('SELECT * FROM delivery_note_items WHERE dn_id=?', [c.req.param('id')])
+  const items = await query(`
+    SELECT dni.*, b.spec, b.unit
+    FROM delivery_note_items dni
+    LEFT JOIN (
+      SELECT bom.id, bom.product_sku, bom.product_name, 
+             GROUP_CONCAT(DISTINCT bi.spec SEPARATOR ', ') as spec,
+             MAX(bi.unit) as unit
+      FROM bom
+      LEFT JOIN bom_items bi ON bom.id = bi.bom_id
+      GROUP BY bom.id, bom.product_sku, bom.product_name
+    ) b ON dni.material_code = b.product_sku
+    WHERE dni.dn_id=?`, [c.req.param('id')])
   return c.json({ ...dn, items })
 })
 app.post('/api/delivery-notes', authMiddleware, canWrite, async c => {

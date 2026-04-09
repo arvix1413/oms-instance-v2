@@ -148,8 +148,8 @@ export default function DeliveryNotesPage() {
       dn_number: dn.dn_number,
       customer_name: dn.customer_name,
       delivery_date: dn.delivery_date,
-      po_ref: '', // Will be populated from backend
-      address: '', // Will be populated from backend
+      po_ref: (dn as any).po_ref || '',
+      address: (dn as any).address || '',
       remark: dn.remark,
       items: dn.items || []
     })

@@ -210,6 +210,8 @@ CREATE TABLE IF NOT EXISTS delivery_note_items (
   unit VARCHAR(50) DEFAULT 'PCS',
   qty DECIMAL(15,4) DEFAULT 0,
   remark TEXT,
+  po_ref VARCHAR(100) COMMENT '订单编号',
+  thickness DECIMAL(10,2) COMMENT '厚度',
   FOREIGN KEY (dn_id) REFERENCES delivery_notes(id) ON DELETE CASCADE
 );
 
