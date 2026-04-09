@@ -37,14 +37,16 @@ export default function ProductsPage() {
       } else {
         await apiFetch('/api/products', { method: 'POST', body: JSON.stringify(editing) })
       }
-      toast('儲存成功'); setEditing(null); load()
+      toast('儲存成功')
+      setEditing(null)
+      await load()
     } catch (e: any) { toast('錯誤：' + e.message) }
   }
 
   const del = async (id: number) => {
     if (!await confirmDialog('確定刪除？')) return
     await apiFetch(`/api/products/${id}`, { method: 'DELETE' })
-    load()
+    await load()
   }
 
   const inp = 'oms-input'

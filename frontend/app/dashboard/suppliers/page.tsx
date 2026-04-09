@@ -55,12 +55,14 @@ export default function SuppliersPage() {
     try {
       if (editing.id) await apiFetch(`/api/suppliers/${editing.id}`,{method:'PUT',body:JSON.stringify(editing)})
       else await apiFetch('/api/suppliers',{method:'POST',body:JSON.stringify(editing)})
-      toast('儲存成功'); setEditing(null); load()
+      toast('儲存成功'); setEditing(null)
+      await load()
     } catch(e:any){ toast('錯誤：'+e.message, 'error') }
   }
   const del = async (id:number) => {
     if (!await confirmDialog('確定刪除？')) return
-    await apiFetch(`/api/suppliers/${id}`,{method:'DELETE'}); load()
+    await apiFetch(`/api/suppliers/${id}`,{method:'DELETE'})
+      await load()
   }
 
   const filtered = items.filter(s => !search || s.name.toLowerCase().includes(search.toLowerCase()) || (s.supplier_code||'').toLowerCase().includes(search.toLowerCase()))

@@ -92,7 +92,8 @@ export default function CustomerOrdersPage() {
     try {
       await apiFetch('/api/customer-orders', { method:'POST', body:JSON.stringify({ ...form, items: validItems }) })
       toast('建立成功'); setCreating(false)
-      setForm({ po_date:'', po_number:'', customer_id:'', remark:'', tax_rate:8, currency:'VND', delivery_date:'', delivery_address:'', person_in_charge:'', payment_terms:'', items:[emptyItem()] }); load()
+      setForm({ po_date:'', po_number:'', customer_id:'', remark:'', tax_rate:8, currency:'VND', delivery_date:'', delivery_address:'', person_in_charge:'', payment_terms:'', items:[emptyItem()] })
+      await load()
     } catch(e:any){ toast('錯誤：'+e.message, 'error') }
   }
 
@@ -105,7 +106,8 @@ export default function CustomerOrdersPage() {
 
   const del = async (id: number) => {
     if (!await confirmDialog('確定刪除？')) return
-    await apiFetch(`/api/customer-orders/${id}`, { method:'DELETE' }); load()
+    await apiFetch(`/api/customer-orders/${id}`, { method:'DELETE' })
+      await load()
   }
 
   const changeStatus = async (id: number, status: string) => {
@@ -121,7 +123,8 @@ export default function CustomerOrdersPage() {
     if (!await confirmDialog(labels[status] || '確認變更狀態？', '', btnLabels[status] || '確認')) return
     try {
       await apiFetch(`/api/customer-orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
-      toast('狀態已更新'); load()
+      toast('狀態已更新')
+      await load()
     } catch (e: any) { toast('錯誤：' + e.message, 'error') }
   }
 

@@ -56,12 +56,14 @@ export default function CustomersPage() {
     try {
       if (editing.id) await apiFetch(`/api/customers/${editing.id}`,{method:'PUT',body:JSON.stringify(editing)})
       else await apiFetch('/api/customers',{method:'POST',body:JSON.stringify(editing)})
-      toast('儲存成功'); setEditing(null); load()
+      toast('儲存成功'); setEditing(null)
+      await load()
     } catch(e:any){ toast('錯誤：'+e.message, 'error') }
   }
   const del = async (id:number) => {
     if (!await confirmDialog('確定刪除？')) return
-    await apiFetch(`/api/customers/${id}`,{method:'DELETE'}); load()
+    await apiFetch(`/api/customers/${id}`,{method:'DELETE'})
+      await load()
   }
 
   const filtered = items.filter(c => !search || c.customer_name.toLowerCase().includes(search.toLowerCase()) || (c.customer_code||'').toLowerCase().includes(search.toLowerCase()))

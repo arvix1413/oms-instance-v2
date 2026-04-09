@@ -64,7 +64,8 @@ export default function GoodsReceiptsPage() {
 
   const del = async (id: number) => {
     if (!await confirmDialog('確定刪除此進貨單？')) return
-    try { await apiFetch(`/api/goods-receipts/${id}`, { method: 'DELETE' }); load() }
+    try { await apiFetch(`/api/goods-receipts/${id}`, { method: 'DELETE' })
+      await load() }
     catch (e: any) { toast(e.message, 'error') }
   }
 

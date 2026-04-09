@@ -134,13 +134,15 @@ export default function DeliveryNotesPage() {
     const btnLabels: Record<string, string> = { confirmed: '確認', shipped: '確認出貨' }
     if (!await confirmDialog(labels[status] || '確認變更狀態？', '', btnLabels[status] || '確認')) return
     await apiFetch(`/api/delivery-notes/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
-    toast('狀態已更新'); load()
+    toast('狀態已更新')
+      await load()
     if (viewing?.id === id) viewDN(id)
   }
 
   const del = async (id: number) => {
     if (!await confirmDialog('確定刪除？')) return
-    await apiFetch(`/api/delivery-notes/${id}`, { method: 'DELETE' }); load()
+    await apiFetch(`/api/delivery-notes/${id}`, { method: 'DELETE' })
+      await load()
   }
 
   const printDN = (dn: DN) => {

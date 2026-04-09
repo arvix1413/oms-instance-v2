@@ -64,14 +64,16 @@ export default function BomPage() {
         await apiFetch('/api/bom', { method:'POST', body:JSON.stringify(editing) })
         toast('BOM 建立成功')
       }
-      setEditing(null); load()
+      setEditing(null)
+      await load()
     } catch(e:any){ toast('錯誤：'+e.message, 'error') }
   }
 
   const del = async (id:number, e:React.MouseEvent) => {
     e.stopPropagation()
     if (!await confirmDialog('確定刪除此 BOM？')) return
-    await apiFetch(`/api/bom/${id}`, { method:'DELETE' }); load()
+    await apiFetch(`/api/bom/${id}`, { method:'DELETE' })
+    await load()
   }
 
   const onSupplierChange = (supplierId:string) => {

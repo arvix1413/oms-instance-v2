@@ -112,14 +112,16 @@ export default function ProductionPage() {
     if (!await confirmDialog(labels[status] || `確定切換狀態？`, '', btnLabels[status] || '確認')) return
     try {
       await apiFetch(`/api/production/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, produced_qty: producedQty }) })
-      toast('狀態已更新'); load()
+      toast('狀態已更新')
+      await load()
       if (viewing?.id === id) { const d = await apiFetch<Prod>(`/api/production/${id}`); setViewing(d) }
     } catch (e: any) { toast(e.message, 'error') }
   }
 
   const del = async (id: number) => {
     if (!await confirmDialog('確定刪除此生產單？')) return
-    try { await apiFetch(`/api/production/${id}`, { method: 'DELETE' }); load() }
+    try { await apiFetch(`/api/production/${id}`, { method: 'DELETE' })
+      await load() }
     catch (e: any) { toast(e.message, 'error') }
   }
 

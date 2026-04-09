@@ -45,7 +45,8 @@ export default function UsersPage() {
       } else {
         await apiFetch('/api/users', { method: 'POST', body: JSON.stringify(editing) })
       }
-      toast('儲存成功'); setEditing(null); load()
+      toast('儲存成功'); setEditing(null)
+      await load()
     } catch (e: any) { toast('錯誤：' + e.message, 'error') }
   }
 
@@ -66,7 +67,8 @@ export default function UsersPage() {
     if (!await confirmDialog(`確定刪除用戶「${name}」？`, '此操作無法復原')) return
     try {
       await apiFetch(`/api/users/${id}`, { method: 'DELETE' })
-      toast('用戶已刪除'); load()
+      toast('用戶已刪除')
+      await load()
     } catch (e: any) { toast('刪除失敗：' + e.message, 'error') }
   }
 

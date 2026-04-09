@@ -124,7 +124,8 @@ export default function PoPage() {
     const btnLabels: Record<string, string> = { sent: '確認發送' }
     if (!await confirmDialog(labels[status] || '確認變更狀態？', '', btnLabels[status] || '確認')) return
     await apiFetch(`/api/po/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
-    toast('狀態已更新'); load()
+    toast('狀態已更新')
+      await load()
     // refresh items if expanded
     if (expanded.has(id)) {
       const data = await apiFetch<Po>(`/api/po/${id}`)
@@ -135,7 +136,8 @@ export default function PoPage() {
   const del = async (id: number, e: React.MouseEvent) => {
     e.stopPropagation()
     if (!await confirmDialog('確定刪除此採購單？')) return
-    await apiFetch(`/api/po/${id}`, { method: 'DELETE' }); load()
+    await apiFetch(`/api/po/${id}`, { method: 'DELETE' })
+      await load()
   }
 
   const addItem = () => setForm(p => ({ ...p, items: [...p.items, emptyItem()] }))
@@ -156,7 +158,8 @@ export default function PoPage() {
     try {
       await apiFetch('/api/po', { method: 'POST', body: JSON.stringify(form) })
       toast('採購單建立成功'); setCreating(false)
-      setForm({ supplier_id: '', supplier_name:'', currency:'VND', remark:'', items:[emptyItem()] }); load()
+      setForm({ supplier_id: '', supplier_name:'', currency:'VND', remark:'', items:[emptyItem()] })
+      await load()
     } catch (e: any) { toast('錯誤：' + e.message) }
   }
 

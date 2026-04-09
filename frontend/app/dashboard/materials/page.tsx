@@ -93,13 +93,16 @@ export default function MaterialsPage() {
     try {
       if (editing.id) await apiFetch(`/api/materials/${editing.id}`, { method: 'PUT', body: JSON.stringify(editing) })
       else await apiFetch('/api/materials', { method: 'POST', body: JSON.stringify(editing) })
-      toast('儲存成功'); setEditing(null); load()
+      toast('儲存成功')
+      setEditing(null)
+      await load()
     } catch (e: any) { toast('錯誤：' + e.message, 'error') }
   }
 
   const del = async (id: number) => {
     if (!await confirmDialog('確定刪除？')) return
-    await apiFetch(`/api/materials/${id}`, { method: 'DELETE' }); load()
+    await apiFetch(`/api/materials/${id}`, { method: 'DELETE' })
+    await load()
   }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,7 +149,8 @@ export default function MaterialsPage() {
       })
       const newSup = result.new_suppliers > 0 ? `，自動建立 ${result.new_suppliers} 個供應商` : ''
       toast(`匯入完成：新增 ${result.success} 筆，更新 ${result.updated} 筆${newSup}${result.errors.length ? `，失敗 ${result.errors.length} 筆` : ''}`, result.errors.length ? 'error' : 'success')
-      setImportPreview(null); load()
+      setImportPreview(null)
+      await load()
     } catch (e: any) { toast('匯入失敗：' + e.message, 'error') }
     finally { setImporting(false) }
   }

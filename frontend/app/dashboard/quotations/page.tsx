@@ -52,17 +52,20 @@ export default function QuotationsPage() {
   const changeStatus = async (id:number, status:string, e: React.MouseEvent) => {
     e.stopPropagation()
     await apiFetch(`/api/quotations/${id}/status`,{method:'PATCH',body:JSON.stringify({status})})
-    toast('狀態已更新'); load()
+    toast('狀態已更新')
+      await load()
   }
   const del = async (id:number, e: React.MouseEvent) => {
     e.stopPropagation()
     if (!await confirmDialog('確定刪除？')) return
-    await apiFetch(`/api/quotations/${id}`,{method:'DELETE'}); load()
+    await apiFetch(`/api/quotations/${id}`,{method:'DELETE'})
+      await load()
   }
   const save = async () => {
     try {
       await apiFetch('/api/quotations',{method:'POST',body:JSON.stringify(form)})
-      toast('報價單建立成功'); setCreating(false); setForm({customer_name:'',currency:'VND',valid_until:'',remark:'',items:[emptyItem()]}); load()
+      toast('報價單建立成功'); setCreating(false); setForm({customer_name:'',currency:'VND',valid_until:'',remark:'',items:[emptyItem()]})
+      await load()
     } catch(e:any){ toast('錯誤：'+e.message) }
   }
 
