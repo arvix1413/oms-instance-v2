@@ -62,6 +62,7 @@ export default function PoPage() {
   }
 
   const selectBOM = (i: number, bomId: string) => {
+    alert(`selectBOM called: i=${i}, bomId=${bomId}`)
     console.log('selectBOM called:', { i, bomId, filteredBomsCount: getFilteredBoms().length })
     const bom = getFilteredBoms().find(b => String(b.id) === bomId)
     console.log('Found BOM:', bom)
