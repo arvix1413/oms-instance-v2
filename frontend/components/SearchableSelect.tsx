@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 function ChevronIcon({ open }: { open: boolean }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-      className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
+      className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 flex-shrink-0 ${open ? 'rotate-180' : ''}`}>
       <polyline points="6 9 12 15 18 9" />
     </svg>
   )
@@ -21,10 +21,10 @@ interface SearchableSelectProps<T = any> {
   className?: string
 }
 
-export function SearchableSelect<T extends { id: number | string }>({ 
-  options, 
-  value, 
-  onChange, 
+export function SearchableSelect<T extends { id: number | string }>({
+  options,
+  value,
+  onChange,
   placeholder = '-- 選擇 --',
   renderOption,
   filterFn,
@@ -35,8 +35,11 @@ export function SearchableSelect<T extends { id: number | string }>({
   const [searchTerm, setSearchTerm] = useState('')
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({})
   const containerRef = useRef<HTMLDivElement>(null)
-  const searchInputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
+  const selected = options.find(opt => String(opt.id) === value)
+
+  // Close on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -44,108 +47,116 @@ export function SearchableSelect<T extends { id: number | string }>({
         setSearchTerm('')
       }
     }
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
+    if (isOpen) document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isOpen])
 
-  useEffect(() => {
-    if (isOpen && searchInputRef.current) {
-      setTimeout(() => searchInputRef.current?.focus(), 50)
+  const openDropdown = () => {
+    if (disabled || !containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const spaceBelow = window.innerHeight - rect.bottom
+    const style: React.CSSProperties = {
+      position: 'fixed',
+      left: rect.left,
+      width: rect.width,
+      maxHeight: 280,
+      zIndex: 9999
     }
-  }, [isOpen])
-
-  const handleToggle = () => {
-    if (disabled) return
-
-    if (!isOpen && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect()
-      const spaceBelow = window.innerHeight - rect.bottom
-      
-      const style: React.CSSProperties = {
-        position: 'fixed',
-        left: rect.left,
-        width: rect.width,
-        maxHeight: 280,
-        zIndex: 9999
-      }
-      
-      if (spaceBelow < 150) {
-        style.bottom = window.innerHeight - rect.top + 4
-      } else {
-        style.top = rect.bottom + 4
-      }
-      
-      setDropdownStyle(style)
+    if (spaceBelow < 150) {
+      style.bottom = window.innerHeight - rect.top + 4
+    } else {
+      style.top = rect.bottom + 4
     }
-    
-    setIsOpen(!isOpen)
-    if (isOpen) {
-      setSearchTerm('')
-    }
+    setDropdownStyle(style)
+    setIsOpen(true)
   }
 
-  const filtered = searchTerm ? options.filter(opt => filterFn(opt, searchTerm.toLowerCase())) : options
-  const selected = options.find(opt => String(opt.id) === value)
+  const handleFocus = () => {
+    if (!isOpen) openDropdown()
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value)
+    if (!isOpen) openDropdown()
+  }
+
+  const handleSelect = (opt: T) => {
+    onChange(String(opt.id))
+    setIsOpen(false)
+    setSearchTerm('')
+    inputRef.current?.blur()
+  }
+
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onChange('')
+    setSearchTerm('')
+    setIsOpen(false)
+  }
+
+  // What to show in the input
+  const displayValue = isOpen ? searchTerm : (selected ? renderOption(selected) : '')
+
+  const filtered = searchTerm
+    ? options.filter(opt => filterFn(opt, searchTerm.toLowerCase()))
+    : options
 
   return (
     <>
       <div className="relative" ref={containerRef}>
-        <div 
-          className={`oms-input cursor-pointer flex items-center justify-between ${disabled ? 'bg-slate-100 cursor-not-allowed' : ''} ${className}`}
-          onClick={handleToggle}
-        >
-          <span className={selected ? 'text-slate-800' : 'text-slate-400'}>
-            {selected ? renderOption(selected) : placeholder}
-          </span>
+        <input
+          ref={inputRef}
+          type="text"
+          className={`oms-input pr-8 ${disabled ? 'bg-slate-100 cursor-not-allowed' : 'cursor-text'} ${className}`}
+          placeholder={placeholder}
+          value={displayValue}
+          disabled={disabled}
+          onFocus={handleFocus}
+          onChange={handleInputChange}
+          onMouseDown={() => { if (!isOpen) openDropdown() }}
+          autoComplete="off"
+        />
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none">
+          {selected && !isOpen && (
+            <button
+              type="button"
+              className="pointer-events-auto text-slate-300 hover:text-slate-500 transition-colors"
+              onMouseDown={handleClear}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          )}
           <ChevronIcon open={isOpen} />
         </div>
       </div>
-      
+
       {isOpen && !disabled && (
-        <div 
-          className="bg-white border border-slate-300 rounded-md shadow-lg overflow-hidden"
+        <div
+          className="bg-white border border-slate-300 rounded-md shadow-lg overflow-y-auto"
           style={dropdownStyle}
         >
-          <div className="p-2 border-b border-slate-200 bg-slate-50">
-            <input
-              ref={searchInputRef}
-              type="text"
-              className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="搜尋..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              onMouseDown={e => e.stopPropagation()}
-              onClick={e => e.stopPropagation()}
-            />
-          </div>
-          
-          <div className="overflow-y-auto" style={{ maxHeight: '232px' }}>
-            {filtered.length === 0 ? (
-              <div className="px-3 py-3 text-xs text-slate-400 text-center">無符合結果</div>
-            ) : (
-              filtered.map(opt => (
-                <div
-                  key={opt.id}
-                  className={`px-3 py-2 text-xs cursor-pointer transition-colors ${
-                    String(opt.id) === value 
-                      ? 'bg-blue-50 text-blue-700 font-medium' 
-                      : 'text-slate-700 hover:bg-slate-100'
-                  }`}
-                  onMouseDown={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    onChange(String(opt.id))
-                    setIsOpen(false)
-                    setSearchTerm('')
-                  }}
-                >
-                  {renderOption(opt)}
-                </div>
-              ))
-            )}
-          </div>
+          {filtered.length === 0 ? (
+            <div className="px-3 py-3 text-xs text-slate-400 text-center">無符合結果</div>
+          ) : (
+            filtered.map(opt => (
+              <div
+                key={opt.id}
+                className={`px-3 py-2 text-xs cursor-pointer transition-colors ${
+                  String(opt.id) === value
+                    ? 'bg-blue-50 text-blue-700 font-medium'
+                    : 'text-slate-700 hover:bg-slate-100'
+                }`}
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  handleSelect(opt)
+                }}
+              >
+                {renderOption(opt)}
+              </div>
+            ))
+          )}
         </div>
       )}
     </>
