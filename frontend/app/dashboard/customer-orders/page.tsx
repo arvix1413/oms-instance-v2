@@ -394,9 +394,11 @@ export default function CustomerOrdersPage() {
         </div>
       )}
 
-      <div className="mb-4"><input className="oms-input w-64" placeholder="搜尋採購單號或客戶..." value={search} onChange={e=>setSearch(e.target.value)} /></div>
+      {!creating && (
+        <>
+          <div className="mb-4"><input className="oms-input w-64" placeholder="搜尋採購單號或客戶..." value={search} onChange={e=>setSearch(e.target.value)} /></div>
 
-      <div className="oms-card overflow-hidden">
+          <div className="oms-card overflow-hidden">
         {loading ? <div className="flex justify-center py-16"><div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"/></div> : (
           <>
             <table className="w-full text-sm">
@@ -488,6 +490,8 @@ export default function CustomerOrdersPage() {
           </>
         )}
       </div>
+      </>
+      )}
     </div>
   )
 }
