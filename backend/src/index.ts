@@ -292,8 +292,10 @@ app.get('/api/po/:id', authMiddleware, async c => {
     WHERE po.id=?`, [c.req.param('id')])
   if (!po) return c.json({ error: 'Not found' }, 404)
   const items = await query(`
-    SELECT pi.*, m.material_name, m.spec, m.unit
-    FROM po_items pi LEFT JOIN materials m ON pi.material_code = m.material_code
+    SELECT pi.*, b.spec, b.unit, b.image_url,
+           (SELECT material_name FROM materials WHERE material_code = b.product_sku LIMIT 1) as material_name
+    FROM po_items pi 
+    LEFT JOIN bom b ON pi.material_code = b.product_sku
     WHERE pi.po_id=?`, [c.req.param('id')])
   return c.json({ ...po, items })
 })

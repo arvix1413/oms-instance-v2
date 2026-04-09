@@ -8,7 +8,7 @@ import { StatusFlow, PO_STEPS, getPOActions } from '@/components/StatusFlow'
 type PoItem = { material_code:string; material_name:string; spec:string; unit:string; quantity:number; unit_price:number; total_price:number; currency:string; remark:string; po_ref:string; thickness:number|string; image_url?:string; bom_id?:number }
 type Po = { id:number; po_number:string; supplier_name:string; status:string; total_amount:number; currency:string; remark:string; created_at:string; approved_at?:string; items?:PoItem[] }
 type Supplier = { id: number; name: string; currency: string; supplier_code: string }
-type BOM = { id: number; product_sku: string; product_name: string; spec: string; unit: string; supplier_price: number; company_price: number; currency: string; image_url?: string; material_name?: string }
+type BOM = { id: number; product_sku: string; product_name: string; spec: string; unit: string; supplier_price: number; company_price: number; currency: string; image_url?: string; material_name?: string; supplier_id?: number }
 
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
   draft:     { label:'草稿',   badge:'badge-gray'   },
@@ -29,6 +29,89 @@ function ChevronIcon({ open }: { open: boolean }) {
   )
 }
 
+// Searchable Select Component
+function SearchableSelect({ 
+  options, 
+  value, 
+  onChange, 
+  placeholder = '-- 選擇 --',
+  renderOption,
+  filterFn,
+  disabled = false
+}: { 
+  options: any[]
+  value: string
+  onChange: (val: string) => void
+  placeholder?: string
+  renderOption: (opt: any) => string
+  filterFn: (opt: any, search: string) => boolean
+  disabled?: boolean
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const containerRef = useState<HTMLDivElement | null>(null)[0]
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef && !containerRef.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [containerRef])
+
+  const filtered = searchTerm ? options.filter(opt => filterFn(opt, searchTerm.toLowerCase())) : options
+  const selected = options.find(opt => String(opt.id) === value)
+
+  return (
+    <div className="relative" ref={el => { if (el) (containerRef as any) = el }}>
+      <div 
+        className={`oms-input cursor-pointer flex items-center justify-between ${disabled ? 'bg-slate-100 cursor-not-allowed' : ''}`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+      >
+        <span className={selected ? 'text-slate-800' : 'text-slate-400'}>
+          {selected ? renderOption(selected) : placeholder}
+        </span>
+        <ChevronIcon open={isOpen} />
+      </div>
+      {isOpen && !disabled && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-hidden">
+          <div className="p-2 border-b border-slate-100">
+            <input
+              type="text"
+              className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="搜尋..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              onClick={e => e.stopPropagation()}
+            />
+          </div>
+          <div className="overflow-y-auto max-h-52">
+            {filtered.length === 0 ? (
+              <div className="px-3 py-2 text-xs text-slate-400 text-center">無符合結果</div>
+            ) : (
+              filtered.map(opt => (
+                <div
+                  key={opt.id}
+                  className={`px-3 py-2 text-xs cursor-pointer hover:bg-blue-50 ${String(opt.id) === value ? 'bg-blue-100 text-blue-700' : 'text-slate-700'}`}
+                  onClick={() => {
+                    onChange(String(opt.id))
+                    setIsOpen(false)
+                    setSearchTerm('')
+                  }}
+                >
+                  {renderOption(opt)}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 
 export default function PoPage() {
   const { toast, confirm: confirmDialog } = useDialog()
@@ -36,7 +119,6 @@ export default function PoPage() {
   const [pos, setPos] = useState<Po[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [boms, setBoms] = useState<BOM[]>([])
-  const [bomSearch, setBomSearch] = useState('')
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [loadedItems, setLoadedItems] = useState<Record<number, PoItem[]>>({})
   const [creating, setCreating] = useState(false)
@@ -56,8 +138,14 @@ export default function PoPage() {
     setForm(p => ({ ...p, supplier_id: supplierId, supplier_name: sup?.name || '', currency: sup?.currency || 'VND', items: [emptyItem()] }))
   }
 
+  // Get filtered BOMs based on selected supplier
+  const getFilteredBoms = () => {
+    if (!form.supplier_id) return boms
+    return boms.filter(b => !b.supplier_id || String(b.supplier_id) === form.supplier_id)
+  }
+
   const selectBOM = (i: number, bomId: string) => {
-    const bom = boms.find(b => String(b.id) === bomId)
+    const bom = getFilteredBoms().find(b => String(b.id) === bomId)
     if (!bom) return
     
     setForm(p => ({
@@ -173,11 +261,6 @@ export default function PoPage() {
 
   const formTotal = form.items.reduce((s, i) => s + (i.total_price || 0), 0)
   const filteredPos = pos.filter(p => !search || p.po_number.toLowerCase().includes(search.toLowerCase()) || p.supplier_name.toLowerCase().includes(search.toLowerCase()))
-  const filteredBoms = boms.filter(b => !bomSearch ||
-    b.product_sku.toLowerCase().includes(bomSearch.toLowerCase()) ||
-    b.product_name.toLowerCase().includes(bomSearch.toLowerCase()) ||
-    (b.spec||'').toLowerCase().includes(bomSearch.toLowerCase()) ||
-    (b.material_name||'').toLowerCase().includes(bomSearch.toLowerCase()))
   const { page, setPage, totalPages, paged, total } = usePagination(filteredPos, 20)
   const inp = 'oms-input text-xs py-1.5'
 
@@ -217,15 +300,7 @@ export default function PoPage() {
           </div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-slate-600">採購明細</span>
-            <div className="flex items-center gap-2">
-              <input 
-                className="oms-input text-xs py-1.5 w-64" 
-                placeholder="搜尋 BOM（物料編號、品名、規格）..." 
-                value={bomSearch} 
-                onChange={e=>setBomSearch(e.target.value)} 
-              />
-              <button onClick={addItem} className="btn-ghost text-blue-600">+ 新增料號</button>
-            </div>
+            <button onClick={addItem} className="btn-ghost text-blue-600">+ 新增料號</button>
           </div>
           <div className="overflow-x-auto rounded-lg border border-slate-200">
             <table className="w-full text-xs">
@@ -245,14 +320,21 @@ export default function PoPage() {
                       )}
                     </td>
                     <td className="p-1"><input className={inp} style={{width:100}} value={item.po_ref} placeholder="PO編號" onChange={e=>updateItem(i,'po_ref',e.target.value)} /></td>
-                    <td className="p-1 min-w-[200px]">
-                      <select className={inp} style={{width:'100%'}} value={item.bom_id ? String(item.bom_id) : ''}
-                        onChange={e => selectBOM(i, e.target.value)}>
-                        <option value="">-- 選擇 BOM --</option>
-                        {filteredBoms.map(b => (
-                          <option key={b.id} value={String(b.id)}>{b.product_sku} — {b.product_name}{b.spec ? ` (${b.spec})` : ''}</option>
-                        ))}
-                      </select>
+                    <td className="p-1 min-w-[220px]">
+                      <SearchableSelect
+                        options={getFilteredBoms()}
+                        value={item.bom_id ? String(item.bom_id) : ''}
+                        onChange={val => selectBOM(i, val)}
+                        placeholder="-- 選擇 BOM --"
+                        disabled={!form.supplier_id}
+                        renderOption={b => `${b.product_sku} — ${b.product_name}${b.spec ? ` (${b.spec})` : ''}`}
+                        filterFn={(b, search) => 
+                          b.product_sku.toLowerCase().includes(search) ||
+                          b.product_name.toLowerCase().includes(search) ||
+                          (b.spec||'').toLowerCase().includes(search) ||
+                          (b.material_name||'').toLowerCase().includes(search)
+                        }
+                      />
                     </td>
                     <td className="p-1"><input className={inp} value={item.material_name} onChange={e=>updateItem(i,'material_name',e.target.value)} readOnly style={{backgroundColor:'#f8fafc'}} /></td>
                     <td className="p-1"><input className={inp} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} readOnly style={{width:80, backgroundColor:'#f8fafc'}} /></td>
