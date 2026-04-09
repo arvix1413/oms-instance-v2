@@ -58,7 +58,7 @@ function SearchableSelect({
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>('bottom')
+  const [dropdownPosition, setDropdownPosition] = useState<{ top?: number; bottom?: number; left: number; width: number }>({ left: 0, width: 0 })
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -79,12 +79,20 @@ function SearchableSelect({
       const spaceAbove = rect.top
       const dropdownHeight = 280 // max-h-64 + padding + search box
       
+      // Calculate position for fixed positioning
+      const position: { top?: number; bottom?: number; left: number; width: number } = {
+        left: rect.left,
+        width: rect.width
+      }
+      
       // If not enough space below but more space above, open upward
       if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
-        setDropdownPosition('top')
+        position.bottom = window.innerHeight - rect.top + 4
       } else {
-        setDropdownPosition('bottom')
+        position.top = rect.bottom + 4
       }
+      
+      setDropdownPosition(position)
     }
     setIsOpen(!isOpen)
   }
@@ -93,23 +101,32 @@ function SearchableSelect({
   const selected = options.find(opt => String(opt.id) === value)
 
   return (
-    <div className="relative" ref={containerRef}>
-      <div 
-        className={`oms-input cursor-pointer flex items-center justify-between ${disabled ? 'bg-slate-100 cursor-not-allowed' : ''}`}
-        onClick={handleToggle}
-      >
-        <span className={selected ? 'text-slate-800' : 'text-slate-400'}>
-          {selected ? renderOption(selected) : placeholder}
-        </span>
-        <ChevronIcon open={isOpen} />
+    <>
+      <div className="relative" ref={containerRef}>
+        <div 
+          className={`oms-input cursor-pointer flex items-center justify-between ${disabled ? 'bg-slate-100 cursor-not-allowed' : ''}`}
+          onClick={handleToggle}
+        >
+          <span className={selected ? 'text-slate-800' : 'text-slate-400'}>
+            {selected ? renderOption(selected) : placeholder}
+          </span>
+          <ChevronIcon open={isOpen} />
+        </div>
       </div>
+      
+      {/* Render dropdown in a portal-like fixed position */}
       {isOpen && !disabled && (
         <div 
-          className={`absolute z-50 w-full bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-hidden ${
-            dropdownPosition === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'
-          }`}
+          className="fixed bg-white border border-slate-200 rounded-lg shadow-xl max-h-64 overflow-hidden"
+          style={{
+            zIndex: 9999,
+            top: dropdownPosition.top,
+            bottom: dropdownPosition.bottom,
+            left: dropdownPosition.left,
+            width: dropdownPosition.width
+          }}
         >
-          <div className="p-2 border-b border-slate-100">
+          <div className="p-2 border-b border-slate-100 bg-white sticky top-0">
             <input
               type="text"
               className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -117,6 +134,7 @@ function SearchableSelect({
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               onClick={e => e.stopPropagation()}
+              autoFocus
             />
           </div>
           <div className="overflow-y-auto max-h-52">
@@ -140,7 +158,7 @@ function SearchableSelect({
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }
 
