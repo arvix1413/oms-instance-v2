@@ -5,10 +5,10 @@ import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, PO_STEPS, getPOActions } from '@/components/StatusFlow'
 
-type PoItem = { material_code:string; material_name:string; spec:string; unit:string; quantity:number; unit_price:number; total_price:number; currency:string; remark:string; po_ref:string; thickness:number|string }
+type PoItem = { material_code:string; material_name:string; spec:string; unit:string; quantity:number; unit_price:number; total_price:number; currency:string; remark:string; po_ref:string; thickness:number|string; image_url?:string; bom_id?:number }
 type Po = { id:number; po_number:string; supplier_name:string; status:string; total_amount:number; currency:string; remark:string; created_at:string; approved_at?:string; items?:PoItem[] }
 type Supplier = { id: number; name: string; currency: string; supplier_code: string }
-type Material = { id: number; material_code: string; material_name: string; spec: string; unit: string; supplier_price: number; currency: string }
+type BOM = { id: number; product_sku: string; product_name: string; spec: string; unit: string; supplier_price: number; company_price: number; currency: string; image_url?: string; material_name?: string }
 
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
   draft:     { label:'草稿',   badge:'badge-gray'   },
@@ -35,7 +35,8 @@ export default function PoPage() {
 
   const [pos, setPos] = useState<Po[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
-  const [supplierMaterials, setSupplierMaterials] = useState<Material[]>([])
+  const [boms, setBoms] = useState<BOM[]>([])
+  const [bomSearch, setBomSearch] = useState('')
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [loadedItems, setLoadedItems] = useState<Record<number, PoItem[]>>({})
   const [creating, setCreating] = useState(false)
@@ -47,39 +48,31 @@ export default function PoPage() {
   useEffect(() => {
     load()
     apiFetch<Supplier[]>('/api/suppliers').then(setSuppliers).catch(() => {})
+    apiFetch<BOM[]>('/api/bom').then(setBoms).catch(() => {})
   }, [])
 
   const onSelectSupplier = async (supplierId: string) => {
     const sup = suppliers.find(s => String(s.id) === supplierId)
     setForm(p => ({ ...p, supplier_id: supplierId, supplier_name: sup?.name || '', currency: sup?.currency || 'VND', items: [emptyItem()] }))
-    if (supplierId && sup) {
-      try {
-        // Try by supplier_id first, fallback to supplier_name
-        const mats = await apiFetch<Material[]>(`/api/materials?supplier_id=${supplierId}`)
-        if (mats.length > 0) {
-          setSupplierMaterials(mats)
-        } else {
-          const byName = await apiFetch<Material[]>(`/api/materials?supplier_name=${encodeURIComponent(sup.name)}`)
-          setSupplierMaterials(byName)
-        }
-      } catch { setSupplierMaterials([]) }
-    } else {
-      setSupplierMaterials([])
-    }
   }
 
-  const selectMaterial = (i: number, mat: Material) => {
+  const selectBOM = (i: number, bomId: string) => {
+    const bom = boms.find(b => String(b.id) === bomId)
+    if (!bom) return
+    
     setForm(p => ({
       ...p,
       items: p.items.map((item, idx) => idx !== i ? item : {
         ...item,
-        material_code: mat.material_code,
-        material_name: mat.material_name,
-        spec: mat.spec || '',
-        unit: mat.unit || 'PCS',
-        unit_price: mat.supplier_price || 0,
-        currency: mat.currency || form.currency,
-        total_price: (item.quantity || 0) * (mat.supplier_price || 0),
+        bom_id: Number(bomId),
+        material_code: bom.product_sku,
+        material_name: bom.product_name,
+        spec: bom.spec || '',
+        unit: bom.unit || 'PCS',
+        unit_price: bom.supplier_price || 0,
+        currency: bom.currency || form.currency,
+        image_url: bom.image_url || '',
+        total_price: (item.quantity || 0) * (bom.supplier_price || 0),
       })
     }))
   }
@@ -171,7 +164,7 @@ export default function PoPage() {
     </head><body>
     <h2>採購單 ${poNumber}</h2>
     <p>供應商：${supplierName} | FAN YONG CO., LTD</p>
-    <table><thead><tr><th>PO訂單編號</th><th>料號</th><th>材料名稱</th><th>規格</th><th>厚度</th><th>單位</th><th class="num">數量</th><th class="num">單價</th><th class="num">小計</th><th>幣別</th><th>備註</th></tr></thead>
+    <table><thead><tr><th>PO訂單編號</th><th>物料編號</th><th>材料名稱</th><th>規格</th><th>重量</th><th>單位</th><th class="num">數量</th><th class="num">單價</th><th class="num">小計</th><th>幣別</th><th>備註</th></tr></thead>
     <tbody>${items.map(i=>`<tr><td>${i.po_ref||''}</td><td>${i.material_code}</td><td>${i.material_name}</td><td>${i.spec}</td><td class="num">${i.thickness??''}</td><td>${i.unit}</td><td class="num">${i.quantity.toLocaleString()}</td><td class="num">${i.unit_price.toLocaleString()}</td><td class="num">${i.total_price.toLocaleString()}</td><td>${i.currency}</td><td>${i.remark}</td></tr>`).join('')}
     </tbody><tfoot><tr><td colspan="8" style="text-align:right">合計</td><td class="num">${items.reduce((s,i)=>s+i.total_price,0).toLocaleString()}</td><td>${items[0]?.currency||''}</td><td></td></tr></tfoot>
     </table></body></html>`
@@ -180,6 +173,11 @@ export default function PoPage() {
 
   const formTotal = form.items.reduce((s, i) => s + (i.total_price || 0), 0)
   const filteredPos = pos.filter(p => !search || p.po_number.toLowerCase().includes(search.toLowerCase()) || p.supplier_name.toLowerCase().includes(search.toLowerCase()))
+  const filteredBoms = boms.filter(b => !bomSearch ||
+    b.product_sku.toLowerCase().includes(bomSearch.toLowerCase()) ||
+    b.product_name.toLowerCase().includes(bomSearch.toLowerCase()) ||
+    (b.spec||'').toLowerCase().includes(bomSearch.toLowerCase()) ||
+    (b.material_name||'').toLowerCase().includes(bomSearch.toLowerCase()))
   const { page, setPage, totalPages, paged, total } = usePagination(filteredPos, 20)
   const inp = 'oms-input text-xs py-1.5'
 
@@ -219,40 +217,47 @@ export default function PoPage() {
           </div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-slate-600">採購明細</span>
-            <button onClick={addItem} className="btn-ghost text-blue-600">+ 新增料號</button>
+            <div className="flex items-center gap-2">
+              <input 
+                className="oms-input text-xs py-1.5 w-64" 
+                placeholder="搜尋 BOM（物料編號、品名、規格）..." 
+                value={bomSearch} 
+                onChange={e=>setBomSearch(e.target.value)} 
+              />
+              <button onClick={addItem} className="btn-ghost text-blue-600">+ 新增料號</button>
+            </div>
           </div>
           <div className="overflow-x-auto rounded-lg border border-slate-200">
             <table className="w-full text-xs">
               <thead><tr className="border-b border-slate-200">
-                {['PO訂單編號','料號','材料名稱','規格','厚度','單位','數量','單價','小計','幣別','備註',''].map(h=>(
+                {['圖片','PO訂單編號','物料編號（BOM）','材料名稱','規格','重量','單位','數量','單價','小計','幣別','備註',''].map(h=>(
                   <th key={h} className="px-2 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">{h}</th>
                 ))}
               </tr></thead>
               <tbody>
                 {form.items.map((item, i) => (
                   <tr key={i} className="border-b border-slate-100">
-                    <td className="p-1"><input className={inp} style={{width:100}} value={item.po_ref} placeholder="PO編號" onChange={e=>updateItem(i,'po_ref',e.target.value)} /></td>
-                    <td className="p-1">
-                      {supplierMaterials.length > 0 ? (
-                        <select className={inp} style={{width:130}} value={item.material_code}
-                          onChange={e => {
-                            const mat = supplierMaterials.find(m => m.material_code === e.target.value)
-                            if (mat) selectMaterial(i, mat)
-                            else updateItem(i, 'material_code', e.target.value)
-                          }}>
-                          <option value="">-- 選擇料號 --</option>
-                          {supplierMaterials.map(m => (
-                            <option key={m.id} value={m.material_code}>{m.material_code} - {m.material_name}</option>
-                          ))}
-                        </select>
+                    <td className="p-1.5">
+                      {item.image_url ? (
+                        <img src={item.image_url} alt="" className="w-10 h-10 object-cover rounded border border-slate-200" onError={e=>{(e.target as HTMLImageElement).style.display='none'}} />
                       ) : (
-                        <input className={inp} style={{width:90}} value={item.material_code} onChange={e=>updateItem(i,'material_code',e.target.value)} />
+                        <div className="w-10 h-10 bg-slate-100 rounded flex items-center justify-center text-slate-300 text-xs">無</div>
                       )}
                     </td>
-                    <td className="p-1"><input className={inp} value={item.material_name} onChange={e=>updateItem(i,'material_name',e.target.value)} /></td>
-                    <td className="p-1"><input className={inp} style={{width:80}} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} /></td>
-                    <td className="p-1"><input type="number" className={inp} style={{width:60}} value={item.thickness||""} placeholder="厚度" onChange={e=>updateItem(i,'thickness',e.target.value)} /></td>
-                    <td className="p-1"><input className={inp} style={{width:45}} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} /></td>
+                    <td className="p-1"><input className={inp} style={{width:100}} value={item.po_ref} placeholder="PO編號" onChange={e=>updateItem(i,'po_ref',e.target.value)} /></td>
+                    <td className="p-1 min-w-[200px]">
+                      <select className={inp} style={{width:'100%'}} value={item.bom_id ? String(item.bom_id) : ''}
+                        onChange={e => selectBOM(i, e.target.value)}>
+                        <option value="">-- 選擇 BOM --</option>
+                        {filteredBoms.map(b => (
+                          <option key={b.id} value={String(b.id)}>{b.product_sku} — {b.product_name}{b.spec ? ` (${b.spec})` : ''}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="p-1"><input className={inp} value={item.material_name} onChange={e=>updateItem(i,'material_name',e.target.value)} readOnly style={{backgroundColor:'#f8fafc'}} /></td>
+                    <td className="p-1"><input className={inp} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} readOnly style={{width:80, backgroundColor:'#f8fafc'}} /></td>
+                    <td className="p-1"><input type="number" className={inp} style={{width:60}} value={item.thickness||""} placeholder="重量" onChange={e=>updateItem(i,'thickness',e.target.value)} /></td>
+                    <td className="p-1"><input className={inp} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} readOnly style={{width:45, backgroundColor:'#f8fafc'}} /></td>
                     <td className="p-1"><input type="number" className={inp} style={{width:65}} value={item.quantity || ""} onChange={e=>updateItem(i,'quantity',Number(e.target.value))} /></td>
                     <td className="p-1"><input type="number" className={inp} style={{width:85}} value={item.unit_price || ""} onChange={e=>updateItem(i,'unit_price',Number(e.target.value))} /></td>
                     <td className="p-1 px-2 text-right text-slate-600 font-medium whitespace-nowrap">{item.total_price.toLocaleString()}</td>
@@ -268,7 +273,7 @@ export default function PoPage() {
               </tbody>
               <tfoot>
                 <tr className="border-t border-slate-200">
-                  <td colSpan={8} className="px-3 py-2 text-right text-[11px] text-slate-400 font-semibold uppercase">合計</td>
+                  <td colSpan={9} className="px-3 py-2 text-right text-[11px] text-slate-400 font-semibold uppercase">合計</td>
                   <td className="px-2 py-2 text-right text-slate-600 font-bold">{formTotal.toLocaleString()}</td>
                   <td colSpan={3} className="px-2 py-2 text-slate-400 text-xs">{form.currency}</td>
                 </tr>
