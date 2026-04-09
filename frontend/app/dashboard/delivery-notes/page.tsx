@@ -1,4 +1,5 @@
 'use client'
+import { generateDeliveryNoteHTML } from '@/lib/printDeliveryNote'
 import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
@@ -143,17 +144,17 @@ export default function DeliveryNotesPage() {
   }
 
   const printDN = (dn: DN) => {
-    const items = dn.items || []
-    const cust = customers.find(c => c.customer_name === dn.customer_name)
-    const html = `<html><head><title>出貨單 ${dn.dn_number}</title>
-    <style>body{font-family:sans-serif;font-size:12px;padding:20px}h2{margin-bottom:4px}p{color:#666;margin:0 0 12px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}th{background:#f5f5f5;font-weight:600}.num{text-align:right}</style>
-    </head><body>
-    <h2>出貨單 ${dn.dn_number}</h2>
-    <p>客戶：${dn.customer_name} | 出貨日期：${dn.delivery_date||'—'}</p>
-    <table><thead><tr><th>品名</th><th>物料編號</th><th class="num">數量</th><th>備註</th></tr></thead>
-    <tbody>${items.map(i=>`<tr><td>${i.item_name}</td><td>${i.material_code}</td><td class="num">${i.qty?.toLocaleString()}</td><td>${i.remark||''}</td></tr>`).join('')}
-    </tbody></table></body></html>`
-    const w = window.open('', '_blank'); w?.document.write(html); w?.document.close(); w?.print()
+    const html = generateDeliveryNoteHTML({
+      dn_number: dn.dn_number,
+      customer_name: dn.customer_name,
+      delivery_date: dn.delivery_date,
+      po_ref: '', // Will be populated from backend
+      address: '', // Will be populated from backend
+      remark: dn.remark,
+      items: dn.items || []
+    })
+    const w = window.open('', '_blank', 'width=800,height=1000')
+    if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500) }
   }
 
   const filtered = dns.filter(d => !search ||
