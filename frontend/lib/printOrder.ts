@@ -6,16 +6,22 @@ export function generateOrderHTML(data: any): string {
   const total = subtotal + taxAmt
 
   const itemRows = items.map((item: any, i: number) => {
-    const amt = (Number(item.qty)||0) * (Number(item.unit_price)||0)
+    const unitPrice = Number(item.unit_price) || 0
+    const qty = Number(item.qty) || 0
+    const amt = qty * unitPrice
+    
+    // Combine product name and SKU in name column
+    const nameText = item.product_name || '—'
+    const skuText = item.product_sku ? '<div style="font-size:9px;color:#666;margin-top:2px">(' + item.product_sku + ')</div>' : ''
     
     return [
       '<tr>',
       '<td style="border:1px solid #333;text-align:center;padding:8px 6px;font-size:11px">' + (i+1) + '</td>',
-      '<td style="border:1px solid #333;padding:8px 10px;font-size:11px;font-weight:600">' + (item.product_name || '—') + '</td>',
-      '<td style="border:1px solid #333;padding:8px 10px;font-size:10px;color:#666;font-family:monospace">' + (item.product_sku || '—') + '</td>',
+      '<td style="border:1px solid #333;padding:8px 10px;font-size:11px">' + nameText + skuText + '</td>',
       '<td style="border:1px solid #333;padding:8px 10px;font-size:10px;color:#666">' + (item.spec || '—') + '</td>',
+      '<td style="border:1px solid #333;padding:8px 10px;text-align:right;font-size:11px;font-weight:600">' + qty.toLocaleString() + '</td>',
       '<td style="border:1px solid #333;padding:8px 10px;text-align:center;font-size:11px">' + (item.unit || 'PCS') + '</td>',
-      '<td style="border:1px solid #333;padding:8px 10px;text-align:right;font-size:11px;font-weight:600">' + Number(item.qty).toLocaleString() + '</td>',
+      '<td style="border:1px solid #333;padding:8px 10px;text-align:right;font-size:11px">' + unitPrice.toLocaleString() + '</td>',
       '<td style="border:1px solid #333;padding:8px 10px;text-align:right;font-size:11px;font-weight:600">' + amt.toLocaleString() + '</td>',
       '</tr>',
     ].join('')
@@ -96,12 +102,12 @@ export function generateOrderHTML(data: any): string {
   // Table
   parts.push('<table>')
   parts.push('<thead><tr>')
-  parts.push('<th style="width:40px">STT</th>')
-  parts.push('<th style="width:180px">品名<br/>Tên hàng</th>')
-  parts.push('<th style="width:100px">料號<br/>Mã hàng</th>')
+  parts.push('<th style="width:40px">ST</th>')
+  parts.push('<th style="width:200px">名稱<br/>Tên hàng</th>')
   parts.push('<th style="width:120px">規格<br/>Quy cách</th>')
-  parts.push('<th style="width:60px">單位<br/>Đơn vị</th>')
   parts.push('<th style="width:80px">數量<br/>Số lượng</th>')
+  parts.push('<th style="width:60px">單位<br/>Đơn vị</th>')
+  parts.push('<th style="width:90px">單價<br/>Đơn giá</th>')
   parts.push('<th style="width:100px">金額<br/>Thành tiền</th>')
   parts.push('</tr></thead>')
   parts.push('<tbody>' + itemRows + '</tbody>')
