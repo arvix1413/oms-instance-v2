@@ -1,6 +1,6 @@
 'use client'
 import { useDialog } from '@/components/Dialog'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, CO_STEPS } from '@/components/StatusFlow'
@@ -58,26 +58,45 @@ function SearchableSelect({
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const containerRef = useState<HTMLDivElement | null>(null)[0]
+  const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>('bottom')
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef && !containerRef.contains(e.target as Node)) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [containerRef])
+  }, [])
+
+  // Calculate dropdown position when opening
+  const handleToggle = () => {
+    if (!disabled && !isOpen && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - rect.bottom
+      const spaceAbove = rect.top
+      const dropdownHeight = 280 // max-h-64 + padding + search box
+      
+      // If not enough space below but more space above, open upward
+      if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+        setDropdownPosition('top')
+      } else {
+        setDropdownPosition('bottom')
+      }
+    }
+    setIsOpen(!isOpen)
+  }
 
   const filtered = searchTerm ? options.filter(opt => filterFn(opt, searchTerm.toLowerCase())) : options
   const selected = options.find(opt => String(opt.id) === value)
 
   return (
-    <div className="relative" ref={el => { if (el) (containerRef as any) = el }}>
+    <div className="relative" ref={containerRef}>
       <div 
         className={`oms-input cursor-pointer flex items-center justify-between ${disabled ? 'bg-slate-100 cursor-not-allowed' : ''}`}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onClick={handleToggle}
       >
         <span className={selected ? 'text-slate-800' : 'text-slate-400'}>
           {selected ? renderOption(selected) : placeholder}
@@ -85,7 +104,11 @@ function SearchableSelect({
         <ChevronIcon open={isOpen} />
       </div>
       {isOpen && !disabled && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-hidden">
+        <div 
+          className={`absolute z-50 w-full bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-hidden ${
+            dropdownPosition === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'
+          }`}
+        >
           <div className="p-2 border-b border-slate-100">
             <input
               type="text"
