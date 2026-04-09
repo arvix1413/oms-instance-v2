@@ -236,6 +236,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             className="flex items-center gap-1.5 text-[12px] text-slate-400 hover:text-red-500 transition-colors">
             <IconLogout />登出
           </button>
+          <Link href="/dashboard/profile"
+            className="flex items-center gap-1.5 text-[12px] text-slate-400 hover:text-blue-600 transition-colors mt-1.5">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            個人資料 / 修改密碼
+          </Link>
         </div>
       </aside>
 

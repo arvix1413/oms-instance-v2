@@ -72,6 +72,14 @@ export default function UsersPage() {
     } catch (e: any) { toast('刪除失敗：' + e.message, 'error') }
   }
 
+  const resetPassword = async (id: number, name: string) => {
+    if (!await confirmDialog(`重置「${name}」的密碼？`, '密碼將重置為 admin123，請通知用戶盡快修改', '確認重置')) return
+    try {
+      await apiFetch(`/api/users/${id}/reset-password`, { method: 'POST' })
+      toast(`已重置 ${name} 的密碼為 admin123`)
+    } catch (e: any) { toast('重置失敗：' + e.message, 'error') }
+  }
+
   const inp = 'oms-input'
   const me = getUser()
   const filtered = users.filter(u => !search || u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()))
@@ -216,6 +224,12 @@ export default function UsersPage() {
                           className="btn-ghost">
                           編輯
                         </button>
+                        {me?.id !== u.id && (
+                          <button onClick={() => resetPassword(u.id, u.name)}
+                            className="btn-ghost text-amber-600 hover:bg-amber-50">
+                            重置密碼
+                          </button>
+                        )}
                         {me?.id !== u.id && (
                           <button onClick={() => del(u.id, u.name)}
                             className="btn-danger">

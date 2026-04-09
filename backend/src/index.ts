@@ -77,6 +77,33 @@ app.get('/api/auth/me', authMiddleware, async c => {
   return c.json({ user })
 })
 
+// Change own password
+app.post('/api/auth/change-password', authMiddleware, async c => {
+  try {
+    const u = c.get('user')
+    const { currentPassword, newPassword } = await c.req.json()
+    if (!currentPassword || !newPassword) return c.json({ error: 'Missing fields' }, 400)
+    if (newPassword.length < 6) return c.json({ error: '新密碼至少需要6個字元' }, 400)
+    const user = await queryOne<any>('SELECT password_hash FROM users WHERE id=?', [u.userId])
+    if (!user || hashPw(currentPassword) !== user.password_hash) return c.json({ error: '目前密碼不正確' }, 400)
+    await execute('UPDATE users SET password_hash=? WHERE id=?', [hashPw(newPassword), u.userId])
+    await audit(u, 'UPDATE', '用戶', u.userId, '修改密碼')
+    return c.json({ ok: true })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+
+// Admin reset password for any user
+app.post('/api/users/:id/reset-password', authMiddleware, isAdmin, async c => {
+  try {
+    const id = c.req.param('id')
+    const row = await queryOne<any>('SELECT name,email FROM users WHERE id=?', [id])
+    if (!row) return c.json({ error: 'User not found' }, 404)
+    await execute('UPDATE users SET password_hash=? WHERE id=?', [hashPw('admin123'), id])
+    await audit(c.get('user'), 'UPDATE', '用戶', id, `重置密碼: ${row.email}`)
+    return c.json({ ok: true })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+
 // ── Suppliers ────────────────────────────────────────────────────────────────
 app.get('/api/suppliers', authMiddleware, async c => {
   const rows = await query('SELECT * FROM suppliers ORDER BY created_at DESC')
