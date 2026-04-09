@@ -20,11 +20,11 @@ function getCOActions(status: string) {
   return []
 }
 
-type OrderItem = { id?:number; bom_id:number|null; qty:number; unit_price:number; rta_date:string; arrived_qty?:number; arrived_date?:string; balance?:number; status?:string; product_sku?:string; product_name?:string }
+type OrderItem = { id?:number; bom_id:number|null; qty:number; unit_price:number; rta_date:string; arrived_qty?:number; arrived_date?:string; balance?:number; status?:string; product_sku?:string; product_name?:string; spec?:string; unit?:string; image_url?:string }
 type Order = { id:number; po_date:string; po_number:string; customer_id:number; customer_name:string; customer_code:string; status:string; remark:string; created_at:string; items?:OrderItem[]; tax_rate?:number; tax_amount?:number; total_amount?:number; delivery_date?:string; person_in_charge?:string; payment_terms?:string }
-type BOM = { id:number; product_sku:string; product_name:string; company_price?:number; unit?:string }
+type BOM = { id:number; product_sku:string; product_name:string; company_price?:number; unit?:string; spec?:string; image_url?:string }
 type Customer = { id:number; customer_code:string; customer_name:string }
-const emptyItem = (): OrderItem => ({ bom_id:null, qty:0, unit_price:0, rta_date:'' })
+const emptyItem = (): OrderItem => ({ bom_id:null, qty:0, unit_price:0, rta_date:'', spec:'', unit:'PCS' })
 
 const STATUS_BADGE: Record<string,string> = { pending:'badge-yellow', completed:'badge-green', delay:'badge-red', partial:'badge-blue' }
 const STATUS_LABEL: Record<string,string> = { pending:'待出貨', completed:'已完成', delay:'延遲', partial:'部分到貨' }
@@ -47,6 +47,7 @@ export default function CustomerOrdersPage() {
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [loadedItems, setLoadedItems] = useState<Record<number, OrderItem[]>>({})
   const [creating, setCreating] = useState(false)
+  const [bomSearch, setBomSearch] = useState('')
   const [form, setForm] = useState({
     po_date:'', po_number:'', customer_id:'', remark:'',
     tax_rate: 8, currency: 'VND', delivery_date:'', delivery_address:'', 
@@ -132,18 +133,33 @@ export default function CustomerOrdersPage() {
   const removeItem = (i:number) => setForm(p=>({...p, items:p.items.filter((_,idx)=>idx!==i)}))
   const updateItem = (i:number, f:keyof OrderItem, v:any) => setForm(p=>({...p, items:p.items.map((item,idx)=>idx===i?{...item,[f]:v}:item)}))
 
-  // When BOM selected, auto-fill unit_price from company_price
+  // When BOM selected, auto-fill unit_price, spec, unit, image_url from BOM
   const onSelectBom = (i:number, bomId:string) => {
     const bom = boms.find(b => String(b.id) === bomId)
-    updateItem(i, 'bom_id', bomId ? Number(bomId) : null)
-    if (bom && (bom as any).company_price) {
-      updateItem(i, 'unit_price', Number((bom as any).company_price))
+    const updates: Partial<OrderItem> = { bom_id: bomId ? Number(bomId) : null }
+    
+    if (bom) {
+      if (bom.company_price) updates.unit_price = Number(bom.company_price)
+      if (bom.spec) updates.spec = bom.spec
+      if (bom.unit) updates.unit = bom.unit
+      if (bom.image_url) updates.image_url = bom.image_url
     }
+    
+    setForm(p => ({
+      ...p,
+      items: p.items.map((item, idx) => idx === i ? { ...item, ...updates } : item)
+    }))
   }
 
   const filtered = orders.filter(o => !search ||
     o.po_number.toLowerCase().includes(search.toLowerCase()) ||
     (o.customer_name||'').toLowerCase().includes(search.toLowerCase()))
+  
+  const filteredBoms = boms.filter(b => !bomSearch ||
+    b.product_sku.toLowerCase().includes(bomSearch.toLowerCase()) ||
+    b.product_name.toLowerCase().includes(bomSearch.toLowerCase()) ||
+    (b.spec||'').toLowerCase().includes(bomSearch.toLowerCase()))
+  
   const { page, setPage, totalPages, paged, total } = usePagination(filtered, 20)
   const inp = 'oms-input text-xs py-1.5'
 
@@ -217,34 +233,62 @@ export default function CustomerOrdersPage() {
 
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-slate-600">訂單品項</span>
-            <button onClick={addItem} className="btn-ghost text-blue-600">+ 新增品項</button>
+            <div className="flex items-center gap-2">
+              <input 
+                className="oms-input text-xs py-1.5 w-64" 
+                placeholder="搜尋 BOM（料號、品名、規格）..." 
+                value={bomSearch} 
+                onChange={e=>setBomSearch(e.target.value)} 
+              />
+              <button onClick={addItem} className="btn-ghost text-blue-600">+ 新增品項</button>
+            </div>
           </div>
           <div className="overflow-x-auto rounded-lg border border-slate-200">
             <table className="w-full text-xs">
               <thead><tr className="bg-slate-50 border-b border-slate-200">
+                <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">圖片</th>
                 <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">品名（BOM）</th>
+                <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">規格</th>
+                <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">單位</th>
                 <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">數量</th>
                 <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">單價</th>
+                <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase">小計</th>
                 <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">出貨日期</th>
                 <th className="w-8" />
               </tr></thead>
               <tbody>
                 {form.items.map((item,i)=>(
                   <tr key={i} className="border-b border-slate-100 last:border-0">
+                    <td className="p-1.5">
+                      {item.image_url ? (
+                        <img src={item.image_url} alt="" className="w-10 h-10 object-cover rounded border border-slate-200" onError={e=>{(e.target as HTMLImageElement).style.display='none'}} />
+                      ) : (
+                        <div className="w-10 h-10 bg-slate-100 rounded flex items-center justify-center text-slate-300 text-xs">無</div>
+                      )}
+                    </td>
                     <td className="p-1.5 min-w-[260px]">
                       <select className={inp} style={{width:'100%'}} value={item.bom_id ? String(item.bom_id) : ''}
                         onChange={e=>onSelectBom(i, e.target.value)}>
                         <option value="">-- 選擇成品 BOM --</option>
-                        {boms.map(b=>(
-                          <option key={b.id} value={String(b.id)}>{b.product_sku} — {b.product_name}</option>
+                        {filteredBoms.map(b=>(
+                          <option key={b.id} value={String(b.id)}>{b.product_sku} — {b.product_name}{b.spec ? ` (${b.spec})` : ''}</option>
                         ))}
                       </select>
+                    </td>
+                    <td className="p-1.5 min-w-[120px]">
+                      <input className={inp} value={item.spec||''} onChange={e=>updateItem(i,'spec',e.target.value)} placeholder="規格" readOnly style={{backgroundColor:'#f8fafc'}} />
+                    </td>
+                    <td className="p-1.5 w-20">
+                      <input className={inp} value={item.unit||'PCS'} onChange={e=>updateItem(i,'unit',e.target.value)} readOnly style={{backgroundColor:'#f8fafc'}} />
                     </td>
                     <td className="p-1.5 w-24">
                       <input type="number" className={inp} value={item.qty||''} onChange={e=>updateItem(i,'qty',Number(e.target.value))} />
                     </td>
                     <td className="p-1.5 w-28">
                       <input type="number" className={inp} value={item.unit_price||''} onChange={e=>updateItem(i,'unit_price',Number(e.target.value))} />
+                    </td>
+                    <td className="p-1.5 w-28 text-right">
+                      <span className="font-semibold text-slate-700">{((item.qty||0) * (item.unit_price||0)).toLocaleString()}</span>
                     </td>
                     <td className="p-1.5 w-36">
                       <input type="date" className={inp} value={item.rta_date} onChange={e=>updateItem(i,'rta_date',e.target.value)} />
