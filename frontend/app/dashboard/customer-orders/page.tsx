@@ -97,7 +97,15 @@ export default function CustomerOrdersPage() {
 
   const printOrder = async (orderId: number) => {
     const data = await apiFetch<any>(`/api/customer-orders/${orderId}`)
-    const html = generateOrderHTML(data)
+    const storedUser = typeof window !== 'undefined'
+      ? JSON.parse(localStorage.getItem('oms_user') || 'null')
+      : null
+    const signUrl = storedUser?.signature_url
+      ? (storedUser.signature_url.startsWith('http')
+          ? storedUser.signature_url
+          : `${process.env.NEXT_PUBLIC_API_URL || 'https://oms-backend.arvix1413.workers.dev'}${storedUser.signature_url}`)
+      : undefined
+    const html = generateOrderHTML(data, signUrl)
     const w = window.open('', '_blank', 'width=800,height=1000')
     if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500) }
   }
