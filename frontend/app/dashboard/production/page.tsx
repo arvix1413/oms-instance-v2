@@ -323,7 +323,7 @@ export default function ProductionPage() {
                     <td className="font-medium">{p.product_name}</td>
                     <td className="text-right">{p.planned_qty}</td>
                     <td className="text-right text-emerald-600">{p.produced_qty}</td>
-                    <td className="text-slate-400 text-xs">{p.planned_start}{p.planned_end ? ` ~ ${p.planned_end}` : ''}</td>
+                    <td className="text-slate-400 text-xs">{p.planned_start ? String(p.planned_start).slice(0,10) : '—'}{p.planned_end ? ` ~ ${String(p.planned_end).slice(0,10)}` : ''}</td>
                     <td>
                       <div className="flex gap-1 flex-wrap items-center">
                         <StatusFlow compact steps={PROD_STEPS} current={p.status}

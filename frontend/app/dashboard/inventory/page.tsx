@@ -107,9 +107,10 @@ export default function InventoryPage() {
               <table className="w-full text-sm" style={{ minWidth: 700 }}>
                 <thead>
                   <tr className="border-b border-slate-200">
-                    {['圖片', '物料編號', '品名', '規格', '單位', '供應商', '庫存量'].map(h => (
+                    {['圖片', '物料編號', '品名', '規格', '單位', '供應商'].map(h => (
                       <th key={h} className="px-3 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
+                    <th className="px-3 py-3 text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">庫存量</th>
                   </tr>
                 </thead>
                 <tbody>

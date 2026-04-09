@@ -129,7 +129,7 @@ export default function AuditLogsPage() {
               <tbody>
                 {paged.map(log => (
                   <tr key={log.id}>
-                    <td className="text-xs text-slate-500 whitespace-nowrap">{log.created_at}</td>
+                    <td className="text-xs text-slate-500 whitespace-nowrap">{log.created_at ? String(log.created_at).slice(0,16).replace('T',' ') : '—'}</td>
                     <td>
                       <div className="text-sm font-medium text-slate-700">{log.user_name}</div>
                       <div className="text-xs text-slate-400">{log.user_email}</div>

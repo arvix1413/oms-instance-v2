@@ -200,7 +200,7 @@ export default function QuotationsPage() {
                         <td className="px-4 py-3 text-slate-800 font-medium max-w-[200px] truncate" title={q.customer_name}>{q.customer_name}</td>
                         <td className="px-4 py-3 text-right text-slate-600 font-medium">{q.total_amount?.toLocaleString()}</td>
                         <td className="px-4 py-3 text-slate-400 text-xs">{q.currency}</td>
-                        <td className="px-4 py-3 text-slate-400 text-xs">{q.valid_until}</td>
+                        <td className="px-4 py-3 text-slate-400 text-xs">{q.valid_until ? String(q.valid_until).slice(0,10) : '—'}</td>
                         <td className="px-4 py-3"><span className={sm.badge}>{sm.label}</span></td>
                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center gap-1">

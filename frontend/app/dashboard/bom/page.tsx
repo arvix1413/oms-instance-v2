@@ -199,9 +199,13 @@ export default function BomPage() {
               <table className="w-full text-sm" style={{minWidth:1000}}>
                 <thead>
                   <tr className="border-b border-slate-200">
-                    {['圖片','分類','物料編號','產品名稱','材料名稱','規格','單位','品牌','認證代碼','供應商','供應商單價','公司售價','幣別','操作'].map(h=>(
+                    {['圖片','分類','物料編號','產品名稱','材料名稱','規格','單位','品牌','認證代碼','供應商'].map(h=>(
                       <th key={h} className="px-3 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
+                    <th className="px-3 py-3 text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">供應商單價</th>
+                    <th className="px-3 py-3 text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">公司售價</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">幣別</th>
+                    <th className="px-3 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">操作</th>
                   </tr>
                 </thead>
                 <tbody>

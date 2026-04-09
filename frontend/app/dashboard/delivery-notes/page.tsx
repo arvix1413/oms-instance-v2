@@ -323,7 +323,7 @@ export default function DeliveryNotesPage() {
                   <tr key={dn.id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="px-3 py-2 font-mono text-xs text-blue-600 whitespace-nowrap">{dn.dn_number}</td>
                     <td className="px-3 py-2 font-medium whitespace-nowrap max-w-[200px] truncate" title={dn.customer_name}>{dn.customer_name}</td>
-                    <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{dn.delivery_date||'—'}</td>
+                    <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{dn.delivery_date ? String(dn.delivery_date).slice(0,10) : '—'}</td>
                     <td className="px-3 py-2 text-slate-400 whitespace-nowrap max-w-[150px] truncate" title={dn.remark}>{dn.remark||'—'}</td>
                     <td className="px-3 py-2 whitespace-nowrap"><span className={STATUS_MAP[dn.status]?.badge}>{STATUS_MAP[dn.status]?.label}</span></td>
                     <td className="px-3 py-2 whitespace-nowrap">

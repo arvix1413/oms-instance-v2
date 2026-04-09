@@ -346,8 +346,8 @@ export default function CustomerOrdersPage() {
                         <td className="pl-4 py-3"><span className="text-slate-500"><ChevronIcon open={isOpen} /></span></td>
                         <td className="px-4 py-3 font-mono text-xs text-blue-600">{o.po_number}</td>
                         <td className="px-4 py-3 text-slate-800 font-medium max-w-[220px] truncate" title={o.customer_name}>{o.customer_name}</td>
-                        <td className="px-4 py-3 text-slate-400 text-xs">{o.po_date}</td>
-                        <td className="px-4 py-3 text-slate-400 text-xs">{o.delivery_date||'—'}</td>
+                        <td className="px-4 py-3 text-slate-400 text-xs">{o.po_date ? String(o.po_date).slice(0,10) : '—'}</td>
+                        <td className="px-4 py-3 text-slate-400 text-xs">{o.delivery_date ? String(o.delivery_date).slice(0,10) : '—'}</td>
                         <td className="px-4 py-3 text-right font-semibold text-slate-800">{o.total_amount ? Number(o.total_amount).toLocaleString() : '—'}</td>
                         <td className="px-4 py-3">
                           <StatusFlow compact steps={CO_STEPS} current={o.status}
@@ -374,9 +374,14 @@ export default function CustomerOrdersPage() {
                               ) : (
                                 <table className="w-full text-xs">
                                   <thead><tr className="border-b border-slate-100">
-                                    {['BOM SKU','品名','數量','單價','出貨日期','已到數量','結餘','狀態'].map(h=>(
-                                      <th key={h} className="px-4 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
-                                    ))}
+                                    <th className="px-4 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">BOM SKU</th>
+                                    <th className="px-4 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">品名</th>
+                                    <th className="px-4 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">數量</th>
+                                    <th className="px-4 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">單價</th>
+                                    <th className="px-4 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">出貨日期</th>
+                                    <th className="px-4 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">已到數量</th>
+                                    <th className="px-4 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">結餘</th>
+                                    <th className="px-4 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">狀態</th>
                                   </tr></thead>
                                   <tbody>
                                     {items.map((item,i)=>(
@@ -385,7 +390,7 @@ export default function CustomerOrdersPage() {
                                         <td className="px-4 py-2 text-slate-700 whitespace-nowrap max-w-[200px] truncate" title={item.product_name}>{item.product_name}</td>
                                         <td className="px-4 py-2 text-right font-medium whitespace-nowrap">{Number(item.qty).toLocaleString()}</td>
                                         <td className="px-4 py-2 text-right text-slate-600 whitespace-nowrap">{Number(item.unit_price).toLocaleString()}</td>
-                                        <td className="px-4 py-2 text-slate-400 whitespace-nowrap">{item.rta_date||'—'}</td>
+                                        <td className="px-4 py-2 text-slate-400 whitespace-nowrap">{item.rta_date ? String(item.rta_date).slice(0,10) : '—'}</td>
                                         <td className="px-4 py-2 text-right text-slate-600 whitespace-nowrap">{Number(item.arrived_qty||0).toLocaleString()}</td>
                                         <td className="px-4 py-2 text-right font-medium whitespace-nowrap">{Number(item.balance||0).toLocaleString()}</td>
                                         <td className="px-4 py-2 whitespace-nowrap">

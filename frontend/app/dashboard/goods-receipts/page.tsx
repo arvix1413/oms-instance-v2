@@ -168,8 +168,8 @@ export default function GoodsReceiptsPage() {
             </div>
             <table className="w-full text-sm border-collapse">
               <thead><tr className="border-b border-slate-200">
-                {['料號','材料名稱','規格','單位','訂購','實收','批次號','備註'].map(h => (
-                  <th key={h} className="border border-slate-200 px-3 py-2 text-left text-xs font-medium text-slate-400">{h}</th>
+                {['料號','材料名稱','規格','單位','訂購','實收','批次號','備註'].map((h, i) => (
+                  <th key={h} className={`border border-slate-200 px-3 py-2 text-xs font-medium text-slate-400 ${i >= 4 && i <= 5 ? 'text-right' : 'text-left'}`}>{h}</th>
                 ))}
               </tr></thead>
               <tbody>
@@ -206,7 +206,7 @@ export default function GoodsReceiptsPage() {
                     <td className="font-mono text-xs text-blue-600">{gr.gr_number}</td>
                     <td className="font-medium">{gr.supplier_name}</td>
                     <td className="text-slate-400 text-xs">{gr.po_number}</td>
-                    <td className="text-slate-400 text-xs">{gr.received_date}</td>
+                    <td className="text-slate-400 text-xs">{gr.received_date ? String(gr.received_date).slice(0,10) : '—'}</td>
                     <td>
                       <div className="flex gap-1 flex-wrap items-center">
                         <StatusFlow compact steps={GR_STEPS} current={gr.status}

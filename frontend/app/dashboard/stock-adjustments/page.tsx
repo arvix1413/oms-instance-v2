@@ -190,9 +190,13 @@ export default function StockAdjustmentsPage() {
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="border-b border-slate-200">
-                  {['料號','材料名稱','單位','系統庫存','實際數量','差異','批次號'].map(h => (
+                  {['料號','材料名稱','單位'].map(h => (
                     <th key={h} className="border border-slate-200 px-3 py-2 text-left text-xs font-medium text-slate-400">{h}</th>
                   ))}
+                  {['系統庫存','實際數量','差異'].map(h => (
+                    <th key={h} className="border border-slate-200 px-3 py-2 text-right text-xs font-medium text-slate-400">{h}</th>
+                  ))}
+                  <th className="border border-slate-200 px-3 py-2 text-left text-xs font-medium text-slate-400">批次號</th>
                 </tr>
               </thead>
               <tbody>
@@ -235,7 +239,7 @@ export default function StockAdjustmentsPage() {
                   <tr key={a.id}>
                     <td className="font-mono text-xs text-blue-600">{a.adj_number}</td>
                     <td>{{ count: '盤點', scrap: '報廢', other: '其他' }[a.adj_type] || a.adj_type}</td>
-                    <td className="text-slate-400 text-xs">{a.adj_date}</td>
+                    <td className="text-slate-400 text-xs">{a.adj_date ? String(a.adj_date).slice(0,10) : '—'}</td>
                     <td className="text-slate-400 text-xs">{a.remark}</td>
                     <td>
                       <div className="flex gap-1 flex-wrap items-center">
