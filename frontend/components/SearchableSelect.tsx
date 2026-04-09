@@ -4,8 +4,8 @@ import { useEffect, useState, useRef } from 'react'
 function ChevronIcon({ open }: { open: boolean }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-      className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}>
-      <polyline points="9 18 15 12 9 6" />
+      className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
+      <polyline points="6 9 12 15 18 9" />
     </svg>
   )
 }
@@ -33,43 +33,57 @@ export function SearchableSelect<T extends { id: number | string }>({
 }: SearchableSelectProps<T>) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [dropdownPosition, setDropdownPosition] = useState<{ top?: number; bottom?: number; left: number; width: number }>({ left: 0, width: 0 })
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({})
   const containerRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false)
+        setSearchTerm('')
       }
     }
-    document.addEventListener('mousedown', handleClickOutside)
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  }, [isOpen])
 
-  // Calculate dropdown position when opening
+  useEffect(() => {
+    if (isOpen && searchInputRef.current) {
+      setTimeout(() => searchInputRef.current?.focus(), 50)
+    }
+  }, [isOpen])
+
   const handleToggle = () => {
-    if (!disabled && !isOpen && containerRef.current) {
+    if (disabled) return
+
+    if (!isOpen && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect()
       const spaceBelow = window.innerHeight - rect.bottom
-      const spaceAbove = rect.top
-      const dropdownHeight = 280 // max-h-64 + padding + search box
       
-      // Calculate position for fixed positioning
-      const position: { top?: number; bottom?: number; left: number; width: number } = {
+      const style: React.CSSProperties = {
+        position: 'fixed',
         left: rect.left,
-        width: rect.width
+        width: rect.width,
+        maxHeight: 280,
+        zIndex: 9999
       }
       
-      // If not enough space below but more space above, open upward
-      if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
-        position.bottom = window.innerHeight - rect.top + 4
+      if (spaceBelow < 150) {
+        style.bottom = window.innerHeight - rect.top + 4
       } else {
-        position.top = rect.bottom + 4
+        style.top = rect.bottom + 4
       }
       
-      setDropdownPosition(position)
+      setDropdownStyle(style)
     }
+    
     setIsOpen(!isOpen)
+    if (isOpen) {
+      setSearchTerm('')
+    }
   }
 
   const filtered = searchTerm ? options.filter(opt => filterFn(opt, searchTerm.toLowerCase())) : options
@@ -89,37 +103,36 @@ export function SearchableSelect<T extends { id: number | string }>({
         </div>
       </div>
       
-      {/* Render dropdown in a portal-like fixed position */}
       {isOpen && !disabled && (
         <div 
-          className="fixed bg-white border border-slate-200 rounded-lg shadow-xl max-h-64 overflow-hidden"
-          style={{
-            zIndex: 9999,
-            top: dropdownPosition.top,
-            bottom: dropdownPosition.bottom,
-            left: dropdownPosition.left,
-            width: dropdownPosition.width
-          }}
+          className="bg-white border border-slate-300 rounded-md shadow-lg overflow-hidden"
+          style={dropdownStyle}
         >
-          <div className="p-2 border-b border-slate-100 bg-white sticky top-0">
+          <div className="p-2 border-b border-slate-200 bg-slate-50">
             <input
+              ref={searchInputRef}
               type="text"
-              className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
               placeholder="搜尋..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
+              onMouseDown={e => e.stopPropagation()}
               onClick={e => e.stopPropagation()}
-              autoFocus
             />
           </div>
-          <div className="overflow-y-auto max-h-52">
+          
+          <div className="overflow-y-auto" style={{ maxHeight: '232px' }}>
             {filtered.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-slate-400 text-center">無符合結果</div>
+              <div className="px-3 py-3 text-xs text-slate-400 text-center">無符合結果</div>
             ) : (
               filtered.map(opt => (
                 <div
                   key={opt.id}
-                  className={`px-3 py-2 text-xs cursor-pointer hover:bg-blue-50 ${String(opt.id) === value ? 'bg-blue-100 text-blue-700' : 'text-slate-700'}`}
+                  className={`px-3 py-2 text-xs cursor-pointer transition-colors ${
+                    String(opt.id) === value 
+                      ? 'bg-blue-50 text-blue-700 font-medium' 
+                      : 'text-slate-700 hover:bg-slate-100'
+                  }`}
                   onMouseDown={(e) => {
                     e.preventDefault()
                     e.stopPropagation()

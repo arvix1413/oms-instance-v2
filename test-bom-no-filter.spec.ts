@@ -36,7 +36,7 @@ test('Test BOM selection without supplier filter', async ({ page }) => {
   await page.waitForTimeout(1000)
   
   // Check dropdown
-  const dropdown = page.locator('div.fixed.bg-white.border')
+  const dropdown = page.locator('div.bg-white.border').first()
   const isVisible = await dropdown.isVisible()
   console.log('Dropdown visible:', isVisible)
   
