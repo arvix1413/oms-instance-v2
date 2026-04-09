@@ -164,16 +164,141 @@ export default function PoPage() {
   const printPo = async (id: number, poNumber: string, supplierName: string) => {
     const data = await apiFetch<Po>(`/api/po/${id}`)
     const items = data.items || []
-    const html = `<html><head><title>採購單 ${poNumber}</title>
-    <style>body{font-family:sans-serif;font-size:12px;padding:20px}h2{margin-bottom:4px}p{color:#666;margin:0 0 12px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}th{background:#f5f5f5;font-weight:600}.num{text-align:right}tfoot td{font-weight:bold;background:#f9f9f9}</style>
-    </head><body>
-    <h2>採購單 ${poNumber}</h2>
-    <p>供應商：${supplierName} | FAN YONG CO., LTD</p>
-    <table><thead><tr><th>PO訂單編號</th><th>物料編號</th><th>材料名稱</th><th>規格</th><th>重量</th><th>單位</th><th class="num">數量</th><th class="num">單價</th><th class="num">小計</th><th>幣別</th><th>備註</th></tr></thead>
-    <tbody>${items.map(i=>`<tr><td>${i.po_ref||''}</td><td>${i.material_code}</td><td>${i.material_name}</td><td>${i.spec}</td><td class="num">${i.thickness??''}</td><td>${i.unit}</td><td class="num">${i.quantity.toLocaleString()}</td><td class="num">${i.unit_price.toLocaleString()}</td><td class="num">${i.total_price.toLocaleString()}</td><td>${i.currency}</td><td>${i.remark}</td></tr>`).join('')}
-    </tbody><tfoot><tr><td colspan="8" style="text-align:right">合計</td><td class="num">${items.reduce((s,i)=>s+i.total_price,0).toLocaleString()}</td><td>${items[0]?.currency||''}</td><td></td></tr></tfoot>
-    </table></body></html>`
-    const w = window.open('','_blank'); w?.document.write(html); w?.document.close(); w?.print()
+    const total = items.reduce((s, i) => s + i.total_price, 0)
+    const currency = items[0]?.currency || data.currency || 'VND'
+
+    const itemRows = items.map((item, idx) => `
+      <tr>
+        <td style="text-align:center">${idx + 1}</td>
+        <td style="text-align:center;font-family:monospace;font-size:10px">${item.po_ref || ''}</td>
+        <td style="font-family:monospace;font-size:10px;color:#1a56db">${item.material_code || ''}</td>
+        <td>${item.material_name || ''}</td>
+        <td style="font-size:10px;color:#555">${item.spec || ''}</td>
+        <td style="text-align:right">${item.thickness ?? ''}</td>
+        <td style="text-align:center">${item.unit || 'PCS'}</td>
+        <td style="text-align:right;font-weight:600">${Number(item.quantity).toLocaleString()}</td>
+        <td style="text-align:right">${Number(item.unit_price).toLocaleString()}</td>
+        <td style="text-align:right;font-weight:700">${Number(item.total_price).toLocaleString()}</td>
+        <td style="text-align:center;font-size:10px">${item.currency || currency}</td>
+        <td style="font-size:10px;color:#666">${item.remark || ''}</td>
+      </tr>`).join('')
+
+    const html = `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="utf-8"/>
+    <title>採購單 ${poNumber}</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: "Microsoft YaHei", "PingFang TC", Arial, sans-serif; font-size: 11px; color: #000; background: #fff; }
+      .page { padding: 12mm 15mm; max-width: 210mm; margin: 0 auto; }
+      .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 6mm; margin-bottom: 5mm; }
+      .company-block .company { font-size: 18px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+      .company-block .subtitle { font-size: 10px; color: #555; margin-top: 2px; }
+      .doc-block { text-align: right; }
+      .doc-block .doc-title { font-size: 20px; font-weight: 800; color: #1a56db; letter-spacing: 2px; }
+      .doc-block .doc-no { font-size: 12px; font-weight: 600; margin-top: 4px; }
+      .info-table { width: 100%; border-collapse: collapse; margin-bottom: 5mm; }
+      .info-table td { border: 1px solid #999; padding: 4px 8px; font-size: 11px; vertical-align: top; }
+      .info-table .label { font-weight: 700; background: #f5f5f5; white-space: nowrap; width: 1%; }
+      .info-table .value { min-width: 120px; }
+      table.items { width: 100%; border-collapse: collapse; margin-bottom: 4mm; }
+      table.items th { border: 1px solid #333; background: #e8e8e8; padding: 6px 6px; text-align: center; font-size: 10px; font-weight: 700; white-space: nowrap; }
+      table.items td { border: 1px solid #999; padding: 5px 6px; font-size: 11px; }
+      table.items tbody tr:nth-child(even) { background: #fafafa; }
+      .total-row td { border: 1px solid #333; background: #f0f0f0; font-weight: 700; font-size: 12px; padding: 6px 8px; }
+      .footer-section { display: flex; justify-content: space-between; margin-top: 6mm; gap: 10mm; }
+      .remark-box { flex: 1; border: 1px solid #999; padding: 6px 10px; min-height: 20mm; font-size: 10px; }
+      .remark-box .remark-title { font-weight: 700; margin-bottom: 4px; }
+      .sign-section { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; margin-top: 8mm; }
+      .sign-box { border: 1px solid #999; padding: 6px 10px; text-align: center; }
+      .sign-box .sign-label { font-weight: 700; font-size: 10px; margin-bottom: 15mm; }
+      .sign-box .sign-line { border-top: 1px solid #333; padding-top: 3px; font-size: 10px; color: #555; }
+      .terms { border: 1px solid #ccc; padding: 6px 10px; margin-top: 5mm; font-size: 9px; line-height: 1.5; color: #444; }
+      @media print { body { -webkit-print-color-adjust: exact; } @page { size: A4; margin: 0; } }
+    </style></head><body>
+    <div class="page">
+      <div class="header">
+        <div class="company-block">
+          <div class="company">FAN YONG CO., LTD</div>
+          <div class="subtitle">CÔNG TY TNHH FAN YONG VIỆT NAM</div>
+        </div>
+        <div class="doc-block">
+          <div class="doc-title">採購單</div>
+          <div style="font-size:10px;color:#555;margin-top:2px">PURCHASE ORDER / ĐƠN ĐẶT HÀNG</div>
+          <div class="doc-no">No. ${poNumber}</div>
+        </div>
+      </div>
+
+      <table class="info-table">
+        <tr>
+          <td class="label">供應商<br/>Nhà cung cấp</td>
+          <td class="value" colspan="3" style="font-weight:700;font-size:12px">${supplierName}</td>
+          <td class="label">採購單號<br/>Số PO</td>
+          <td class="value" style="font-family:monospace;font-weight:700">${poNumber}</td>
+        </tr>
+        <tr>
+          <td class="label">幣別<br/>Loại tiền</td>
+          <td class="value">${currency}</td>
+          <td class="label">建立日期<br/>Ngày lập</td>
+          <td class="value">${data.created_at ? String(data.created_at).slice(0,10) : '—'}</td>
+          <td class="label">狀態<br/>Trạng thái</td>
+          <td class="value">${data.status || '—'}</td>
+        </tr>
+        ${data.remark ? `<tr><td class="label">備註<br/>Ghi chú</td><td class="value" colspan="5">${data.remark}</td></tr>` : ''}
+      </table>
+
+      <table class="items">
+        <thead><tr>
+          <th style="width:30px">ST</th>
+          <th style="width:80px">PO訂單編號</th>
+          <th style="width:100px">物料編號</th>
+          <th>材料名稱</th>
+          <th style="width:100px">規格</th>
+          <th style="width:55px">重量</th>
+          <th style="width:45px">單位</th>
+          <th style="width:60px">數量</th>
+          <th style="width:80px">單價</th>
+          <th style="width:90px">小計</th>
+          <th style="width:45px">幣別</th>
+          <th style="width:80px">備註</th>
+        </tr></thead>
+        <tbody>${itemRows}</tbody>
+        <tfoot>
+          <tr class="total-row">
+            <td colspan="9" style="text-align:right;font-size:11px">合計 / Tổng cộng</td>
+            <td style="text-align:right;font-size:13px;color:#1a56db">${total.toLocaleString()}</td>
+            <td style="text-align:center">${currency}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="footer-section">
+        <div class="remark-box">
+          <div class="remark-title">交貨條件 / Điều kiện giao hàng：</div>
+          <div>${data.remark || ''}</div>
+        </div>
+      </div>
+
+      <div class="terms">
+        <strong>注意事項 / Lưu ý：</strong>
+        供應商須按訂單規格、數量、日期交貨，如有不符將不予收貨。訂單確認後不得擅自更改，如需更改須經本公司書面同意。
+        Nhà cung cấp phải giao hàng đúng quy cách, số lượng, ngày giao theo đơn hàng. Sau khi xác nhận đơn hàng không được tự ý thay đổi, nếu cần thay đổi phải có sự đồng ý bằng văn bản của chúng tôi.
+      </div>
+
+      <div class="sign-section">
+        <div class="sign-box">
+          <div class="sign-label">供應商確認 / NCC xác nhận</div>
+          <div class="sign-line">${supplierName}</div>
+        </div>
+        <div class="sign-box">
+          <div class="sign-label">採購確認 / Người lập biểu xác nhận</div>
+          <div class="sign-line">FAN YONG CO., LTD</div>
+        </div>
+      </div>
+    </div>
+    </body></html>`
+
+    const w = window.open('', '_blank', 'width=900,height=1100')
+    if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500) }
   }
 
   const formTotal = form.items.reduce((s, i) => s + (i.total_price || 0), 0)
@@ -350,7 +475,7 @@ export default function PoPage() {
                                   <table className="w-full text-xs" style={{minWidth:700}}>
                                     <thead>
                                       <tr className="border-b border-slate-100">
-                                        {['PO訂單編號','料號','材料名稱','規格','厚度','單位','數量','單價','小計','幣別','備註'].map(h=>(
+                                        {['PO訂單編號','料號','材料名稱','規格','重量','單位','數量','單價','小計','幣別','備註'].map(h=>(
                                           <th key={h} className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
                                         ))}
                                       </tr>
