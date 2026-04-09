@@ -1,7 +1,7 @@
 'use client'
 import { useDialog } from '@/components/Dialog'
-import { useState, useRef } from 'react'
-import { apiFetch, API } from '@/lib/api'
+import { useState } from 'react'
+import { apiFetch } from '@/lib/api'
 import { getUser, ROLE_LABELS, ROLE_COLORS, type Role } from '@/lib/permissions'
 
 export default function ProfilePage() {
@@ -12,14 +12,6 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [showCurrent, setShowCurrent] = useState(false)
   const [showNew, setShowNew] = useState(false)
-
-  // Signature state - read from localStorage user
-  const storedUser = typeof window !== 'undefined'
-    ? JSON.parse(localStorage.getItem('oms_user') || 'null')
-    : null
-  const [signatureUrl, setSignatureUrl] = useState<string>(storedUser?.signature_url || '')
-  const [uploadingSign, setUploadingSign] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleChangePw = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,70 +24,22 @@ export default function ProfilePage() {
         method: 'POST',
         body: JSON.stringify({ currentPassword: pwForm.currentPassword, newPassword: pwForm.newPassword })
       })
-      toast('密碼已更新')
+      toast('密碼已更新，請重新登入')
       setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
     } catch (e: any) {
       toast(e.message || '更新失敗', 'error')
     } finally { setSaving(false) }
   }
 
-  const handleSignatureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (!file.type.startsWith('image/')) { toast('請上傳圖片檔案', 'error'); return }
-    if (file.size > 2 * 1024 * 1024) { toast('圖片大小不能超過 2MB', 'error'); return }
-
-    setUploadingSign(true)
-    try {
-      // Upload file
-      const form = new FormData()
-      form.append('file', file)
-      const res = await apiFetch<{ url: string }>('/api/upload', {
-        method: 'POST',
-        body: form,
-        headers: {} // let browser set multipart boundary
-      })
-
-      // Save signature URL to user profile
-      const result = await apiFetch<{ ok: boolean; user: any }>('/api/auth/signature', {
-        method: 'POST',
-        body: JSON.stringify({ signature_url: res.url })
-      })
-
-      setSignatureUrl(res.url)
-      // Update localStorage
-      if (result.user) {
-        localStorage.setItem('oms_user', JSON.stringify(result.user))
-      }
-      toast('簽名已儲存')
-    } catch (e: any) {
-      toast(e.message || '上傳失敗', 'error')
-    } finally {
-      setUploadingSign(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
-  }
-
-  const handleRemoveSignature = async () => {
-    try {
-      const result = await apiFetch<{ ok: boolean; user: any }>('/api/auth/signature', {
-        method: 'POST',
-        body: JSON.stringify({ signature_url: null })
-      })
-      setSignatureUrl('')
-      if (result.user) localStorage.setItem('oms_user', JSON.stringify(result.user))
-      toast('簽名已移除')
-    } catch (e: any) { toast(e.message, 'error') }
-  }
-
   if (!me) return null
+
   const inp = 'oms-input'
 
   return (
     <div className="max-w-xl">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-slate-800">個人資料</h1>
-        <p className="text-xs text-slate-400 mt-0.5">帳號資訊、電子簽名及密碼管理</p>
+        <p className="text-xs text-slate-400 mt-0.5">查看帳號資訊及修改密碼</p>
       </div>
 
       {/* Profile card */}
@@ -121,66 +65,6 @@ export default function ProfilePage() {
             <div className="text-slate-700 font-mono text-xs truncate">{me.email}</div>
           </div>
         </div>
-      </div>
-
-      {/* Signature */}
-      <div className="oms-card p-6 mb-5">
-        <h2 className="text-sm font-semibold text-slate-800 mb-1">電子簽名</h2>
-        <p className="text-xs text-slate-400 mb-4">上傳您的簽名圖片，將自動顯示在採購單、出貨單等文件的簽名欄位</p>
-
-        {signatureUrl ? (
-          <div className="space-y-3">
-            {/* Preview */}
-            <div className="border border-slate-200 rounded-lg p-4 bg-slate-50 flex items-center justify-center" style={{ minHeight: 80 }}>
-              <img
-                src={signatureUrl.startsWith('http') ? signatureUrl : `${API}${signatureUrl}`}
-                alt="簽名預覽"
-                className="max-h-20 max-w-full object-contain"
-                onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-              />
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => fileInputRef.current?.click()} disabled={uploadingSign}
-                className="btn-ghost border border-slate-200 text-xs">
-                更換簽名
-              </button>
-              <button onClick={handleRemoveSignature}
-                className="btn-ghost text-red-500 hover:bg-red-50 border border-red-100 text-xs">
-                移除簽名
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-slate-200 rounded-lg p-8 text-center cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-colors"
-          >
-            {uploadingSign ? (
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-                <span className="text-xs text-slate-400">上傳中...</span>
-              </div>
-            ) : (
-              <>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-8 h-8 text-slate-300 mx-auto mb-2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/>
-                  <line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-                <p className="text-sm text-slate-500 font-medium">點擊上傳簽名圖片</p>
-                <p className="text-xs text-slate-400 mt-1">支援 PNG、JPG，建議使用白底透明背景，最大 2MB</p>
-              </>
-            )}
-          </div>
-        )}
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleSignatureUpload}
-        />
       </div>
 
       {/* Change password */}

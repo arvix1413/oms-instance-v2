@@ -72,21 +72,9 @@ app.post('/api/auth/login', async c => {
 
 app.get('/api/auth/me', authMiddleware, async c => {
   const u = c.get('user')
-  const user = await queryOne<any>('SELECT id,email,name,role,signature_url FROM users WHERE id=?', [u.userId])
+  const user = await queryOne<any>('SELECT id,email,name,role FROM users WHERE id=?', [u.userId])
   if (!user) return c.json({ error: 'Not found' }, 404)
   return c.json({ user })
-})
-
-// Save signature URL for current user
-app.post('/api/auth/signature', authMiddleware, async c => {
-  try {
-    const u = c.get('user')
-    const { signature_url } = await c.req.json()
-    await execute('UPDATE users SET signature_url=? WHERE id=?', [signature_url || null, u.userId])
-    // Update localStorage user object via response
-    const user = await queryOne<any>('SELECT id,email,name,role,signature_url FROM users WHERE id=?', [u.userId])
-    return c.json({ ok: true, user })
-  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 
 // Change own password
