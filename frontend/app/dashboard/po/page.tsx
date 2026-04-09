@@ -194,95 +194,99 @@ export default function PoPage() {
     <title>採購單 ${poNumber}</title>
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: "Microsoft YaHei", "PingFang TC", Arial, sans-serif; font-size: 11px; color: #000; background: #fff; }
+      body { font-family: "Microsoft YaHei", "PingFang TC", Arial, sans-serif; font-size: 11px; font-weight: 400; color: #000; background: #fff; }
       .page { padding: 12mm 15mm; max-width: 210mm; margin: 0 auto; }
-      .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 6mm; margin-bottom: 5mm; }
-      .company-block .company { font-size: 18px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
-      .company-block .subtitle { font-size: 10px; color: #555; margin-top: 2px; }
-      .doc-block { text-align: right; }
-      .doc-block .doc-title { font-size: 20px; font-weight: 800; color: #1a56db; letter-spacing: 2px; }
-      .doc-block .doc-no { font-size: 12px; font-weight: 600; margin-top: 4px; }
+      /* Header */
+      .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 5mm; margin-bottom: 5mm; }
+      .company { font-size: 18px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+      .subtitle { font-size: 10px; color: #666; margin-top: 3px; }
+      .doc-title { font-size: 22px; font-weight: 700; color: #1a56db; letter-spacing: 2px; text-align: right; }
+      .doc-sub { font-size: 10px; color: #666; text-align: right; margin-top: 2px; }
+      .doc-no { font-size: 12px; font-weight: 600; text-align: right; margin-top: 3px; }
+      /* Info table */
       .info-table { width: 100%; border-collapse: collapse; margin-bottom: 5mm; }
-      .info-table td { border: 1px solid #999; padding: 4px 8px; font-size: 11px; vertical-align: top; }
-      .info-table .label { font-weight: 700; background: #f5f5f5; white-space: nowrap; width: 1%; }
-      .info-table .value { min-width: 120px; }
+      .info-table td { border: 1px solid #bbb; padding: 5px 8px; font-size: 11px; font-weight: 400; vertical-align: middle; }
+      .info-table .lbl { font-weight: 600; background: #f5f5f5; white-space: nowrap; width: 110px; color: #333; line-height: 1.4; }
+      .info-table .val { color: #000; }
+      /* Items table */
       table.items { width: 100%; border-collapse: collapse; margin-bottom: 4mm; }
-      table.items th { border: 1px solid #333; background: #e8e8e8; padding: 6px 6px; text-align: center; font-size: 10px; font-weight: 700; white-space: nowrap; }
-      table.items td { border: 1px solid #999; padding: 5px 6px; font-size: 11px; }
+      table.items th { border: 1px solid #555; background: #e8e8e8; padding: 5px 4px; text-align: center; font-size: 10px; font-weight: 600; white-space: nowrap; color: #000; }
+      table.items td { border: 1px solid #bbb; padding: 5px 5px; font-size: 11px; font-weight: 400; color: #000; }
       table.items tbody tr:nth-child(even) { background: #fafafa; }
-      .total-row td { border: 1px solid #333; background: #f0f0f0; font-weight: 700; font-size: 12px; padding: 6px 8px; }
-      .footer-section { display: flex; justify-content: space-between; margin-top: 6mm; gap: 10mm; }
-      .remark-box { flex: 1; border: 1px solid #999; padding: 6px 10px; min-height: 20mm; font-size: 10px; }
-      .remark-box .remark-title { font-weight: 700; margin-bottom: 4px; }
+      .total-row td { border: 1px solid #555; background: #efefef; font-weight: 600; font-size: 11px; padding: 6px 8px; }
+      /* Remark */
+      .remark-box { border: 1px solid #bbb; padding: 6px 10px; min-height: 18mm; font-size: 10px; font-weight: 400; margin-top: 5mm; }
+      .remark-title { font-weight: 600; margin-bottom: 4px; font-size: 10px; }
+      /* Terms */
+      .terms { border: 1px solid #ccc; padding: 6px 10px; margin-top: 4mm; font-size: 9px; font-weight: 400; line-height: 1.5; color: #555; }
+      /* Sign section - equal height both sides */
       .sign-section { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; margin-top: 8mm; }
-      .sign-box { border: 1px solid #999; padding: 6px 10px; text-align: center; }
-      .sign-box .sign-label { font-weight: 700; font-size: 10px; margin-bottom: 15mm; }
-      .sign-box .sign-line { border-top: 1px solid #333; padding-top: 3px; font-size: 10px; color: #555; }
-      .terms { border: 1px solid #ccc; padding: 6px 10px; margin-top: 5mm; font-size: 9px; line-height: 1.5; color: #444; }
+      .sign-box { border: 1px solid #bbb; padding: 8px 10px; text-align: center; display: flex; flex-direction: column; }
+      .sign-label { font-weight: 600; font-size: 10px; color: #333; padding-bottom: 4px; border-bottom: 1px solid #eee; margin-bottom: 0; }
+      .sign-area { flex: 1; min-height: 50px; display: flex; align-items: center; justify-content: center; }
+      .sign-line { border-top: 1px solid #555; padding-top: 4px; font-size: 10px; font-weight: 400; color: #333; margin-top: 4px; }
       @media print { body { -webkit-print-color-adjust: exact; } @page { size: A4; margin: 0; } }
     </style></head><body>
     <div class="page">
       <div class="header">
-        <div class="company-block">
+        <div>
           <div class="company">FAN YONG CO., LTD</div>
           <div class="subtitle">CÔNG TY TNHH FAN YONG VIỆT NAM</div>
         </div>
-        <div class="doc-block">
+        <div>
           <div class="doc-title">採購單</div>
-          <div style="font-size:10px;color:#555;margin-top:2px">PURCHASE ORDER / ĐƠN ĐẶT HÀNG</div>
+          <div class="doc-sub">PURCHASE ORDER / ĐƠN ĐẶT HÀNG</div>
           <div class="doc-no">No. ${poNumber}</div>
         </div>
       </div>
 
       <table class="info-table">
         <tr>
-          <td class="label">供應商<br/>Nhà cung cấp</td>
-          <td class="value" colspan="3" style="font-weight:700;font-size:12px">${supplierName}</td>
-          <td class="label">採購單號<br/>Số PO</td>
-          <td class="value" style="font-family:monospace;font-weight:700">${poNumber}</td>
+          <td class="lbl">供應商<br/>Nhà cung cấp</td>
+          <td class="val" colspan="3" style="font-weight:600;font-size:12px">${supplierName}</td>
+          <td class="lbl">採購單號<br/>Số PO</td>
+          <td class="val" style="font-family:monospace;font-weight:600">${poNumber}</td>
         </tr>
         <tr>
-          <td class="label">幣別<br/>Loại tiền</td>
-          <td class="value">${currency}</td>
-          <td class="label">建立日期<br/>Ngày lập</td>
-          <td class="value">${data.created_at ? String(data.created_at).slice(0,10) : '—'}</td>
-          <td class="label">狀態<br/>Trạng thái</td>
-          <td class="value">${data.status || '—'}</td>
+          <td class="lbl">幣別<br/>Loại tiền</td>
+          <td class="val">${currency}</td>
+          <td class="lbl">建立日期<br/>Ngày lập</td>
+          <td class="val">${data.created_at ? String(data.created_at).slice(0,10) : '—'}</td>
+          <td class="lbl">狀態<br/>Trạng thái</td>
+          <td class="val">${data.status || '—'}</td>
         </tr>
-        ${data.remark ? `<tr><td class="label">備註<br/>Ghi chú</td><td class="value" colspan="5">${data.remark}</td></tr>` : ''}
+        ${data.remark ? `<tr><td class="lbl">備註<br/>Ghi chú</td><td class="val" colspan="5">${data.remark}</td></tr>` : ''}
       </table>
 
       <table class="items">
         <thead><tr>
-          <th style="width:30px">ST</th>
-          <th style="width:80px">PO訂單編號</th>
-          <th style="width:100px">物料編號</th>
+          <th style="width:28px">ST</th>
+          <th style="width:75px">PO訂單編號</th>
+          <th style="width:95px">物料編號</th>
           <th>材料名稱</th>
-          <th style="width:100px">規格</th>
-          <th style="width:55px">重量</th>
-          <th style="width:45px">單位</th>
-          <th style="width:60px">數量</th>
-          <th style="width:80px">單價</th>
-          <th style="width:90px">小計</th>
-          <th style="width:45px">幣別</th>
-          <th style="width:80px">備註</th>
+          <th style="width:90px">規格</th>
+          <th style="width:50px">重量</th>
+          <th style="width:42px">單位</th>
+          <th style="width:55px">數量</th>
+          <th style="width:75px">單價</th>
+          <th style="width:85px">小計</th>
+          <th style="width:42px">幣別</th>
+          <th style="width:70px">備註</th>
         </tr></thead>
         <tbody>${itemRows}</tbody>
         <tfoot>
           <tr class="total-row">
-            <td colspan="9" style="text-align:right;font-size:11px">合計 / Tổng cộng</td>
-            <td style="text-align:right;font-size:13px;color:#1a56db">${total.toLocaleString()}</td>
+            <td colspan="9" style="text-align:right">合計 / Tổng cộng</td>
+            <td style="text-align:right;font-size:12px;color:#1a56db">${total.toLocaleString()}</td>
             <td style="text-align:center">${currency}</td>
             <td></td>
           </tr>
         </tfoot>
       </table>
 
-      <div class="footer-section">
-        <div class="remark-box">
-          <div class="remark-title">交貨條件 / Điều kiện giao hàng：</div>
-          <div>${data.remark || ''}</div>
-        </div>
+      <div class="remark-box">
+        <div class="remark-title">交貨條件 / Điều kiện giao hàng：</div>
+        <div>${data.remark || ''}</div>
       </div>
 
       <div class="terms">
@@ -294,11 +298,14 @@ export default function PoPage() {
       <div class="sign-section">
         <div class="sign-box">
           <div class="sign-label">供應商確認 / NCC xác nhận</div>
+          <div class="sign-area"></div>
           <div class="sign-line">${supplierName}</div>
         </div>
         <div class="sign-box">
           <div class="sign-label">採購確認 / Người lập biểu xác nhận</div>
-          ${signatureUrl ? `<div style="margin-bottom:4px;text-align:center"><img src="${signatureUrl}" style="max-height:48px;max-width:160px;object-fit:contain" /></div>` : '<div style="height:48px"></div>'}
+          <div class="sign-area">
+            ${signatureUrl ? `<img src="${signatureUrl}" style="max-height:44px;max-width:150px;object-fit:contain" />` : ''}
+          </div>
           <div class="sign-line">FAN YONG CO., LTD</div>
         </div>
       </div>

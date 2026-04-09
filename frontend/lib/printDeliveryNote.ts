@@ -5,14 +5,14 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string): stri
   const itemRows = items.map((item: any, i: number) => {
     return [
       '<tr>',
-      '<td style="border:1px solid #333;text-align:center;padding:6px 4px;font-size:11px">' + (i+1) + '</td>',
-      '<td style="border:1px solid #333;padding:6px 8px;font-size:10px;font-family:monospace;color:#1a56db">' + (data.po_ref || '—') + '</td>',
-      '<td style="border:1px solid #333;padding:6px 8px;font-size:10px;font-family:monospace;color:#1a56db">' + (item.material_code || '—') + '</td>',
-      '<td style="border:1px solid #333;padding:6px 8px;font-size:11px;font-weight:500">' + (item.item_name || '—') + '</td>',
-      '<td style="border:1px solid #333;padding:6px 8px;font-size:10px;color:#555">' + (item.spec || '—') + '</td>',
-      '<td style="border:1px solid #333;padding:6px 8px;text-align:center;font-size:10px">' + (item.unit || 'PCS') + '</td>',
-      '<td style="border:1px solid #333;padding:6px 8px;text-align:right;font-size:11px;font-weight:600">' + Number(item.qty).toLocaleString() + '</td>',
-      '<td style="border:1px solid #333;padding:6px 8px;font-size:10px;color:#666">' + (item.remark || '') + '</td>',
+      '<td style="text-align:center">' + (i+1) + '</td>',
+      '<td style="font-family:monospace;font-size:10px;color:#1a56db">' + (data.po_ref || '—') + '</td>',
+      '<td style="font-family:monospace;font-size:10px;color:#1a56db">' + (item.material_code || '—') + '</td>',
+      '<td>' + (item.item_name || '—') + '</td>',
+      '<td style="color:#555">' + (item.spec || '—') + '</td>',
+      '<td style="text-align:center">' + (item.unit || 'PCS') + '</td>',
+      '<td style="text-align:right;font-weight:600">' + Number(item.qty).toLocaleString() + '</td>',
+      '<td style="color:#666">' + (item.remark || '') + '</td>',
       '</tr>',
     ].join('')
   }).join('')
@@ -23,109 +23,82 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string): stri
   parts.push('<title>出貨單 ' + data.dn_number + '</title>')
   parts.push('<style>')
   parts.push('*{margin:0;padding:0;box-sizing:border-box}')
-  parts.push('body{font-family:"Microsoft YaHei","Segoe UI",Arial,sans-serif;font-size:11px;color:#000;padding:12mm 15mm;background:#fff;line-height:1.5}')
-  parts.push('.header{text-align:center;margin-bottom:6mm;border-bottom:2.5px solid #000;padding-bottom:5mm}')
-  parts.push('.company{font-size:22px;font-weight:700;letter-spacing:2.5px;margin-bottom:6px;text-transform:uppercase;color:#000}')
-  parts.push('.doc-title{font-size:17px;font-weight:700;margin-bottom:3px;color:#000}')
-  parts.push('.doc-subtitle{font-size:11px;color:#666;font-weight:400}')
-  parts.push('.info-section{margin-bottom:6mm}')
-  parts.push('.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:2mm 4mm;border:1.5px solid #333;padding:5mm 6mm;background:#fafafa}')
-  parts.push('.info-row{display:flex;font-size:10.5px;line-height:1.9;align-items:baseline}')
-  parts.push('.info-label{font-weight:600;min-width:105px;color:#000;flex-shrink:0}')
-  parts.push('.info-value{color:#000;font-weight:400}')
-  parts.push('.full-width{grid-column:1/-1}')
-  parts.push('table{width:100%;border-collapse:collapse;margin-bottom:5mm;border:1.5px solid #333}')
-  parts.push('thead th{border:1px solid #333;background:#e8e8e8;padding:7px 8px;text-align:center;font-size:10.5px;font-weight:700;line-height:1.4}')
-  parts.push('tbody td{border:1px solid #333}')
-  parts.push('.total-row{background:#f0f0f0;font-weight:700}')
-  parts.push('.footer{display:grid;grid-template-columns:1fr 1fr;gap:25mm;margin-top:10mm;padding-top:8mm;border-top:1px solid #ddd}')
-  parts.push('.sign-box{text-align:center}')
-  parts.push('.sign-label{font-weight:600;margin-bottom:22mm;font-size:11px;color:#000}')
-  parts.push('.sign-line{border-top:1.5px solid #333;padding-top:5px;font-size:10px;font-weight:500}')
-  parts.push('.notes-box{border:1.5px solid #333;padding:6mm;margin-bottom:6mm;background:#fafafa}')
-  parts.push('.notes-title{font-weight:700;margin-bottom:3mm;font-size:11px;color:#000}')
-  parts.push('.notes-content{font-size:10px;line-height:1.7;color:#333;white-space:pre-wrap}')
+  parts.push('body{font-family:"Microsoft YaHei","PingFang TC",Arial,sans-serif;font-size:11px;font-weight:400;color:#000;padding:12mm 15mm;background:#fff;line-height:1.4}')
+  parts.push('.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:5mm;margin-bottom:5mm}')
+  parts.push('.company{font-size:18px;font-weight:700;letter-spacing:1px;text-transform:uppercase}')
+  parts.push('.subtitle{font-size:10px;color:#666;margin-top:3px}')
+  parts.push('.doc-title{font-size:22px;font-weight:700;color:#1a56db;text-align:right}')
+  parts.push('.doc-sub{font-size:10px;color:#666;text-align:right;margin-top:2px}')
+  parts.push('.doc-no{font-size:12px;font-weight:600;text-align:right;margin-top:3px}')
+  parts.push('.info-table{width:100%;border-collapse:collapse;margin-bottom:5mm}')
+  parts.push('.info-table td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;vertical-align:middle}')
+  parts.push('.info-table .lbl{font-weight:600;background:#f5f5f5;white-space:nowrap;width:110px;color:#333}')
+  parts.push('table.items{width:100%;border-collapse:collapse;margin-bottom:5mm}')
+  parts.push('table.items th{border:1px solid #555;background:#e8e8e8;padding:6px 6px;text-align:center;font-size:10px;font-weight:600;color:#000}')
+  parts.push('table.items td{border:1px solid #bbb;padding:5px 6px;font-size:11px;font-weight:400;color:#000}')
+  parts.push('table.items tbody tr:nth-child(even){background:#fafafa}')
+  parts.push('.total-row td{border:1px solid #555;background:#efefef;font-weight:600;font-size:11px;padding:6px 8px}')
+  parts.push('.notes-box{border:1px solid #bbb;padding:6px 10px;margin-bottom:5mm;font-size:10px;font-weight:400}')
+  parts.push('.notes-title{font-weight:600;margin-bottom:3px;font-size:10px}')
+  parts.push('.footer{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:8mm}')
+  parts.push('.sign-box{border:1px solid #bbb;padding:8px 10px;text-align:center;display:flex;flex-direction:column}')
+  parts.push('.sign-label{font-weight:600;font-size:10px;color:#333;padding-bottom:4px;border-bottom:1px solid #eee}')
+  parts.push('.sign-area{flex:1;min-height:50px;display:flex;align-items:center;justify-content:center}')
+  parts.push('.sign-line{border-top:1px solid #555;padding-top:4px;font-size:10px;font-weight:400;color:#333;margin-top:4px}')
   parts.push('@media print{body{padding:8mm 12mm}@page{size:A4;margin:0}}')
   parts.push('</style></head><body>')
 
   // Header
   parts.push('<div class="header">')
-  parts.push('<div class="company">FAN YONG CO., LTD</div>')
-  parts.push('<div class="doc-title">送貨單 / PHIẾU GIAO HÀNG</div>')
-  parts.push('<div class="doc-subtitle">Delivery Note</div>')
+  parts.push('<div><div class="company">FAN YONG CO., LTD</div><div class="subtitle">CÔNG TY TNHH FAN YONG VIỆT NAM</div></div>')
+  parts.push('<div><div class="doc-title">送貨單</div><div class="doc-sub">DELIVERY NOTE / PHIẾU GIAO HÀNG</div><div class="doc-no">No. ' + data.dn_number + '</div></div>')
   parts.push('</div>')
 
-  // Info Section
-  parts.push('<div class="info-section">')
-  parts.push('<div class="info-grid">')
-  
-  // Left column
-  parts.push('<div>')
-  parts.push('<div class="info-row"><span class="info-label">送貨單號/Số phiếu:</span><span class="info-value">' + data.dn_number + '</span></div>')
-  parts.push('<div class="info-row"><span class="info-label">送貨日期/Ngày giao:</span><span class="info-value">' + (data.delivery_date || '—') + '</span></div>')
-  parts.push('</div>')
-  
-  // Right column
-  parts.push('<div>')
-  parts.push('<div class="info-row"><span class="info-label">客戶/Khách hàng:</span><span class="info-value">' + (data.customer_name || '—') + '</span></div>')
-  parts.push('<div class="info-row"><span class="info-label">訂單號/Mã đơn hàng:</span><span class="info-value">' + (data.po_ref || '—') + '</span></div>')
-  parts.push('</div>')
-  
-  // Full width rows
+  // Info table
+  parts.push('<table class="info-table">')
+  parts.push('<tr><td class="lbl">客戶<br/>Khách hàng</td><td style="font-weight:600;font-size:12px" colspan="3">' + (data.customer_name || '—') + '</td><td class="lbl">送貨單號<br/>Số phiếu</td><td style="font-family:monospace;font-weight:600">' + data.dn_number + '</td></tr>')
+  parts.push('<tr><td class="lbl">送貨日期<br/>Ngày giao</td><td>' + (data.delivery_date || '—') + '</td><td class="lbl">訂單號<br/>Mã đơn</td><td colspan="3">' + (data.po_ref || '—') + '</td></tr>')
   if (data.address) {
-    parts.push('<div class="info-row full-width"><span class="info-label">送貨地址/Địa chỉ:</span><span class="info-value">' + data.address + '</span></div>')
+    parts.push('<tr><td class="lbl">送貨地址<br/>Địa chỉ</td><td colspan="5">' + data.address + '</td></tr>')
   }
-  
-  parts.push('</div></div>')
+  parts.push('</table>')
 
   // Table
-  parts.push('<table>')
+  parts.push('<table class="items">')
   parts.push('<thead><tr>')
-  parts.push('<th style="width:35px">序號<br/>STT</th>')
-  parts.push('<th style="width:95px">訂單編號<br/>Mã đơn hàng</th>')
-  parts.push('<th style="width:95px">物料編號<br/>Mã vật liệu</th>')
-  parts.push('<th style="width:auto">品名<br/>Tên hàng hóa</th>')
-  parts.push('<th style="width:110px">規格<br/>Quy cách</th>')
-  parts.push('<th style="width:55px">單位<br/>ĐVT</th>')
-  parts.push('<th style="width:75px">數量<br/>Số lượng</th>')
-  parts.push('<th style="width:100px">備註<br/>Ghi chú</th>')
+  parts.push('<th style="width:30px">ST</th>')
+  parts.push('<th style="width:90px">訂單編號</th>')
+  parts.push('<th style="width:90px">物料編號</th>')
+  parts.push('<th>品名</th>')
+  parts.push('<th style="width:100px">規格</th>')
+  parts.push('<th style="width:50px">單位</th>')
+  parts.push('<th style="width:70px">數量</th>')
+  parts.push('<th style="width:90px">備註</th>')
   parts.push('</tr></thead>')
   parts.push('<tbody>')
   parts.push(itemRows)
   
   // Total row
   parts.push('<tr class="total-row">')
-  parts.push('<td colspan="6" style="border:1px solid #333;padding:7px 10px;text-align:right;font-size:11px;font-weight:600">總計 / Tổng cộng</td>')
-  parts.push('<td style="border:1px solid #333;padding:7px 10px;text-align:right;font-size:11px;font-weight:700">' + totalQty.toLocaleString() + '</td>')
-  parts.push('<td style="border:1px solid #333"></td>')
+  parts.push('<td colspan="6" style="text-align:right">總計 / Tổng cộng</td>')
+  parts.push('<td style="text-align:right;font-size:12px;color:#1a56db">' + totalQty.toLocaleString() + '</td>')
+  parts.push('<td></td>')
   parts.push('</tr>')
-  
-  parts.push('</tbody>')
-  parts.push('</table>')
+  parts.push('</tbody></table>')
 
   // Notes
   if (data.remark) {
-    parts.push('<div class="notes-box">')
-    parts.push('<div class="notes-title">備註 / Ghi chú:</div>')
-    parts.push('<div class="notes-content">' + data.remark.replace(/\n/g, '<br/>') + '</div>')
-    parts.push('</div>')
+    parts.push('<div class="notes-box"><div class="notes-title">備註 / Ghi chú：</div><div>' + data.remark.replace(/\n/g, '<br/>') + '</div></div>')
   }
 
   // Footer signatures
   parts.push('<div class="footer">')
-  parts.push('<div class="sign-box">')
-  parts.push('<div class="sign-label">供應商確認 / Nhà cung cấp xác nhận</div>')
+  parts.push('<div class="sign-box"><div class="sign-label">FAN YONG 確認 / Xác nhận</div><div class="sign-area">')
   if (signatureUrl) {
-    parts.push('<div style="margin-bottom:4px;text-align:center"><img src="' + signatureUrl + '" style="max-height:48px;max-width:160px;object-fit:contain" /></div>')
-  } else {
-    parts.push('<div style="height:48px"></div>')
+    parts.push('<img src="' + signatureUrl + '" style="max-height:44px;max-width:150px;object-fit:contain" />')
   }
-  parts.push('<div class="sign-line">FAN YONG CO., LTD</div>')
-  parts.push('</div>')
-  parts.push('<div class="sign-box">')
-  parts.push('<div class="sign-label">客戶簽收 / Khách hàng ký nhận</div>')
-  parts.push('<div class="sign-line">' + (data.customer_name || '') + '</div>')
-  parts.push('</div>')
+  parts.push('</div><div class="sign-line">FAN YONG CO., LTD</div></div>')
+  parts.push('<div class="sign-box"><div class="sign-label">客戶簽收 / Khách hàng ký</div><div class="sign-area"></div><div class="sign-line">' + (data.customer_name || '') + '</div></div>')
   parts.push('</div>')
 
   parts.push('</body></html>')
