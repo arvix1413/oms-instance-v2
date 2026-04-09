@@ -62,8 +62,21 @@ export default function PoPage() {
   }
 
   const selectBOM = (i: number, bomId: string) => {
+    console.log('selectBOM called:', { i, bomId, filteredBomsCount: getFilteredBoms().length })
     const bom = getFilteredBoms().find(b => String(b.id) === bomId)
-    if (!bom) return
+    console.log('Found BOM:', bom)
+    if (!bom) {
+      console.log('BOM not found!')
+      return
+    }
+    
+    console.log('Updating form with BOM data:', {
+      material_code: bom.product_sku,
+      material_name: bom.product_name,
+      spec: bom.spec,
+      unit: bom.unit,
+      unit_price: bom.supplier_price
+    })
     
     setForm(p => ({
       ...p,
