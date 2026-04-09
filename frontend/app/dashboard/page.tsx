@@ -49,7 +49,7 @@ export default function DashboardPage() {
   ]
 
   const quick = [
-    { href: '/dashboard/materials', label: '新增料號', desc: '建立物料主檔' },
+    // { href: '/dashboard/materials', label: '新增料號', desc: '建立物料主檔' }, // 暫時隱藏
     { href: '/dashboard/bom', label: '建立 BOM', desc: '產品物料清單' },
     { href: '/dashboard/po', label: '建立採購單', desc: '向供應商採購' },
     { href: '/dashboard/customer-orders', label: '新增客戶訂單', desc: '記錄客戶需求' },

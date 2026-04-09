@@ -319,8 +319,11 @@ app.get('/api/po/:id', authMiddleware, async c => {
     WHERE po.id=?`, [c.req.param('id')])
   if (!po) return c.json({ error: 'Not found' }, 404)
   const items = await query(`
-    SELECT pi.*, b.spec, b.unit, b.image_url,
-           (SELECT material_name FROM materials WHERE material_code = b.product_sku LIMIT 1) as material_name
+    SELECT pi.*,
+           COALESCE(pi.material_name, b.product_name, '') as material_name,
+           COALESCE(pi.spec, b.spec, '') as spec,
+           COALESCE(pi.unit, b.unit, 'PCS') as unit,
+           b.image_url
     FROM po_items pi 
     LEFT JOIN bom b ON pi.material_code = b.product_sku
     WHERE pi.po_id=?`, [c.req.param('id')])
@@ -673,6 +676,19 @@ app.get('/api/inventory', authMiddleware, async c => c.json(await query(`
   FROM materials m
   LEFT JOIN suppliers s ON m.supplier_id = s.id
   ORDER BY m.category, m.material_code
+`)))
+
+// BOM-based inventory: only show stock for items that exist in BOM
+app.get('/api/inventory/bom', authMiddleware, async c => c.json(await query(`
+  SELECT b.id, b.product_sku as product_code, b.product_name,
+         b.spec, b.unit, b.category,
+         COALESCE(m.current_stock, 0) as closing_balance,
+         s.name as supplier_name, b.currency,
+         b.image_url
+  FROM bom b
+  LEFT JOIN materials m ON m.material_code = b.product_sku
+  LEFT JOIN suppliers s ON b.supplier_id = s.id
+  ORDER BY b.category, b.product_sku
 `)))
 app.post('/api/inventory', authMiddleware, canWrite, async c => {
   try {

@@ -4,37 +4,52 @@ import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 
 type Inv = {
-  id:number; product_code:string; product_name:string; spec:string; unit:string
-  closing_balance:number; category:string; supplier_name:string; currency:string
+  id: number
+  product_code: string
+  product_name: string
+  spec: string
+  unit: string
+  closing_balance: number
+  category: string
+  supplier_name: string
+  currency: string
+  image_url?: string
 }
 
 export default function InventoryPage() {
   const [items, setItems] = useState<Inv[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [catFilter, setCatFilter] = useState('')
+  const [stockFilter, setStockFilter] = useState<'all' | 'low' | 'ok'>('all')
   const [lastRefresh, setLastRefresh] = useState(new Date())
 
   const load = () => {
     setLoading(true)
-    apiFetch<Inv[]>('/api/inventory').then(setItems).finally(() => {
+    apiFetch<Inv[]>('/api/inventory/bom').then(setItems).finally(() => {
       setLoading(false)
       setLastRefresh(new Date())
     })
   }
   useEffect(() => { load() }, [])
 
-  const categories = Array.from(new Set(items.map(i => i.category).filter(Boolean)))
   const filtered = items.filter(i => {
     const q = search.toLowerCase()
-    const matchSearch = !search || i.product_code.toLowerCase().includes(q) || i.product_name.toLowerCase().includes(q)
-    const matchCat = !catFilter || i.category === catFilter
-    return matchSearch && matchCat
+    const matchSearch = !search ||
+      i.product_code.toLowerCase().includes(q) ||
+      i.product_name.toLowerCase().includes(q) ||
+      (i.spec || '').toLowerCase().includes(q) ||
+      (i.supplier_name || '').toLowerCase().includes(q)
+    const stock = Number(i.closing_balance)
+    const matchStock =
+      stockFilter === 'all' ? true :
+      stockFilter === 'low' ? stock <= 0 :
+      stock > 0
+    return matchSearch && matchStock
   })
-  const { page, setPage, totalPages, paged, total } = usePagination(filtered, 30)
 
+  const { page, setPage, totalPages, paged, total } = usePagination(filtered, 30)
   const totalStock = filtered.reduce((s, i) => s + (Number(i.closing_balance) || 0), 0)
-  const lowStock = filtered.filter(i => Number(i.closing_balance) <= 0).length
+  const lowStock = items.filter(i => Number(i.closing_balance) <= 0).length
 
   return (
     <div>
@@ -42,7 +57,7 @@ export default function InventoryPage() {
         <div>
           <h1 className="text-xl font-bold text-slate-800">庫存查詢</h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            即時庫存 · 最後更新：{lastRefresh.toLocaleTimeString()}
+            BOM 成品庫存 · 最後更新：{lastRefresh.toLocaleTimeString()}
           </p>
         </div>
         <button onClick={load} className="btn-ghost border border-slate-200 flex items-center gap-2">
@@ -57,7 +72,7 @@ export default function InventoryPage() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="oms-card p-4">
-          <div className="text-xs text-slate-400 mb-1">料號總數</div>
+          <div className="text-xs text-slate-400 mb-1">BOM 品項總數</div>
           <div className="text-2xl font-bold text-slate-800">{items.length}</div>
         </div>
         <div className="oms-card p-4">
@@ -72,11 +87,15 @@ export default function InventoryPage() {
 
       {/* Filters */}
       <div className="flex gap-3 mb-4">
-        <input className="oms-input w-64" placeholder="搜尋料號或名稱..." value={search} onChange={e => setSearch(e.target.value)} />
-        <select className="oms-input w-40" value={catFilter} onChange={e => setCatFilter(e.target.value)}>
-          <option value="">全部分類</option>
-          {categories.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
+        <input className="oms-input w-64" placeholder="搜尋料號、品名、規格、供應商..." value={search} onChange={e => setSearch(e.target.value)} />
+        <div className="flex gap-1">
+          {(['all', 'ok', 'low'] as const).map(f => (
+            <button key={f} onClick={() => setStockFilter(f)}
+              className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${stockFilter === f ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}>
+              {f === 'all' ? '全部' : f === 'ok' ? '有庫存' : '零庫存'}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="oms-card overflow-hidden">
@@ -85,31 +104,40 @@ export default function InventoryPage() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm" style={{minWidth:700}}>
+              <table className="w-full text-sm" style={{ minWidth: 700 }}>
                 <thead>
                   <tr className="border-b border-slate-200">
-                    {['分類','料號','名稱','規格','單位','供應商','庫存量'].map(h => (
+                    {['圖片', '物料編號', '品名', '規格', '單位', '供應商', '庫存量'].map(h => (
                       <th key={h} className="px-3 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {paged.map(item => (
-                    <tr key={item.id} className={`border-b border-slate-100 hover:bg-slate-50 ${Number(item.closing_balance) <= 0 ? 'bg-red-50/30' : ''}`}>
-                      <td className="px-3 py-2.5 text-xs text-slate-400 whitespace-nowrap">{item.category||'—'}</td>
-                      <td className="px-3 py-2.5 font-mono text-xs text-blue-600 whitespace-nowrap">{item.product_code}</td>
-                      <td className="px-3 py-2.5 text-slate-800 font-medium max-w-[200px] truncate" title={item.product_name}>{item.product_name}</td>
-                      <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap max-w-[120px] truncate" title={item.spec}>{item.spec||'—'}</td>
-                      <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap">{item.unit}</td>
-                      <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap max-w-[140px] truncate" title={item.supplier_name}>{item.supplier_name||'—'}</td>
-                      <td className="px-3 py-2.5 text-right whitespace-nowrap">
-                        <span className={`font-bold text-base ${Number(item.closing_balance) <= 0 ? 'text-red-500' : Number(item.closing_balance) < 10 ? 'text-orange-500' : 'text-emerald-600'}`}>
-                          {Number(item.closing_balance).toLocaleString()}
-                        </span>
-                        <span className="text-xs text-slate-400 ml-1">{item.unit}</span>
-                      </td>
-                    </tr>
-                  ))}
+                  {paged.map(item => {
+                    const stock = Number(item.closing_balance)
+                    return (
+                      <tr key={item.id} className={`border-b border-slate-100 hover:bg-slate-50 ${stock <= 0 ? 'bg-red-50/30' : ''}`}>
+                        <td className="px-3 py-2">
+                          {item.image_url ? (
+                            <img src={item.image_url} alt="" className="w-9 h-9 object-cover rounded border border-slate-200" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                          ) : (
+                            <div className="w-9 h-9 bg-slate-100 rounded flex items-center justify-center text-slate-300 text-[10px]">無</div>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 font-mono text-xs text-blue-600 whitespace-nowrap">{item.product_code}</td>
+                        <td className="px-3 py-2.5 text-slate-800 font-medium max-w-[200px] truncate" title={item.product_name}>{item.product_name}</td>
+                        <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap max-w-[120px] truncate" title={item.spec}>{item.spec || '—'}</td>
+                        <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap">{item.unit}</td>
+                        <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap max-w-[140px] truncate" title={item.supplier_name}>{item.supplier_name || '—'}</td>
+                        <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                          <span className={`font-bold text-base ${stock <= 0 ? 'text-red-500' : stock < 10 ? 'text-orange-500' : 'text-emerald-600'}`}>
+                            {stock.toLocaleString()}
+                          </span>
+                          <span className="text-xs text-slate-400 ml-1">{item.unit}</span>
+                        </td>
+                      </tr>
+                    )
+                  })}
                   {paged.length === 0 && (
                     <tr><td colSpan={7} className="px-4 py-12 text-center text-slate-400">尚無庫存資料</td></tr>
                   )}

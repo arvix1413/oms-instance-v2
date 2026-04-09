@@ -29,7 +29,8 @@ const NAV: NavEntry[] = [
     children: [
       { href: '/dashboard/customers', label: '客戶管理', icon: <IconUsers /> },
       { href: '/dashboard/suppliers', label: '供應商管理', icon: <IconBuilding2 /> },
-      { href: '/dashboard/materials', label: '料號管理', icon: <IconBox /> },
+      // 料號管理暫時隱藏
+      // { href: '/dashboard/materials', label: '料號管理', icon: <IconBox /> },
     ]
   },
   {
