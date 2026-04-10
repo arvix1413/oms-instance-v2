@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { getToken, clearToken } from '@/lib/api'
 import { getUser, ROLE_LABELS, type Role } from '@/lib/permissions'
+import { can } from '@/lib/usePermissions'
 
 type NavItem = { href: string; label: string; icon: React.ReactNode }
 type NavGroup = { label: string; icon: React.ReactNode; children: NavItem[] }
@@ -102,7 +103,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const logout = () => { clearToken(); localStorage.removeItem('oms_user'); window.location.href = '/login' }
   const role = user?.role as Role
-  const isAdmin = role === 'admin'
+  const isAdmin = can('user.manage')
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(href + '/')

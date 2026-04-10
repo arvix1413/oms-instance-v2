@@ -3,6 +3,7 @@ import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { ROLE_LABELS, ROLE_COLORS, PERMISSIONS, getUser, type Role } from '@/lib/permissions'
+import { can } from '@/lib/usePermissions'
 import { useRouter } from 'next/navigation'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { validate } from '@/lib/validate'
@@ -22,7 +23,7 @@ export default function UsersPage() {
 
   useEffect(() => {
     const me = getUser()
-    if (!me || !PERMISSIONS.canManageUsers(me.role)) {
+    if (!me || !can('user.manage')) {
       router.replace('/dashboard')
       return
     }
@@ -130,16 +131,13 @@ export default function UsersPage() {
             </div>
             <div>
               <label className="block text-xs font-medium mb-1 text-gray-700">角色 *</label>
-              <select className={inp} value={editing.role||'purchaser'} onChange={e=>setEditing(p=>({...p,role:e.target.value as Role}))}>
-                {(Object.entries(ROLE_LABELS) as [Role, string][]).map(([r, l]) => (
-                  <option key={r} value={r}>{l}</option>
-                ))}
+              <select className={inp} value={editing.role||'employee'} onChange={e=>setEditing(p=>({...p,role:e.target.value as Role}))}>
+                <option value="manager">主管</option>
+                <option value="employee">員工</option>
               </select>
-              <p className="text-xs text-slate-300 mt-1">
-                {editing.role === 'admin' && '⚠️ 管理員擁有全部權限'}
-                {editing.role === 'manager' && '可審批採購單及刪除資料'}
-                {editing.role === 'purchaser' && '可建立及編輯料號、BOM、採購單'}
-                {editing.role === 'viewer' && '只能查看，無法修改任何資料'}
+              <p className="text-xs text-slate-400 mt-1">
+                {editing.role === 'manager' && '主管：可依角色管理頁設定的權限操作'}
+                {editing.role === 'employee' && '員工：可依角色管理頁設定的權限操作'}
               </p>
             </div>
             <div>
@@ -205,9 +203,8 @@ export default function UsersPage() {
                             disabled={changingRole === u.id}
                             className={`text-xs px-2 py-1 rounded-lg border font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500/50 ${ROLE_COLORS[u.role]}`}
                           >
-                            {(Object.entries(ROLE_LABELS) as [Role, string][]).map(([r, l]) => (
-                              <option key={r} value={r}>{l}</option>
-                            ))}
+                            <option value="manager">主管</option>
+                            <option value="employee">員工</option>
                           </select>
                           {changingRole === u.id && <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600" />}
                         </div>

@@ -12,11 +12,12 @@ export default function LoginPage() {
     e.preventDefault()
     setError(''); setLoading(true)
     try {
-      const data = await apiFetch<{ token: string; user: any }>('/api/auth/login', {
+      const data = await apiFetch<{ token: string; user: any; permissions: string[] }>('/api/auth/login', {
         method: 'POST', body: JSON.stringify(form)
       })
       setToken(data.token)
       localStorage.setItem('oms_user', JSON.stringify(data.user))
+      localStorage.setItem('oms_permissions', JSON.stringify(data.permissions || []))
       window.location.href = '/dashboard'
     } catch (e: any) {
       setError(e.message || '登入失敗')

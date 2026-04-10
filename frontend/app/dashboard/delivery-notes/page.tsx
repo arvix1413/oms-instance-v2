@@ -6,6 +6,7 @@ import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, DN_STEPS, getDNActions } from '@/components/StatusFlow'
 import { getUser, PERMISSIONS } from '@/lib/permissions'
+import { can } from '@/lib/usePermissions'
 
 type DNItem = { bom_id?:number|null; item_name:string; material_code:string; qty:number; shipped_qty:number; remark:string }
 type DN = { id:number; dn_number:string; customer_name:string; delivery_date:string; status:string; remark:string; created_at:string; items?:DNItem[] }
@@ -29,8 +30,8 @@ export default function DeliveryNotesPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const me = getUser()
-  const canWrite = me ? PERMISSIONS.canCreateDelivery(me.role) : false
-  const canDel = me ? PERMISSIONS.canDeleteDelivery(me.role) : false
+  const canWrite = can('delivery.create')
+  const canDel = can('delivery.delete')
 
   // Create form state
   const [selectedCustomerId, setSelectedCustomerId] = useState('')

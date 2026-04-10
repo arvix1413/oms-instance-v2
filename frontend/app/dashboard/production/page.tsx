@@ -5,6 +5,7 @@ import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, PROD_STEPS, getProdActions } from '@/components/StatusFlow'
 import { getUser, PERMISSIONS } from '@/lib/permissions'
+import { can } from '@/lib/usePermissions'
 
 type ProdMat = {
   material_code: string; material_name: string; spec: string; unit: string
@@ -40,8 +41,8 @@ export default function ProductionPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const me = getUser()
-  const canWrite = me ? PERMISSIONS.canCreateProduction(me.role) : false
-  const canDel = me ? PERMISSIONS.canDeleteProduction(me.role) : false
+  const canWrite = can('production.create')
+  const canDel = can('production.delete')
 
   // Create form
   const [step, setStep] = useState<1 | 2>(1)

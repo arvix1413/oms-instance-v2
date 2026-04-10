@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { apiFetch, API, getToken } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { getUser, PERMISSIONS } from '@/lib/permissions'
+import { can } from '@/lib/usePermissions'
 
 type Bom = {
   id:number; product_sku:string; product_name:string; material_name:string; spec:string; unit:string
@@ -38,8 +39,9 @@ export default function BomPage() {
   const [search, setSearch] = useState('')
   const [catFilter, setCatFilter] = useState('')
   const me = getUser()
-  const canWrite = me ? PERMISSIONS.canCreateBOM(me.role) : false
-  const canDel = me ? PERMISSIONS.canDeleteBOM(me.role) : false
+  const canWrite = can('bom.create')
+  const canEdit = can('bom.edit')
+  const canDel = can('bom.delete')
 
   const load = () => apiFetch<Bom[]>('/api/bom').then(setBoms).finally(()=>setLoading(false))
   useEffect(()=>{
@@ -232,7 +234,7 @@ export default function BomPage() {
                       <td className="px-3 py-2.5 text-slate-400 whitespace-nowrap">{b.currency}</td>
                       <td className="px-3 py-2.5 whitespace-nowrap">
                         <div className="flex gap-1">
-                          {canWrite && <button onClick={()=>setEditing(b)} className="btn-ghost text-blue-600">編輯</button>}
+                          {canEdit && <button onClick={()=>setEditing(b)} className="btn-ghost text-blue-600">編輯</button>}
                           {canDel && <button onClick={e=>del(b.id,e)} className="btn-danger">刪除</button>}
                         </div>
                       </td>

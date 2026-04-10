@@ -6,6 +6,7 @@ import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, PO_STEPS, getPOActions } from '@/components/StatusFlow'
 import { SearchableSelect } from '@/components/SearchableSelect'
 import { getUser, PERMISSIONS } from '@/lib/permissions'
+import { can } from '@/lib/usePermissions'
 
 type PoItem = { material_code:string; material_name:string; spec:string; unit:string; quantity:number; unit_price:number; total_price:number; currency:string; remark:string; po_ref:string; thickness:number|string; image_url?:string; bom_id?:number }
 type Po = { id:number; po_number:string; supplier_name:string; status:string; total_amount:number; currency:string; remark:string; created_at:string; approved_at?:string; items?:PoItem[] }
@@ -44,9 +45,9 @@ export default function PoPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const me = getUser()
-  const canWrite = me ? PERMISSIONS.canCreatePO(me.role) : false
-  const canApprove = me ? PERMISSIONS.canApprovePO(me.role) : false
-  const canDel = me ? PERMISSIONS.canDeletePO(me.role) : false
+  const canWrite = can('po.create')
+  const canApprove = can('po.approve')
+  const canDel = can('po.delete')
 
   const load = () => apiFetch<Po[]>('/api/po').then(setPos).finally(() => setLoading(false))
   useEffect(() => {

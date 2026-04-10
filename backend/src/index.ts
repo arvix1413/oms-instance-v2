@@ -66,7 +66,16 @@ app.post('/api/auth/login', async c => {
     if (!user) return c.json({ error: 'Invalid credentials' }, 401)
     if (hashPw(password) !== user.password_hash) return c.json({ error: 'Invalid credentials' }, 401)
     const token = await signJwt({ userId: user.id, email: user.email, name: user.name, role: user.role })
-    return c.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, signature_url: user.signature_url || null } })
+    // Load role permissions
+    let permissions: string[] = []
+    if (user.role === 'admin') {
+      // admin has all permissions
+      permissions = ALL_PERMISSIONS.map((p: any) => p.key)
+    } else {
+      const rows = await query<any>('SELECT permission FROM role_permissions WHERE role=? AND allowed=1', [user.role])
+      permissions = rows.map((r: any) => r.permission)
+    }
+    return c.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, signature_url: user.signature_url || null }, permissions })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 
@@ -762,11 +771,31 @@ app.delete('/api/users/:id', authMiddleware, isAdmin, async c => {
 
 // ── Role Permissions ──────────────────────────────────────────────────────────
 const ALL_PERMISSIONS = [
-  { key: 'material.create', label: '新增料號' }, { key: 'material.edit', label: '編輯料號' }, { key: 'material.delete', label: '刪除料號' },
-  { key: 'supplier.create', label: '新增供應商' }, { key: 'supplier.edit', label: '編輯供應商' }, { key: 'supplier.delete', label: '刪除供應商' },
-  { key: 'bom.create', label: '新增BOM' }, { key: 'bom.delete', label: '刪除BOM' },
-  { key: 'po.create', label: '新增採購單' }, { key: 'po.approve', label: '核准採購單' }, { key: 'po.delete', label: '刪除採購單' },
+  // 客戶訂單
+  { key: 'customer_order.create', label: '新增客戶訂單' },
+  { key: 'customer_order.delete', label: '刪除客戶訂單' },
+  // BOM 材料明細
+  { key: 'bom.create', label: '新增BOM' },
+  { key: 'bom.edit', label: '編輯BOM' },
+  { key: 'bom.delete', label: '刪除BOM' },
+  // 採購單
+  { key: 'po.create', label: '新增採購單' },
+  { key: 'po.approve', label: '核准採購單' },
+  { key: 'po.delete', label: '刪除採購單' },
+  // 生產單
+  { key: 'production.create', label: '新增生產單' },
+  { key: 'production.delete', label: '刪除生產單' },
+  // 出貨單
+  { key: 'delivery.create', label: '新增出貨單' },
+  { key: 'delivery.delete', label: '刪除出貨單' },
+  // 基礎資料
+  { key: 'customer.manage', label: '管理客戶' },
+  { key: 'supplier.manage', label: '管理供應商' },
+  // 倉庫
+  { key: 'stock.adjust', label: '庫存調整' },
+  // 系統管理（僅admin）
   { key: 'user.manage', label: '用戶管理' },
+  { key: 'audit.view', label: '查看操作日誌' },
 ]
 app.get('/api/role-permissions', authMiddleware, async c => {
   try {

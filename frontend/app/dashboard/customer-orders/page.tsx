@@ -7,6 +7,7 @@ import { StatusFlow, CO_STEPS } from '@/components/StatusFlow'
 import { generateOrderHTML } from '@/lib/printOrder'
 import { SearchableSelect } from '@/components/SearchableSelect'
 import { getUser, PERMISSIONS } from '@/lib/permissions'
+import { can } from '@/lib/usePermissions'
 
 // Customer order actions based on current status
 function getCOActions(status: string) {
@@ -58,8 +59,8 @@ export default function CustomerOrdersPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const me = getUser()
-  const canWrite = me ? PERMISSIONS.canCreateCustomerOrder(me.role) : false
-  const canDel = me ? PERMISSIONS.canDeleteCustomerOrder(me.role) : false
+  const canWrite = can('customer_order.create')
+  const canDel = can('customer_order.delete')
 
   const load = () => apiFetch<Order[]>('/api/customer-orders')
     .then(setOrders)
