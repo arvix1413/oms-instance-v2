@@ -670,11 +670,35 @@ app.post('/api/delivery-notes', authMiddleware, canWrite, async c => {
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 app.patch('/api/delivery-notes/:id/status', authMiddleware, canApprove, async c => {
-  const id = c.req.param('id'); const { status } = await c.req.json()
-  const row = await queryOne<any>('SELECT dn_number,customer_name FROM delivery_notes WHERE id=?', [id])
-  await execute('UPDATE delivery_notes SET status=? WHERE id=?', [status,id])
-  await audit(c.get('user'), 'STATUS_CHANGE', '出貨單', id, `${row?.dn_number} → ${status}`)
-  return c.json({ ok: true })
+  try {
+    const id = c.req.param('id'); const { status } = await c.req.json()
+    const u = c.get('user')
+    const row = await queryOne<any>('SELECT dn_number,customer_name FROM delivery_notes WHERE id=?', [id])
+    if (!row) return c.json({ error: 'Not found' }, 404)
+
+    // When shipped: deduct stock from BOM
+    if (status === 'shipped') {
+      const items = await query<any>('SELECT * FROM delivery_note_items WHERE dn_id=?', [id])
+      for (const item of items) {
+        if (!item.material_code) continue
+        const qty = parseFloat(item.qty) || 0
+        const bom = await queryOne<any>('SELECT id, current_stock, product_name FROM bom WHERE product_sku=?', [item.material_code])
+        const before = parseFloat(bom?.current_stock) || 0
+        const after = Math.max(0, before - qty)
+        if (bom) {
+          await execute('UPDATE bom SET current_stock=? WHERE product_sku=?', [after, item.material_code])
+        }
+        await execute(
+          'INSERT INTO stock_ledger (material_code,material_name,transaction_type,ref_type,ref_id,ref_number,qty_change,qty_before,qty_after,unit,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          [item.material_code, item.item_name || bom?.product_name || '', 'DN_OUT', 'delivery_note', id, row.dn_number, -qty, before, after, item.unit || 'PCS', `出貨 ${row.dn_number}`, u.userId, now8()]
+        )
+      }
+    }
+
+    await execute('UPDATE delivery_notes SET status=? WHERE id=?', [status, id])
+    await audit(u, 'STATUS_CHANGE', '出貨單', id, `${row.dn_number} → ${status}`)
+    return c.json({ ok: true })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 app.delete('/api/delivery-notes/:id', authMiddleware, canApprove, async c => {
   const id = c.req.param('id')

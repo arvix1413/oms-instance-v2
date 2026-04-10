@@ -238,6 +238,33 @@ test('Step 8: 建立出貨單', async () => {
   expect(dnId).toBeGreaterThan(0)
 })
 
+// ─── Step 8b: 确认出货，库存减少 ─────────────────────────────────────────────
+test('Step 8b: 確認出貨 → 庫存減少', async () => {
+  const stockBeforeShip = await getStock()
+  console.log(`📦 出貨前庫存: ${stockBeforeShip}`)
+
+  // confirmed
+  await api(`/api/delivery-notes/${dnId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: 'confirmed' })
+  })
+
+  // shipped → 触发库存扣减
+  await api(`/api/delivery-notes/${dnId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: 'shipped' })
+  })
+
+  const dn = await api(`/api/delivery-notes/${dnId}`)
+  expect(dn.status).toBe('shipped')
+  console.log(`✅ 出貨單已出貨: ${dn.status}`)
+
+  const stockAfterShip = await getStock()
+  console.log(`📦 出貨後庫存: ${stockAfterShip}`)
+  expect(stockAfterShip).toBe(stockBeforeShip - ORDER_QTY)
+  console.log(`✅ 庫存減少正確: ${stockBeforeShip} - ${ORDER_QTY} = ${stockAfterShip}`)
+})
+
 // ─── Step 9: 出货完成，更新客户订单状态 ──────────────────────────────────────
 test('Step 9: 完成客戶訂單', async () => {
   await api(`/api/customer-orders/${coId}/status`, {
@@ -261,11 +288,11 @@ test('Step 10: 驗證完整流程摘要', async () => {
   console.log(`出貨單:   ${dnNumber} (id=${dnId}) ✅`)
   console.log(`初始庫存: ${stockBefore}`)
   console.log(`最終庫存: ${finalStock}`)
-  console.log(`庫存變化: +${PO_QTY}（收貨）`)
+  console.log(`庫存變化: +${PO_QTY}（收貨）- ${ORDER_QTY}（出貨）= ${PO_QTY - ORDER_QTY}`)
   console.log('===================================\n')
 
-  // 最终库存应该 = 初始库存 + 采购数量（生产单没有配置原材料所以不消耗）
-  expect(finalStock).toBe(stockBefore + PO_QTY)
+  // 最终库存 = 初始库存 + 采购数量 - 出货数量
+  expect(finalStock).toBe(stockBefore + PO_QTY - ORDER_QTY)
   console.log('✅ 庫存計算正確')
 })
 
