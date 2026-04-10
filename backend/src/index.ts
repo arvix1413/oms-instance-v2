@@ -151,6 +151,9 @@ app.put('/api/suppliers/:id', authMiddleware, async c => {
 })
 app.delete('/api/suppliers/:id', authMiddleware, async c => {
   const id = c.req.param('id')
+  // Check for linked POs before deleting
+  const linked = await queryOne<any>('SELECT COUNT(*) as cnt FROM purchase_orders WHERE supplier_id=?', [id])
+  if ((linked?.cnt || 0) > 0) return c.json({ error: `此供應商有 ${linked.cnt} 筆採購單，無法刪除` }, 400)
   const row = await queryOne<any>('SELECT name FROM suppliers WHERE id=?', [id])
   await execute('DELETE FROM suppliers WHERE id=?', [id])
   await audit(c.get('user'), 'DELETE', '供應商', id, row?.name)
@@ -180,6 +183,9 @@ app.put('/api/customers/:id', authMiddleware, canWrite, async c => {
 })
 app.delete('/api/customers/:id', authMiddleware, canApprove, async c => {
   const id = c.req.param('id')
+  // Check for linked orders before deleting
+  const linked = await queryOne<any>('SELECT COUNT(*) as cnt FROM customer_orders WHERE customer_id=?', [id])
+  if ((linked?.cnt || 0) > 0) return c.json({ error: `此客戶有 ${linked.cnt} 筆訂單，無法刪除` }, 400)
   const row = await queryOne<any>('SELECT customer_name FROM customers WHERE id=?', [id])
   await execute('DELETE FROM customers WHERE id=?', [id])
   await audit(c.get('user'), 'DELETE', '客戶', id, row?.customer_name)
@@ -374,6 +380,27 @@ app.post('/api/po', authMiddleware, canWrite, async c => {
     }
     await audit(u, 'CREATE', '採購單', poId, poNum)
     return c.json({ id: poId, po_number: poNum }, 201)
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+app.put('/api/po/:id', authMiddleware, canWrite, async c => {
+  try {
+    const id = c.req.param('id'); const b = await c.req.json(); const u = c.get('user')
+    const po = await queryOne<any>('SELECT status FROM purchase_orders WHERE id=?', [id])
+    if (!po) return c.json({ error: 'Not found' }, 404)
+    if (po.status !== 'draft') return c.json({ error: '只能編輯草稿狀態的採購單' }, 400)
+    const total = (b.items||[]).reduce((s: number, i: any) => s + (i.total_price||0), 0)
+    await execute('UPDATE purchase_orders SET supplier_id=?,supplier_name=?,total_amount=?,currency=?,remark=? WHERE id=?',
+      [b.supplier_id||null, b.supplier_name, total, b.currency||'VND', b.remark||'', id])
+    await execute('DELETE FROM po_items WHERE po_id=?', [id])
+    if (b.items?.length) {
+      for (const item of b.items) {
+        const tp = (item.quantity||0)*(item.unit_price||0)
+        await execute('INSERT INTO po_items (po_id,material_code,material_name,spec,unit,quantity,unit_price,total_price,currency,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+          [id,item.material_code,item.material_name,item.spec||'',item.unit||'PCS',item.quantity,item.unit_price||0,tp,item.currency||'VND',item.remark||'',item.po_ref||'',item.thickness||null])
+      }
+    }
+    await audit(u, 'UPDATE', '採購單', id, b.supplier_name)
+    return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 app.patch('/api/po/:id/approve', authMiddleware, canApprove, async c => {
@@ -628,8 +655,11 @@ app.delete('/api/quotations/:id', authMiddleware, canApprove, async c => {
 
 // ── Delivery Notes ────────────────────────────────────────────────────────────
 app.get('/api/delivery-notes', authMiddleware, async c => c.json(await query(`
-  SELECT dn.*, c.customer_name, c.customer_code
-  FROM delivery_notes dn LEFT JOIN customers c ON dn.customer_id = c.id
+  SELECT dn.*, c.customer_name, c.customer_code,
+         co.po_number as order_po_number
+  FROM delivery_notes dn 
+  LEFT JOIN customers c ON dn.customer_id = c.id
+  LEFT JOIN customer_orders co ON dn.customer_order_id = co.id
   ORDER BY dn.created_at DESC
 `)))
 app.get('/api/delivery-notes/:id', authMiddleware, async c => {

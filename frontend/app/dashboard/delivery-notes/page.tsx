@@ -9,7 +9,7 @@ import { getUser, PERMISSIONS } from '@/lib/permissions'
 import { can } from '@/lib/usePermissions'
 
 type DNItem = { bom_id?:number|null; item_name:string; material_code:string; qty:number; shipped_qty:number; remark:string }
-type DN = { id:number; dn_number:string; customer_name:string; delivery_date:string; status:string; remark:string; created_at:string; items?:DNItem[] }
+type DN = { id:number; dn_number:string; customer_name:string; delivery_date:string; status:string; remark:string; created_at:string; items?:DNItem[]; order_po_number?:string }
 type Customer = { id:number; customer_name:string; customer_code:string }
 type PendingOrder = { id:number; po_number:string; po_date:string; items_summary:string }
 type OrderItem = { id:number; bom_id:number|null; qty:number; unit_price:number; product_name:string; product_sku:string }
@@ -318,7 +318,7 @@ export default function DeliveryNotesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200">
-                  {['出貨單號','客戶名稱','出貨日期','備註','狀態','操作'].map(h => (
+                  {['出貨單號','客戶名稱','關聯訂單','出貨日期','備註','狀態','操作'].map(h => (
                     <th key={h} className="px-3 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -328,6 +328,7 @@ export default function DeliveryNotesPage() {
                   <tr key={dn.id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="px-3 py-2 font-mono text-xs text-blue-600 whitespace-nowrap">{dn.dn_number}</td>
                     <td className="px-3 py-2 font-medium whitespace-nowrap max-w-[200px] truncate" title={dn.customer_name}>{dn.customer_name}</td>
+                    <td className="px-3 py-2 text-slate-400 text-xs whitespace-nowrap">{dn.order_po_number || '—'}</td>
                     <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{dn.delivery_date ? String(dn.delivery_date).slice(0,10) : '—'}</td>
                     <td className="px-3 py-2 text-slate-400 whitespace-nowrap max-w-[150px] truncate" title={dn.remark}>{dn.remark||'—'}</td>
                     <td className="px-3 py-2 whitespace-nowrap"><span className={STATUS_MAP[dn.status]?.badge}>{STATUS_MAP[dn.status]?.label}</span></td>
@@ -342,7 +343,7 @@ export default function DeliveryNotesPage() {
                     </td>
                   </tr>
                 ))}
-                {paged.length === 0 && <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">尚無出貨單</td></tr>}
+                {paged.length === 0 && <tr><td colSpan={7} className="px-4 py-12 text-center text-slate-400">尚無出貨單</td></tr>}
               </tbody>
             </table>
             <Pagination page={page} totalPages={totalPages} setPage={setPage} total={total} />
