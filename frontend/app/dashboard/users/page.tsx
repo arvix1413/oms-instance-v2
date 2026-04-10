@@ -2,14 +2,14 @@
 import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
-import { ROLE_LABELS, ROLE_COLORS, PERMISSIONS, getUser, type Role } from '@/lib/permissions'
+import { ROLE_LABELS, ROLE_COLORS, getUser, type Role } from '@/lib/permissions'
 import { can } from '@/lib/usePermissions'
 import { useRouter } from 'next/navigation'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { validate } from '@/lib/validate'
 
 type User = { id: number; email: string; name: string; role: Role; created_at: string }
-const empty = (): Partial<User> & { password?: string } => ({ email:'', name:'', role:'purchaser', password:'' })
+const empty = (): Partial<User> & { password?: string } => ({ email:'', name:'', role:'employee', password:'' })
 
 export default function UsersPage() {
   const router = useRouter()
@@ -135,10 +135,6 @@ export default function UsersPage() {
                 <option value="manager">主管</option>
                 <option value="employee">員工</option>
               </select>
-              <p className="text-xs text-slate-400 mt-1">
-                {editing.role === 'manager' && '主管：可依角色管理頁設定的權限操作'}
-                {editing.role === 'employee' && '員工：可依角色管理頁設定的權限操作'}
-              </p>
             </div>
             <div>
               <label className="block text-xs font-medium mb-1 text-gray-700">
@@ -195,7 +191,7 @@ export default function UsersPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      {me?.id !== u.id ? (
+                      {me?.id !== u.id && u.role !== 'admin' ? (
                         <div className="flex items-center gap-2">
                           <select
                             value={u.role}
@@ -210,28 +206,24 @@ export default function UsersPage() {
                         </div>
                       ) : (
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ROLE_COLORS[u.role]}`}>
-                          {ROLE_LABELS[u.role]} (自己)
+                          {ROLE_LABELS[u.role]}{me?.id === u.id ? ' (自己)' : ''}
                         </span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-slate-300 text-xs">{u.created_at?.slice(0,10)}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
-                        <button onClick={() => setEditing({...u, password:''})}
-                          className="btn-ghost">
-                          編輯
-                        </button>
-                        {me?.id !== u.id && (
+                        {u.role !== 'admin' && (
+                          <button onClick={() => setEditing({...u, password:''})} className="btn-ghost">編輯</button>
+                        )}
+                        {me?.id !== u.id && u.role !== 'admin' && (
                           <button onClick={() => resetPassword(u.id, u.name)}
                             className="btn-ghost text-amber-600 hover:bg-amber-50">
                             重置密碼
                           </button>
                         )}
-                        {me?.id !== u.id && (
-                          <button onClick={() => del(u.id, u.name)}
-                            className="btn-danger">
-                            刪除
-                          </button>
+                        {me?.id !== u.id && u.role !== 'admin' && (
+                          <button onClick={() => del(u.id, u.name)} className="btn-danger">刪除</button>
                         )}
                       </div>
                     </td>

@@ -277,6 +277,6 @@ CREATE TABLE IF NOT EXISTS products (
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Default admin user (password: admin123)
+-- Default manager user (password: admin123)
 INSERT IGNORE INTO users (email, password_hash, name, role) VALUES
-('admin@oms.com', SHA2('admin123', 256), 'Admin', 'admin');
+('admin@oms.com', SHA2('admin123', 256), 'Admin', 'manager');
