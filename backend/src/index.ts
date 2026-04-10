@@ -57,6 +57,27 @@ async function audit(user: any, action: string, resource: string, resourceId: an
 
 app.get('/', c => c.json({ name: 'OMS Backend', version: '2.0.0' }))
 
+// ── All Permissions (defined early, used in login + role-permissions) ─────────
+const ALL_PERMISSIONS = [
+  { key: 'customer_order.create', label: '新增客戶訂單' },
+  { key: 'customer_order.delete', label: '刪除客戶訂單' },
+  { key: 'bom.create', label: '新增BOM' },
+  { key: 'bom.edit', label: '編輯BOM' },
+  { key: 'bom.delete', label: '刪除BOM' },
+  { key: 'po.create', label: '新增採購單' },
+  { key: 'po.approve', label: '核准採購單' },
+  { key: 'po.delete', label: '刪除採購單' },
+  { key: 'production.create', label: '新增生產單' },
+  { key: 'production.delete', label: '刪除生產單' },
+  { key: 'delivery.create', label: '新增出貨單' },
+  { key: 'delivery.delete', label: '刪除出貨單' },
+  { key: 'customer.manage', label: '管理客戶' },
+  { key: 'supplier.manage', label: '管理供應商' },
+  { key: 'stock.adjust', label: '庫存調整' },
+  { key: 'user.manage', label: '用戶管理' },
+  { key: 'audit.view', label: '查看操作日誌' },
+]
+
 // ── Auth ─────────────────────────────────────────────────────────────────────
 app.post('/api/auth/login', async c => {
   try {
@@ -415,9 +436,11 @@ app.patch('/api/po/:id/approve', authMiddleware, canApprove, async c => {
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.patch('/api/po/:id/status', authMiddleware, async c => {
+app.patch('/api/po/:id/status', authMiddleware, canWrite, async c => {
   try {
     const id = c.req.param('id'); const { status } = await c.req.json()
+    const validStatuses = ['sent', 'cancelled']
+    if (!validStatuses.includes(status)) return c.json({ error: 'Invalid status' }, 400)
     const row = await queryOne<any>('SELECT po_number FROM purchase_orders WHERE id=?', [id])
     await execute('UPDATE purchase_orders SET status=? WHERE id=?', [status,id])
     await audit(c.get('user'), 'STATUS_CHANGE', '採購單', id, `${row?.po_number} → ${status}`)
@@ -909,33 +932,6 @@ app.delete('/api/users/:id', authMiddleware, isAdmin, async c => {
 })
 
 // ── Role Permissions ──────────────────────────────────────────────────────────
-const ALL_PERMISSIONS = [
-  // 客戶訂單
-  { key: 'customer_order.create', label: '新增客戶訂單' },
-  { key: 'customer_order.delete', label: '刪除客戶訂單' },
-  // BOM 材料明細
-  { key: 'bom.create', label: '新增BOM' },
-  { key: 'bom.edit', label: '編輯BOM' },
-  { key: 'bom.delete', label: '刪除BOM' },
-  // 採購單
-  { key: 'po.create', label: '新增採購單' },
-  { key: 'po.approve', label: '核准採購單' },
-  { key: 'po.delete', label: '刪除採購單' },
-  // 生產單
-  { key: 'production.create', label: '新增生產單' },
-  { key: 'production.delete', label: '刪除生產單' },
-  // 出貨單
-  { key: 'delivery.create', label: '新增出貨單' },
-  { key: 'delivery.delete', label: '刪除出貨單' },
-  // 基礎資料
-  { key: 'customer.manage', label: '管理客戶' },
-  { key: 'supplier.manage', label: '管理供應商' },
-  // 倉庫
-  { key: 'stock.adjust', label: '庫存調整' },
-  // 系統管理（僅admin）
-  { key: 'user.manage', label: '用戶管理' },
-  { key: 'audit.view', label: '查看操作日誌' },
-]
 app.get('/api/role-permissions', authMiddleware, async c => {
   try {
     const rows = await query<any>('SELECT role,permission,allowed FROM role_permissions')
