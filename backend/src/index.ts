@@ -622,14 +622,16 @@ app.post('/api/customer-orders', authMiddleware, canWrite, async c => {
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 app.patch('/api/customer-orders/:id/status', authMiddleware, canWrite, async c => {
-  const id = c.req.param('id')
-  const { status } = await c.req.json()
-  const valid = ['pending', 'partial', 'completed', 'delay']
-  if (!valid.includes(status)) return c.json({ error: 'Invalid status' }, 400)
-  await execute('UPDATE customer_orders SET status=? WHERE id=?', [status, id])
-  const row = await queryOne<any>('SELECT po_number FROM customer_orders WHERE id=?', [id])
-  await audit(c.get('user'), 'STATUS_CHANGE', '客戶訂單', id, `${row?.po_number} → ${status}`)
-  return c.json({ ok: true })
+  try {
+    const id = c.req.param('id')
+    const { status } = await c.req.json()
+    const valid = ['pending', 'partial', 'completed', 'delay']
+    if (!valid.includes(status)) return c.json({ error: 'Invalid status' }, 400)
+    await execute('UPDATE customer_orders SET status=? WHERE id=?', [status, id])
+    const row = await queryOne<any>('SELECT po_number FROM customer_orders WHERE id=?', [id])
+    await audit(c.get('user'), 'STATUS_CHANGE', '客戶訂單', id, `${row?.po_number} → ${status}`)
+    return c.json({ ok: true })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 app.put('/api/customer-orders/:id', authMiddleware, canWrite, async c => {
   try {
@@ -1224,8 +1226,11 @@ app.post('/api/production', authMiddleware, canWrite, async c => {
 app.patch('/api/production/:id/status', authMiddleware, canWrite, async c => {
   try {
     const id = c.req.param('id'); const { status, produced_qty } = await c.req.json(); const u = c.get('user')
+    const validStatuses = ['confirmed', 'shortage', 'ready', 'in_progress', 'completed', 'cancelled']
+    if (!validStatuses.includes(status)) return c.json({ error: 'Invalid status' }, 400)
     const prod = await queryOne<any>('SELECT * FROM production_orders WHERE id=?', [id])
     if (!prod) return c.json({ error: 'Not found' }, 404)
+    if (prod.status === 'completed') return c.json({ error: '已完工的生產單不能再變更狀態' }, 400)
     const updates: any = { status }
     if (status === 'in_progress' && !prod.actual_start) updates.actual_start = now8().slice(0,10)
     if (status === 'completed') {
