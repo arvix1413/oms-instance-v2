@@ -325,11 +325,20 @@ app.delete('/api/bom/:id', authMiddleware, canApprove, async c => {
 })
 
 // ── Purchase Orders ───────────────────────────────────────────────────────────
-app.get('/api/po', authMiddleware, async c => c.json(await query(`
-  SELECT po.*, s.name as supplier_name, s.supplier_code
-  FROM purchase_orders po LEFT JOIN suppliers s ON po.supplier_id = s.id
-  ORDER BY po.created_at DESC
-`)))
+app.get('/api/po', authMiddleware, async c => {
+  const url = new URL(c.req.url)
+  const status = url.searchParams.get('status') || ''
+  const supplierId = url.searchParams.get('supplier_id') || ''
+  let sql = `SELECT po.*, s.name as supplier_name, s.supplier_code
+    FROM purchase_orders po LEFT JOIN suppliers s ON po.supplier_id = s.id`
+  const params: any[] = []
+  const where: string[] = []
+  if (status) { where.push('po.status=?'); params.push(status) }
+  if (supplierId) { where.push('po.supplier_id=?'); params.push(supplierId) }
+  if (where.length) sql += ' WHERE ' + where.join(' AND ')
+  sql += ' ORDER BY po.created_at DESC'
+  return c.json(await query(sql, params.length ? params : undefined))
+})
 app.get('/api/po/:id', authMiddleware, async c => {
   const po = await queryOne<any>(`
     SELECT po.*, s.name as supplier_name, s.supplier_code
@@ -1271,7 +1280,7 @@ app.get('/api/stats', authMiddleware, async c => {
   try {
     const now = new Date()
     const monthStart = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`
-    const [materials, suppliers, customers, po, orders, monthOrders, allSales] = await Promise.all([
+    const [materials, suppliers, customers, po, orders, monthOrders, allSales, lowStock] = await Promise.all([
       queryOne<any>('SELECT COUNT(*) as cnt FROM bom'),
       queryOne<any>('SELECT COUNT(*) as cnt FROM suppliers'),
       queryOne<any>('SELECT COUNT(*) as cnt FROM customers'),
@@ -1279,6 +1288,7 @@ app.get('/api/stats', authMiddleware, async c => {
       queryOne<any>('SELECT COUNT(*) as cnt FROM customer_orders'),
       queryOne<any>('SELECT COUNT(*) as cnt, COALESCE(SUM(ci.qty*ci.unit_price),0) as total FROM customer_orders co JOIN customer_order_items ci ON ci.order_id=co.id WHERE co.po_date>=?', [monthStart]),
       queryOne<any>('SELECT COALESCE(SUM(ci.qty*ci.unit_price),0) as total, MIN(co.po_date) as earliest, MAX(co.po_date) as latest FROM customer_orders co JOIN customer_order_items ci ON ci.order_id=co.id'),
+      queryOne<any>('SELECT COUNT(*) as cnt FROM bom WHERE COALESCE(current_stock,0) <= 0'),
     ])
     return c.json({
       materials: materials?.cnt||0, suppliers: suppliers?.cnt||0, customers: customers?.cnt||0,
@@ -1286,6 +1296,7 @@ app.get('/api/stats', authMiddleware, async c => {
       month_orders: monthOrders?.cnt||0, month_sales: monthOrders?.total||0,
       total_sales: allSales?.total||0,
       sales_date_range: allSales?.earliest ? `${allSales.earliest} ~ ${allSales.latest}` : '',
+      low_stock_count: lowStock?.cnt||0,
     })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })

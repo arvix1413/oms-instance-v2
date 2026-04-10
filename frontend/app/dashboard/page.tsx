@@ -46,6 +46,7 @@ export default function DashboardPage() {
     { label: '料號數', value: stats?.materials ?? '—', icon: '🔩', color: 'text-violet-700', bg: 'bg-violet-100', border: 'border-violet-200' },
     { label: '供應商', value: stats?.suppliers ?? '—', icon: '🏭', color: 'text-amber-700', bg: 'bg-amber-100', border: 'border-amber-200' },
     { label: '客戶訂單', value: stats?.orders_count ?? '—', icon: '📦', color: 'text-emerald-700', bg: 'bg-emerald-100', border: 'border-emerald-200' },
+    { label: '零庫存品項', value: stats?.low_stock_count ?? '—', icon: '⚠️', color: stats?.low_stock_count > 0 ? 'text-red-600' : 'text-emerald-700', bg: stats?.low_stock_count > 0 ? 'bg-red-100' : 'bg-emerald-100', border: stats?.low_stock_count > 0 ? 'border-red-200' : 'border-emerald-200', href: '/dashboard/inventory' },
   ]
 
   const quick = [
@@ -115,9 +116,10 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
             {kpis.map(c => (
-              <div key={c.label} className={`oms-card p-4 border ${c.border}`}>
+              <div key={c.label} className={`oms-card p-4 border ${c.border} ${(c as any).href ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+                onClick={() => (c as any).href && (window.location.href = (c as any).href)}>
                 <div className={`w-9 h-9 rounded-lg ${c.bg} flex items-center justify-center text-lg mb-3`}>{c.icon}</div>
                 <div className={`text-2xl font-bold ${c.color} mb-0.5`}>{c.value}</div>
                 <div className="text-xs text-slate-600 font-semibold">{c.label}</div>

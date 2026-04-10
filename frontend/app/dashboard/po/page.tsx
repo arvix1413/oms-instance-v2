@@ -44,6 +44,7 @@ export default function PoPage() {
   const [form, setForm] = useState({ supplier_id: '', supplier_name:'', currency:'VND', remark:'', items:[emptyItem()] })
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
   const me = getUser()
   const canWrite = can('po.create')
   const canApprove = can('po.approve')
@@ -323,7 +324,11 @@ export default function PoPage() {
   }
 
   const formTotal = form.items.reduce((s, i) => s + (i.total_price || 0), 0)
-  const filteredPos = pos.filter(p => !search || p.po_number.toLowerCase().includes(search.toLowerCase()) || p.supplier_name.toLowerCase().includes(search.toLowerCase()))
+  const filteredPos = pos.filter(p => {
+    const matchSearch = !search || p.po_number.toLowerCase().includes(search.toLowerCase()) || p.supplier_name.toLowerCase().includes(search.toLowerCase())
+    const matchStatus = !statusFilter || p.status === statusFilter
+    return matchSearch && matchStatus
+  })
   const { page, setPage, totalPages, paged, total } = usePagination(filteredPos, 20)
   const inp = 'oms-input text-xs py-1.5'
 
@@ -434,7 +439,17 @@ export default function PoPage() {
 
       {!creating && (
         <>
-          <div className="mb-4"><input className="oms-input w-64" placeholder="搜尋採購單號或供應商..." value={search} onChange={e=>setSearch(e.target.value)} /></div>
+          <div className="mb-4 flex gap-3">
+            <input className="oms-input w-64" placeholder="搜尋採購單號或供應商..." value={search} onChange={e=>setSearch(e.target.value)} />
+            <div className="flex gap-1">
+              {[['', '全部'], ['draft', '草稿'], ['approved', '已核准'], ['sent', '已發送'], ['received', '已收貨']].map(([val, label]) => (
+                <button key={val} onClick={() => setStatusFilter(val)}
+                  className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${statusFilter === val ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           <div className="oms-card overflow-hidden">
         {loading ? <div className="flex justify-center py-16"><div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" /></div> : (
