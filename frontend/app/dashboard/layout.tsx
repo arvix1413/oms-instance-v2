@@ -20,7 +20,6 @@ const NAV: NavEntry[] = [
       { href: '/dashboard/customer-orders', label: '客戶訂單', icon: <IconDoc /> },
       { href: '/dashboard/bom', label: '材料明細', icon: <IconList /> },
       { href: '/dashboard/po', label: '採購單', icon: <IconCart /> },
-      { href: '/dashboard/goods-receipts', label: '進貨單', icon: <IconReceive /> },
       { href: '/dashboard/production', label: '生產單', icon: <IconFactory /> },
       { href: '/dashboard/delivery-notes', label: '出貨單', icon: <IconTruck /> },
     ],
@@ -33,14 +32,6 @@ const NAV: NavEntry[] = [
       { href: '/dashboard/suppliers', label: '供應商管理', icon: <IconBuilding2 /> },
       // 料號管理暫時隱藏
       // { href: '/dashboard/materials', label: '料號管理', icon: <IconBox /> },
-    ]
-  },
-  {
-    label: '財務管理', icon: <IconReceive />,
-    children: [
-      { href: '/dashboard/receivables', label: '應收帳款', icon: <IconReceive /> },
-      { href: '/dashboard/payables', label: '應付帳款', icon: <IconPay /> },
-      { href: '/dashboard/reports', label: '財務報表', icon: <IconChart /> },
     ]
   },
   {

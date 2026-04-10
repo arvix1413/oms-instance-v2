@@ -460,7 +460,18 @@ app.patch('/api/po/:id/receive', authMiddleware, canWrite, async c => {
 // ── Customer Orders ───────────────────────────────────────────────────────────
 app.get('/api/customer-orders', authMiddleware, async c => {
   try {
-    // Try with all fields first
+    const url = new URL(c.req.url)
+    const status = url.searchParams.get('status') || ''
+    const customerId = url.searchParams.get('customer_id') || ''
+    const dateFrom = url.searchParams.get('date_from') || ''
+    const dateTo = url.searchParams.get('date_to') || ''
+    const where: string[] = []
+    const params: any[] = []
+    if (status) { where.push('co.status=?'); params.push(status) }
+    if (customerId) { where.push('co.customer_id=?'); params.push(customerId) }
+    if (dateFrom) { where.push('co.po_date>=?'); params.push(dateFrom) }
+    if (dateTo) { where.push('co.po_date<=?'); params.push(dateTo) }
+    const whereClause = where.length ? ' WHERE ' + where.join(' AND ') : ''
     const orders = await query(`
       SELECT co.id, co.po_date, co.po_number, co.customer_id, co.status, co.remark, co.created_at,
              COALESCE(co.tax_rate, 8) as tax_rate, 
@@ -473,12 +484,12 @@ app.get('/api/customer-orders', authMiddleware, async c => {
              co.payment_date, co.payment_note,
              c.customer_name, c.customer_code
       FROM customer_orders co LEFT JOIN customers c ON co.customer_id = c.id
+      ${whereClause}
       ORDER BY co.created_at DESC
-    `)
+    `, params.length ? params : undefined)
     return c.json(orders)
   } catch (e: any) {
     console.error('Error fetching customer orders:', e.message)
-    // Fallback to basic query if new columns don't exist
     try {
       const orders = await query(`
         SELECT co.id, co.po_date, co.po_number, co.customer_id, co.status, co.remark, co.created_at,
@@ -591,6 +602,31 @@ app.patch('/api/customer-orders/:id/status', authMiddleware, canWrite, async c =
   const row = await queryOne<any>('SELECT po_number FROM customer_orders WHERE id=?', [id])
   await audit(c.get('user'), 'STATUS_CHANGE', '客戶訂單', id, `${row?.po_number} → ${status}`)
   return c.json({ ok: true })
+})
+app.put('/api/customer-orders/:id', authMiddleware, canWrite, async c => {
+  try {
+    const id = c.req.param('id'); const b = await c.req.json(); const u = c.get('user')
+    const existing = await queryOne<any>('SELECT status FROM customer_orders WHERE id=?', [id])
+    if (!existing) return c.json({ error: 'Not found' }, 404)
+    if (existing.status === 'completed') return c.json({ error: '已完成的訂單不能修改' }, 400)
+    const subtotal = (b.items||[]).reduce((s: number, i: any) => s + (i.qty||0) * (i.unit_price||0), 0)
+    const taxRate = parseFloat(b.tax_rate) || 0
+    const taxAmount = Math.round(subtotal * taxRate / 100 * 100) / 100
+    const totalAmount = subtotal + taxAmount
+    await execute('UPDATE customer_orders SET po_date=?,po_number=?,customer_id=?,remark=?,tax_rate=?,tax_amount=?,total_amount=?,currency=?,delivery_date=?,delivery_address=?,person_in_charge=?,payment_terms=? WHERE id=?',
+      [b.po_date||null, b.po_number, b.customer_id, b.remark||'', taxRate, taxAmount, totalAmount, b.currency||'VND', b.delivery_date||null, b.delivery_address||'', b.person_in_charge||'', b.payment_terms||'', id])
+    // Replace items
+    await execute('DELETE FROM customer_order_items WHERE order_id=?', [id])
+    if (b.items?.length) {
+      for (const item of b.items) {
+        if (!item.bom_id) continue
+        await execute('INSERT INTO customer_order_items (order_id,bom_id,qty,unit_price,rta_date,arrived_qty,balance,status) VALUES (?,?,?,?,?,?,?,?)',
+          [id, item.bom_id, item.qty||0, item.unit_price||0, item.rta_date||null, 0, item.qty||0, 'pending'])
+      }
+    }
+    await audit(u, 'UPDATE', '客戶訂單', id, b.po_number)
+    return c.json({ ok: true })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 app.delete('/api/customer-orders/:id', authMiddleware, canApprove, async c => {
   const id = c.req.param('id')
