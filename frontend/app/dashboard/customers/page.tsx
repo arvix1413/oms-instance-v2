@@ -62,8 +62,11 @@ export default function CustomersPage() {
   }
   const del = async (id:number) => {
     if (!await confirmDialog('確定刪除？')) return
-    await apiFetch(`/api/customers/${id}`,{method:'DELETE'})
+    try {
+      await apiFetch(`/api/customers/${id}`,{method:'DELETE'})
+      toast('已刪除')
       await load()
+    } catch(e:any){ toast('刪除失敗：'+e.message, 'error') }
   }
 
   const filtered = items.filter(c => !search || c.customer_name.toLowerCase().includes(search.toLowerCase()) || (c.customer_code||'').toLowerCase().includes(search.toLowerCase()))

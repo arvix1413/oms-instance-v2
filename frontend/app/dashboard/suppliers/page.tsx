@@ -61,8 +61,11 @@ export default function SuppliersPage() {
   }
   const del = async (id:number) => {
     if (!await confirmDialog('確定刪除？')) return
-    await apiFetch(`/api/suppliers/${id}`,{method:'DELETE'})
+    try {
+      await apiFetch(`/api/suppliers/${id}`,{method:'DELETE'})
+      toast('已刪除')
       await load()
+    } catch(e:any){ toast('刪除失敗：'+e.message, 'error') }
   }
 
   const filtered = items.filter(s => !search || s.name.toLowerCase().includes(search.toLowerCase()) || (s.supplier_code||'').toLowerCase().includes(search.toLowerCase()))

@@ -431,11 +431,13 @@ app.delete('/api/po/:id', authMiddleware, canApprove, async c => {
 })
 
 // 採購單收貨：更新材料庫存
-app.patch('/api/po/:id/receive', authMiddleware, canWrite, async c => {
+app.patch('/api/po/:id/receive', authMiddleware, canApprove, async c => {
   try {
     const id = c.req.param('id'); const u = c.get('user')
     const po = await queryOne<any>('SELECT * FROM purchase_orders WHERE id=?', [id])
     if (!po) return c.json({ error: 'Not found' }, 404)
+    if (po.status === 'received') return c.json({ error: '此採購單已收貨，不可重複操作' }, 400)
+    if (!['approved', 'sent'].includes(po.status)) return c.json({ error: '只有已核准或已發送的採購單才能收貨' }, 400)
     const items = await query<any>('SELECT * FROM po_items WHERE po_id=?', [id])
     for (const item of items) {
       const qty = parseFloat(item.quantity) || 0
@@ -748,8 +750,10 @@ app.patch('/api/delivery-notes/:id/status', authMiddleware, canApprove, async c 
   try {
     const id = c.req.param('id'); const { status } = await c.req.json()
     const u = c.get('user')
-    const row = await queryOne<any>('SELECT dn_number,customer_name FROM delivery_notes WHERE id=?', [id])
+    const row = await queryOne<any>('SELECT dn_number,customer_name,status as current_status FROM delivery_notes WHERE id=?', [id])
     if (!row) return c.json({ error: 'Not found' }, 404)
+    if (row.current_status === 'shipped') return c.json({ error: '此出貨單已出貨，不可重複操作' }, 400)
+    if (status === 'shipped' && row.current_status !== 'confirmed') return c.json({ error: '出貨前需先確認出貨單' }, 400)
 
     // When shipped: deduct stock from BOM
     if (status === 'shipped') {
