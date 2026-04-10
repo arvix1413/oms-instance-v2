@@ -20,6 +20,7 @@ export default function StockAdjustmentsPage() {
   const [form, setForm] = useState({ adj_type: 'count', adj_date: '', remark: '', items: [emptyItem()] })
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [approving, setApproving] = useState<number | null>(null)
 
   const load = () => apiFetch<Adj[]>('/api/stock-adjustments').then(setAdjs).finally(() => setLoading(false))
   useEffect(() => {
@@ -45,13 +46,16 @@ export default function StockAdjustmentsPage() {
   }
 
   const approve = async (id: number) => {
+    if (approving) return
     if (!await confirmDialog('確認核准庫存調整？', '核准後將更新材料庫存，此操作不可撤銷', '確認核准')) return
+    setApproving(id)
     try {
       await apiFetch(`/api/stock-adjustments/${id}/approve`, { method: 'PATCH' })
       toast('庫存調整已核准，庫存已更新')
       load()
       if (viewing?.id === id) { viewAdj(id) }
     } catch (e: any) { toast(e.message, 'error') }
+    finally { setApproving(null) }
   }
 
   const del = async (id: number) => {
@@ -245,7 +249,8 @@ export default function StockAdjustmentsPage() {
                     <td className="text-slate-400 text-xs">{a.remark}</td>
                     <td>
                       <div className="flex gap-1 flex-wrap items-center">
-                        <StatusFlow compact steps={ADJ_STEPS} current={a.status} actions={getAdjActions(a.status)} onAction={() => approve(a.id)} />
+                        <StatusFlow compact steps={ADJ_STEPS} current={a.status} actions={approving === a.id ? [] : getAdjActions(a.status)} onAction={() => approve(a.id)} />
+                        {approving === a.id && <span className="text-xs text-slate-400 px-2">處理中...</span>}
                         <button onClick={() => viewAdj(a.id)} className="btn-ghost ml-1">詳情</button>
                         {a.status === 'draft' && <button onClick={() => del(a.id)} className="btn-danger">刪除</button>}
                       </div>

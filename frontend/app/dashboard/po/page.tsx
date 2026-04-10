@@ -104,10 +104,12 @@ export default function PoPage() {
 
   const approve = async (id: number, e: React.MouseEvent) => {
     e.stopPropagation()
-    await apiFetch(`/api/po/${id}/approve`, { method: 'PATCH' })
-    toast('已核准')
-    setLoadedItems(p => { const n = { ...p }; delete n[id]; return n })
-    load()
+    try {
+      await apiFetch(`/api/po/${id}/approve`, { method: 'PATCH' })
+      toast('已核准')
+      setLoadedItems(p => { const n = { ...p }; delete n[id]; return n })
+      load()
+    } catch (e: any) { toast('核准失敗：' + e.message, 'error') }
   }
 
   const confirmReceipt = async (po: Po, e: React.MouseEvent) => {
@@ -126,21 +128,24 @@ export default function PoPage() {
     const labels: Record<string, string> = { sent: '確認發送此採購單？' }
     const btnLabels: Record<string, string> = { sent: '確認發送' }
     if (!await confirmDialog(labels[status] || '確認變更狀態？', '', btnLabels[status] || '確認')) return
-    await apiFetch(`/api/po/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
-    toast('狀態已更新')
+    try {
+      await apiFetch(`/api/po/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
+      toast('狀態已更新')
       await load()
-    // refresh items if expanded
-    if (expanded.has(id)) {
-      const data = await apiFetch<Po>(`/api/po/${id}`)
-      setLoadedItems(p => ({ ...p, [id]: data.items || [] }))
-    }
+      if (expanded.has(id)) {
+        const data = await apiFetch<Po>(`/api/po/${id}`)
+        setLoadedItems(p => ({ ...p, [id]: data.items || [] }))
+      }
+    } catch (e: any) { toast('操作失敗：' + e.message, 'error') }
   }
 
   const del = async (id: number, e: React.MouseEvent) => {
     e.stopPropagation()
     if (!await confirmDialog('確定刪除此採購單？')) return
-    await apiFetch(`/api/po/${id}`, { method: 'DELETE' })
+    try {
+      await apiFetch(`/api/po/${id}`, { method: 'DELETE' })
       await load()
+    } catch (e: any) { toast('刪除失敗：' + e.message, 'error') }
   }
 
   const addItem = () => setForm(p => ({ ...p, items: [...p.items, emptyItem()] }))
