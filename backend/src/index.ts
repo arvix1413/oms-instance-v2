@@ -35,7 +35,7 @@ const isAdmin = async (c: any, next: () => Promise<void>) => {
 
 const canWrite = async (c: any, next: () => Promise<void>) => {
   const user = c.get('user')
-  if (!['admin', 'manager', 'purchaser'].includes(user?.role)) return c.json({ error: 'Forbidden' }, 403)
+  if (!['admin', 'manager', 'purchaser', 'employee'].includes(user?.role)) return c.json({ error: 'Forbidden' }, 403)
   await next()
 }
 
@@ -696,6 +696,39 @@ app.patch('/api/delivery-notes/:id/status', authMiddleware, canApprove, async c 
     }
 
     await execute('UPDATE delivery_notes SET status=? WHERE id=?', [status, id])
+
+    // When shipped: update linked customer order shipped qty and status
+    if (status === 'shipped') {
+      const dn = await queryOne<any>('SELECT customer_order_id FROM delivery_notes WHERE id=?', [id])
+      if (dn?.customer_order_id) {
+        const coId = dn.customer_order_id
+        // Sum all shipped delivery note items for this customer order
+        const shippedItems = await query<any>(`
+          SELECT dni.material_code, SUM(dni.qty) as shipped_qty
+          FROM delivery_note_items dni
+          JOIN delivery_notes dn2 ON dni.dn_id = dn2.id
+          WHERE dn2.customer_order_id = ? AND dn2.status = 'shipped'
+          GROUP BY dni.material_code
+        `, [coId])
+        // Update arrived_qty on each customer_order_item
+        for (const s of shippedItems) {
+          await execute(`
+            UPDATE customer_order_items ci
+            JOIN bom b ON ci.bom_id = b.id
+            SET ci.arrived_qty = ?, ci.balance = ci.qty - ?
+            WHERE ci.order_id = ? AND b.product_sku = ?
+          `, [s.shipped_qty, s.shipped_qty, coId, s.material_code])
+        }
+        // Check if all items fully shipped → mark completed, else partial
+        const coItems = await query<any>('SELECT qty, arrived_qty FROM customer_order_items WHERE order_id=?', [coId])
+        const allDone = coItems.every((ci: any) => Number(ci.arrived_qty) >= Number(ci.qty))
+        const anyDone = coItems.some((ci: any) => Number(ci.arrived_qty) > 0)
+        const newCoStatus = allDone ? 'completed' : anyDone ? 'partial' : 'pending'
+        await execute('UPDATE customer_orders SET status=? WHERE id=?', [newCoStatus, coId])
+        await audit(u, 'AUTO_UPDATE', '客戶訂單', coId, `出貨後自動更新狀態 → ${newCoStatus}`)
+      }
+    }
+
     await audit(u, 'STATUS_CHANGE', '出貨單', id, `${row.dn_number} → ${status}`)
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }

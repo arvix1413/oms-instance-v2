@@ -7,14 +7,14 @@ import { StatusFlow, ADJ_STEPS, getAdjActions } from '@/components/StatusFlow'
 
 type AdjItem = { material_code: string; material_name: string; unit: string; system_qty: number; actual_qty: number; diff_qty: number; batch_no: string; remark: string }
 type Adj = { id: number; adj_number: string; adj_type: string; status: string; adj_date: string; remark: string; created_at: string; items?: AdjItem[] }
-type Material = { material_code: string; material_name: string; unit: string; current_stock: number }
+type BomStock = { product_sku: string; product_name: string; unit: string; current_stock: number }
 
 const emptyItem = (): AdjItem => ({ material_code: '', material_name: '', unit: 'PCS', system_qty: 0, actual_qty: 0, diff_qty: 0, batch_no: '', remark: '' })
 
 export default function StockAdjustmentsPage() {
   const { toast, confirm: confirmDialog } = useDialog()
   const [adjs, setAdjs] = useState<Adj[]>([])
-  const [materials, setMaterials] = useState<Material[]>([])
+  const [bomStocks, setBomStocks] = useState<BomStock[]>([])
   const [viewing, setViewing] = useState<Adj | null>(null)
   const [creating, setCreating] = useState(false)
   const [form, setForm] = useState({ adj_type: 'count', adj_date: '', remark: '', items: [emptyItem()] })
@@ -24,7 +24,9 @@ export default function StockAdjustmentsPage() {
   const load = () => apiFetch<Adj[]>('/api/stock-adjustments').then(setAdjs).finally(() => setLoading(false))
   useEffect(() => {
     load()
-    apiFetch<Material[]>('/api/materials').then(setMaterials).catch(() => {})
+    apiFetch<any[]>('/api/inventory/bom').then(rows =>
+      setBomStocks(rows.map(r => ({ product_sku: r.product_code, product_name: r.product_name, unit: r.unit, current_stock: Number(r.closing_balance) || 0 })))
+    ).catch(() => {})
   }, [])
 
   const viewAdj = async (id: number) => {
@@ -77,12 +79,12 @@ export default function StockAdjustmentsPage() {
   }
 
   const onSelectMaterial = (i: number, code: string) => {
-    const mat = materials.find(m => m.material_code === code)
-    if (mat) {
+    const bom = bomStocks.find(m => m.product_sku === code)
+    if (bom) {
       updateItem(i, 'material_code', code)
-      updateItem(i, 'material_name', mat.material_name)
-      updateItem(i, 'unit', mat.unit || 'PCS')
-      updateItem(i, 'system_qty', mat.current_stock || 0)
+      updateItem(i, 'material_name', bom.product_name)
+      updateItem(i, 'unit', bom.unit || 'PCS')
+      updateItem(i, 'system_qty', bom.current_stock || 0)
     } else {
       updateItem(i, 'material_code', code)
     }
@@ -141,9 +143,9 @@ export default function StockAdjustmentsPage() {
                   <tr key={i} className="border-b border-slate-100">
                     <td className="p-1">
                       <select className={inp} style={{width:130}} value={item.material_code} onChange={e => onSelectMaterial(i, e.target.value)}>
-                        <option value="">-- 選擇料號 --</option>
-                        {materials.map(m => (
-                          <option key={m.material_code} value={m.material_code}>{m.material_code} - {m.material_name}</option>
+                        <option value="">-- 選擇 BOM 品項 --</option>
+                        {bomStocks.map(m => (
+                          <option key={m.product_sku} value={m.product_sku}>{m.product_sku} - {m.product_name}</option>
                         ))}
                       </select>
                     </td>
