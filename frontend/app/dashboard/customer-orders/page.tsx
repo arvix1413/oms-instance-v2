@@ -108,9 +108,12 @@ export default function CustomerOrdersPage() {
   }
 
   const del = async (id: number) => {
-    if (!await confirmDialog('確定刪除？')) return
-    await apiFetch(`/api/customer-orders/${id}`, { method:'DELETE' })
+    if (!await confirmDialog('確定刪除？', '此操作將同時刪除關聯的出貨單')) return
+    try {
+      await apiFetch(`/api/customer-orders/${id}`, { method:'DELETE' })
+      toast('已刪除')
       await load()
+    } catch(e:any){ toast('刪除失敗：'+e.message, 'error') }
   }
 
   const changeStatus = async (id: number, status: string) => {

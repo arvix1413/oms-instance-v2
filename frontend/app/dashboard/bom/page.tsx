@@ -77,8 +77,11 @@ export default function BomPage() {
   const del = async (id:number, e:React.MouseEvent) => {
     e.stopPropagation()
     if (!await confirmDialog('確定刪除此 BOM？')) return
-    await apiFetch(`/api/bom/${id}`, { method:'DELETE' })
-    await load()
+    try {
+      await apiFetch(`/api/bom/${id}`, { method:'DELETE' })
+      toast('已刪除')
+      await load()
+    } catch(e:any){ toast('刪除失敗：'+e.message, 'error') }
   }
 
   const onSupplierChange = (supplierId:string) => {

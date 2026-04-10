@@ -63,8 +63,11 @@ export default function QuotationsPage() {
   const del = async (id:number, e: React.MouseEvent) => {
     e.stopPropagation()
     if (!await confirmDialog('確定刪除？')) return
-    await apiFetch(`/api/quotations/${id}`,{method:'DELETE'})
+    try {
+      await apiFetch(`/api/quotations/${id}`,{method:'DELETE'})
+      toast('已刪除')
       await load()
+    } catch(e:any){ toast('刪除失敗：'+e.message, 'error') }
   }
   const save = async () => {
     if (!form.customer_name) { toast('請選擇客戶', 'error'); return }
