@@ -40,6 +40,7 @@ export default function ProductionPage() {
   const [creating, setCreating] = useState(false)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
   const me = getUser()
   const canWrite = can('production.create')
   const canDel = can('production.delete')
@@ -132,7 +133,11 @@ export default function ProductionPage() {
 
   const viewProd = async (id: number) => { const d = await apiFetch<Prod>(`/api/production/${id}`); setViewing(d) }
 
-  const filtered = prods.filter(p => !search || p.prod_number.toLowerCase().includes(search.toLowerCase()) || p.product_name.toLowerCase().includes(search.toLowerCase()))
+  const filtered = prods.filter(p => {
+    const matchSearch = !search || p.prod_number.toLowerCase().includes(search.toLowerCase()) || p.product_name.toLowerCase().includes(search.toLowerCase())
+    const matchStatus = !statusFilter || p.status === statusFilter
+    return matchSearch && matchStatus
+  })
   const { page, setPage, totalPages, paged, total } = usePagination(filtered, 20)
 
   const shortageItems = stockCheck?.items.filter(i => !i.sufficient) || []
@@ -312,7 +317,17 @@ export default function ProductionPage() {
         </div>
       )}
 
-      <div className="mb-4"><input className="oms-input w-64" placeholder="搜尋生產單號或產品名稱..." value={search} onChange={e => setSearch(e.target.value)} /></div>
+      <div className="mb-4 flex gap-3">
+        <input className="oms-input w-64" placeholder="搜尋生產單號或產品名稱..." value={search} onChange={e => setSearch(e.target.value)} />
+        <div className="flex gap-1">
+          {[['', '全部'], ['draft', '待確認'], ['confirmed', '已建立'], ['shortage', '缺料'], ['ready', '材料齊'], ['in_progress', '生產中'], ['completed', '完工']].map(([val, label]) => (
+            <button key={val} onClick={() => setStatusFilter(val)}
+              className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${statusFilter === val ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="oms-card overflow-hidden">
         {loading ? <div className="flex justify-center py-16"><div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" /></div> : (

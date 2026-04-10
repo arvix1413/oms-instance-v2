@@ -5,7 +5,8 @@ import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 
 type QItem = { item_name:string; material_code:string; spec:string; unit:string; qty:number; unit_price:number; total_price:number; remark:string; moq:number|string }
-type Q = { id:number; quotation_number:string; customer_name:string; status:string; total_amount:number; currency:string; valid_until:string; remark:string; created_at:string; items?:QItem[] }
+type Q = { id:number; quotation_number:string; customer_name:string; customer_id?:number; status:string; total_amount:number; currency:string; valid_until:string; remark:string; created_at:string; items?:QItem[] }
+type Customer = { id:number; customer_name:string; customer_code:string }
 const emptyItem = (): QItem => ({ item_name:'', material_code:'', spec:'', unit:'PCS', qty:1, unit_price:0, total_price:0, remark:'', moq:'' })
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
   draft:    { label:'草稿',   badge:'badge-gray'  },
@@ -27,15 +28,19 @@ export default function QuotationsPage() {
   const { toast, confirm: confirmDialog } = useDialog()
 
   const [items, setItems] = useState<Q[]>([])
+  const [customers, setCustomers] = useState<Customer[]>([])
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [loadedItems, setLoadedItems] = useState<Record<number, QItem[]>>({})
   const [creating, setCreating] = useState(false)
-  const [form, setForm] = useState({ customer_name:'', currency:'VND', valid_until:'', remark:'', items:[emptyItem()] })
+  const [form, setForm] = useState({ customer_id: '', customer_name:'', currency:'VND', valid_until:'', remark:'', items:[emptyItem()] })
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
   const load = () => apiFetch<Q[]>('/api/quotations').then(setItems).finally(()=>setLoading(false))
-  useEffect(()=>{ load() },[])
+  useEffect(()=>{
+    load()
+    apiFetch<Customer[]>('/api/customers').then(setCustomers).catch(()=>{})
+  },[])
 
   const toggleExpand = async (id: number) => {
     const next = new Set(expanded)
@@ -62,9 +67,11 @@ export default function QuotationsPage() {
       await load()
   }
   const save = async () => {
+    if (!form.customer_name) { toast('請選擇客戶', 'error'); return }
     try {
       await apiFetch('/api/quotations',{method:'POST',body:JSON.stringify(form)})
-      toast('報價單建立成功'); setCreating(false); setForm({customer_name:'',currency:'VND',valid_until:'',remark:'',items:[emptyItem()]})
+      toast('報價單建立成功'); setCreating(false)
+      setForm({customer_id:'', customer_name:'',currency:'VND',valid_until:'',remark:'',items:[emptyItem()]})
       await load()
     } catch(e:any){ toast('錯誤：'+e.message) }
   }
@@ -111,12 +118,24 @@ export default function QuotationsPage() {
         <div className="oms-card p-6 mb-5">
           <h2 className="text-sm font-semibold text-slate-800 mb-4">新增報價單</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-            {[['客戶名稱 *','customer_name','text'],['有效期限','valid_until','date'],['備註','remark','text']].map(([label,key,type])=>(
-              <div key={key}>
-                <label className="block text-[11px] text-slate-500 mb-1.5">{label}</label>
-                <input type={type} className={inp} value={(form as any)[key]} onChange={e=>setForm(p=>({...p,[key]:e.target.value}))} />
-              </div>
-            ))}
+            <div>
+              <label className="block text-[11px] text-slate-500 mb-1.5">客戶 *</label>
+              <select className={inp} value={form.customer_id} onChange={e => {
+                const c = customers.find(c => String(c.id) === e.target.value)
+                setForm(p => ({ ...p, customer_id: e.target.value, customer_name: c?.customer_name || '' }))
+              }}>
+                <option value="">-- 選擇客戶 --</option>
+                {customers.map(c => <option key={c.id} value={String(c.id)}>{c.customer_name}{c.customer_code ? ` (${c.customer_code})` : ''}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] text-slate-500 mb-1.5">有效期限</label>
+              <input type="date" className={inp} value={form.valid_until} onChange={e=>setForm(p=>({...p,valid_until:e.target.value}))} />
+            </div>
+            <div>
+              <label className="block text-[11px] text-slate-500 mb-1.5">備註</label>
+              <input className={inp} value={form.remark} onChange={e=>setForm(p=>({...p,remark:e.target.value}))} />
+            </div>
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">幣別</label>
               <select className={inp} value={form.currency} onChange={e=>setForm(p=>({...p,currency:e.target.value}))}>
