@@ -33,17 +33,24 @@ const isAdmin = async (c: any, next: () => Promise<void>) => {
   await next()
 }
 
-const canWrite = async (c: any, next: () => Promise<void>) => {
-  const user = c.get('user')
-  if (!['admin', 'manager', 'purchaser', 'employee'].includes(user?.role)) return c.json({ error: 'Forbidden' }, 403)
-  await next()
+// Dynamic RBAC permission check — admin always passes, others check role_permissions table
+function requirePerm(permKey: string) {
+  return async (c: any, next: () => Promise<void>) => {
+    const user = c.get('user')
+    if (!user) return c.json({ error: 'Unauthorized' }, 401)
+    if (user.role === 'admin') return next()
+    const row = await queryOne<any>(
+      'SELECT allowed FROM role_permissions WHERE role=? AND permission=? AND allowed=1',
+      [user.role, permKey]
+    )
+    if (!row) return c.json({ error: `無此操作權限（${permKey}）` }, 403)
+    return next()
+  }
 }
 
-const canApprove = async (c: any, next: () => Promise<void>) => {
-  const user = c.get('user')
-  if (!['admin', 'manager'].includes(user?.role)) return c.json({ error: 'Forbidden' }, 403)
-  await next()
-}
+// Convenience wrappers — kept for any remaining legacy usage
+const canWrite = requirePerm('po.create')
+const canApprove = requirePerm('po.approve')
 
 // ── Audit ────────────────────────────────────────────────────────────────────
 async function audit(user: any, action: string, resource: string, resourceId: any, detail?: string) {
@@ -183,7 +190,7 @@ app.delete('/api/suppliers/:id', authMiddleware, async c => {
 
 // ── Customers ────────────────────────────────────────────────────────────────
 app.get('/api/customers', authMiddleware, async c => c.json(await query('SELECT * FROM customers ORDER BY created_at DESC')))
-app.post('/api/customers', authMiddleware, canWrite, async c => {
+app.post('/api/customers', authMiddleware, requirePerm('customer.manage'), async c => {
   try {
     const b = await c.req.json()
     if (!b.customer_code || !b.customer_name) return c.json({ error: 'customer_code and customer_name required' }, 400)
@@ -193,7 +200,7 @@ app.post('/api/customers', authMiddleware, canWrite, async c => {
     return c.json({ id: r.insertId }, 201)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.put('/api/customers/:id', authMiddleware, canWrite, async c => {
+app.put('/api/customers/:id', authMiddleware, requirePerm('customer.manage'), async c => {
   try {
     const b = await c.req.json()
     await execute('UPDATE customers SET customer_code=?,customer_name=?,tax_id=?,contact=?,phone=?,email=?,address=?,main_products=?,payment_terms=?,status=? WHERE id=?',
@@ -202,7 +209,7 @@ app.put('/api/customers/:id', authMiddleware, canWrite, async c => {
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.delete('/api/customers/:id', authMiddleware, canApprove, async c => {
+app.delete('/api/customers/:id', authMiddleware, requirePerm('customer.manage'), async c => {
   const id = c.req.param('id')
   // Check for linked orders before deleting
   const linked = await queryOne<any>('SELECT COUNT(*) as cnt FROM customer_orders WHERE customer_id=?', [id])
@@ -302,7 +309,7 @@ app.get('/api/bom/:id', authMiddleware, async c => {
     WHERE bi.bom_id=?`, [c.req.param('id')])
   return c.json({ ...bom, items })
 })
-app.post('/api/bom', authMiddleware, canWrite, async c => {
+app.post('/api/bom', authMiddleware, requirePerm('bom.create'), async c => {
   try {
     const b = await c.req.json()
     if (!b.product_sku || !b.product_name) return c.json({ error: 'product_sku and product_name required' }, 400)
@@ -324,7 +331,7 @@ app.post('/api/bom', authMiddleware, canWrite, async c => {
     return c.json({ id: bomId }, 201)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.put('/api/bom/:id', authMiddleware, canWrite, async c => {
+app.put('/api/bom/:id', authMiddleware, requirePerm('bom.edit'), async c => {
   try {
     const id = c.req.param('id'); const b = await c.req.json(); const u = c.get('user')
     await execute(`UPDATE bom SET product_sku=?,product_name=?,material_name=?,spec=?,unit=?,supplier_id=?,supplier_name=?,supplier_price=?,company_price=?,currency=?,category=?,cert_code=?,brand=?,image_url=?,version=? WHERE id=?`,
@@ -342,7 +349,7 @@ app.put('/api/bom/:id', authMiddleware, canWrite, async c => {
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.delete('/api/bom/:id', authMiddleware, canApprove, async c => {
+app.delete('/api/bom/:id', authMiddleware, requirePerm('bom.delete'), async c => {
   const id = c.req.param('id')
   // Check for linked customer orders or PO items
   const linkedCO = await queryOne<any>('SELECT COUNT(*) as cnt FROM customer_order_items WHERE bom_id=?', [id])
@@ -386,7 +393,7 @@ app.get('/api/po/:id', authMiddleware, async c => {
     WHERE pi.po_id=?`, [c.req.param('id')])
   return c.json({ ...po, items })
 })
-app.post('/api/po', authMiddleware, canWrite, async c => {
+app.post('/api/po', authMiddleware, requirePerm('po.create'), async c => {
   try {
     const b = await c.req.json()
     const u = c.get('user')
@@ -406,7 +413,7 @@ app.post('/api/po', authMiddleware, canWrite, async c => {
     return c.json({ id: poId, po_number: poNum }, 201)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.put('/api/po/:id', authMiddleware, canWrite, async c => {
+app.put('/api/po/:id', authMiddleware, requirePerm('po.create'), async c => {
   try {
     const id = c.req.param('id'); const b = await c.req.json(); const u = c.get('user')
     const po = await queryOne<any>('SELECT status FROM purchase_orders WHERE id=?', [id])
@@ -427,7 +434,7 @@ app.put('/api/po/:id', authMiddleware, canWrite, async c => {
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.patch('/api/po/:id/approve', authMiddleware, canApprove, async c => {
+app.patch('/api/po/:id/approve', authMiddleware, requirePerm('po.approve'), async c => {
   try {
     const id = c.req.param('id'); const u = c.get('user')
     const row = await queryOne<any>('SELECT po_number, status FROM purchase_orders WHERE id=?', [id])
@@ -438,7 +445,7 @@ app.patch('/api/po/:id/approve', authMiddleware, canApprove, async c => {
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.patch('/api/po/:id/status', authMiddleware, canWrite, async c => {
+app.patch('/api/po/:id/status', authMiddleware, requirePerm('po.create'), async c => {
   try {
     const id = c.req.param('id'); const { status } = await c.req.json()
     const validStatuses = ['sent', 'cancelled']
@@ -449,7 +456,7 @@ app.patch('/api/po/:id/status', authMiddleware, canWrite, async c => {
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.delete('/api/po/:id', authMiddleware, canApprove, async c => {
+app.delete('/api/po/:id', authMiddleware, requirePerm('po.delete'), async c => {
   try {
     const id = c.req.param('id')
     const row = await queryOne<any>('SELECT po_number, status FROM purchase_orders WHERE id=?', [id])
@@ -463,7 +470,7 @@ app.delete('/api/po/:id', authMiddleware, canApprove, async c => {
 })
 
 // 採購單收貨：更新材料庫存
-app.patch('/api/po/:id/receive', authMiddleware, canApprove, async c => {
+app.patch('/api/po/:id/receive', authMiddleware, requirePerm('po.approve'), async c => {
   try {
     const id = c.req.param('id'); const u = c.get('user')
     const po = await queryOne<any>('SELECT * FROM purchase_orders WHERE id=?', [id])
@@ -579,7 +586,7 @@ app.get('/api/customer-orders/:id', authMiddleware, async c => {
     WHERE ci.order_id=?`, [c.req.param('id')])
   return c.json({ ...order, items })
 })
-app.post('/api/customer-orders', authMiddleware, canWrite, async c => {
+app.post('/api/customer-orders', authMiddleware, requirePerm('customer_order.create'), async c => {
   try {
     const b = await c.req.json()
     if (!b.po_number || !b.customer_id) return c.json({ error: 'po_number and customer_id required' }, 400)
@@ -627,7 +634,7 @@ app.post('/api/customer-orders', authMiddleware, canWrite, async c => {
     return c.json({ id: orderId, dn_id: dnId, dn_number: dnNum }, 201)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.patch('/api/customer-orders/:id/status', authMiddleware, canWrite, async c => {
+app.patch('/api/customer-orders/:id/status', authMiddleware, requirePerm('customer_order.create'), async c => {
   try {
     const id = c.req.param('id')
     const { status } = await c.req.json()
@@ -639,7 +646,7 @@ app.patch('/api/customer-orders/:id/status', authMiddleware, canWrite, async c =
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.put('/api/customer-orders/:id', authMiddleware, canWrite, async c => {
+app.put('/api/customer-orders/:id', authMiddleware, requirePerm('customer_order.create'), async c => {
   try {
     const id = c.req.param('id'); const b = await c.req.json(); const u = c.get('user')
     const existing = await queryOne<any>('SELECT status FROM customer_orders WHERE id=?', [id])
@@ -664,7 +671,7 @@ app.put('/api/customer-orders/:id', authMiddleware, canWrite, async c => {
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.delete('/api/customer-orders/:id', authMiddleware, canApprove, async c => {
+app.delete('/api/customer-orders/:id', authMiddleware, requirePerm('customer_order.delete'), async c => {
   try {
     const id = c.req.param('id')
     // Check if any delivery note is already shipped — can't delete
@@ -702,7 +709,7 @@ app.get('/api/quotations/:id', authMiddleware, async c => {
   const items = await query('SELECT * FROM quotation_items WHERE quotation_id=?', [c.req.param('id')])
   return c.json({ ...q, items })
 })
-app.post('/api/quotations', authMiddleware, canWrite, async c => {
+app.post('/api/quotations', authMiddleware, requirePerm('customer_order.create'), async c => {
   try {
     const b = await c.req.json(); const u = c.get('user')
     const qNum = `QT${Date.now()}`
@@ -720,7 +727,7 @@ app.post('/api/quotations', authMiddleware, canWrite, async c => {
     return c.json({ id: qId, quotation_number: qNum }, 201)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.patch('/api/quotations/:id/status', authMiddleware, canApprove, async c => {
+app.patch('/api/quotations/:id/status', authMiddleware, requirePerm('customer_order.create'), async c => {
   try {
     const id = c.req.param('id'); const { status } = await c.req.json()
     const validStatuses = ['sent', 'accepted', 'rejected']
@@ -732,7 +739,7 @@ app.patch('/api/quotations/:id/status', authMiddleware, canApprove, async c => {
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.delete('/api/quotations/:id', authMiddleware, canApprove, async c => {
+app.delete('/api/quotations/:id', authMiddleware, requirePerm('customer_order.delete'), async c => {
   const id = c.req.param('id')
   const row = await queryOne<any>('SELECT quotation_number,customer_name FROM quotations WHERE id=?', [id])
   await execute('DELETE FROM quotation_items WHERE quotation_id=?', [id])
@@ -773,7 +780,7 @@ app.get('/api/delivery-notes/:id', authMiddleware, async c => {
     WHERE dni.dn_id=?`, [c.req.param('id')])
   return c.json({ ...dn, items })
 })
-app.post('/api/delivery-notes', authMiddleware, canWrite, async c => {
+app.post('/api/delivery-notes', authMiddleware, requirePerm('delivery.create'), async c => {
   try {
     const b = await c.req.json(); const u = c.get('user')
     // Get customer name from customer_id if not provided
@@ -796,7 +803,7 @@ app.post('/api/delivery-notes', authMiddleware, canWrite, async c => {
     return c.json({ id: dnId, dn_number: dnNum }, 201)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.patch('/api/delivery-notes/:id/status', authMiddleware, canApprove, async c => {
+app.patch('/api/delivery-notes/:id/status', authMiddleware, requirePerm('delivery.create'), async c => {
   try {
     const id = c.req.param('id'); const { status } = await c.req.json()
     const u = c.get('user')
@@ -862,7 +869,7 @@ app.patch('/api/delivery-notes/:id/status', authMiddleware, canApprove, async c 
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.delete('/api/delivery-notes/:id', authMiddleware, canApprove, async c => {
+app.delete('/api/delivery-notes/:id', authMiddleware, requirePerm('delivery.delete'), async c => {
   const id = c.req.param('id')
   const row = await queryOne<any>('SELECT dn_number,customer_name FROM delivery_notes WHERE id=?', [id])
   await execute('DELETE FROM delivery_note_items WHERE dn_id=?', [id])
@@ -913,7 +920,7 @@ app.put('/api/inventory/:id', authMiddleware, canWrite, async c => {
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.delete('/api/inventory/:id', authMiddleware, canApprove, async c => {
+app.delete('/api/inventory/:id', authMiddleware, requirePerm('stock.adjust'), async c => {
   const id = c.req.param('id')
   const row = await queryOne<any>('SELECT product_code,product_name FROM inventory WHERE id=?', [id])
   await execute('DELETE FROM inventory WHERE id=?', [id])
@@ -1123,7 +1130,7 @@ app.get('/api/goods-receipts/:id', authMiddleware, async c => {
     WHERE gri.gr_id=?`, [c.req.param('id')])
   return c.json({ ...gr, items })
 })
-app.post('/api/goods-receipts', authMiddleware, canWrite, async c => {
+app.post('/api/goods-receipts', authMiddleware, requirePerm('po.create'), async c => {
   try {
     const b = await c.req.json(); const u = c.get('user')
     const grNum = `GR${Date.now()}`
@@ -1144,7 +1151,7 @@ app.post('/api/goods-receipts', authMiddleware, canWrite, async c => {
     return c.json({ id: grId, gr_number: grNum }, 201)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.patch('/api/goods-receipts/:id/confirm', authMiddleware, canApprove, async c => {
+app.patch('/api/goods-receipts/:id/confirm', authMiddleware, requirePerm('po.approve'), async c => {
   try {
     const id = c.req.param('id'); const u = c.get('user')
     const gr = await queryOne<any>('SELECT * FROM goods_receipts WHERE id=?', [id])
@@ -1174,7 +1181,7 @@ app.patch('/api/goods-receipts/:id/confirm', authMiddleware, canApprove, async c
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.delete('/api/goods-receipts/:id', authMiddleware, canApprove, async c => {
+app.delete('/api/goods-receipts/:id', authMiddleware, requirePerm('po.delete'), async c => {
   const id = c.req.param('id')
   const row = await queryOne<any>('SELECT gr_number,status FROM goods_receipts WHERE id=?', [id])
   if (row?.status === 'confirmed') return c.json({ error: '已確認的進貨單不能刪除' }, 400)
@@ -1224,7 +1231,7 @@ app.get('/api/production/:id', authMiddleware, async c => {
   const materials = await query('SELECT * FROM production_materials WHERE prod_id=?', [c.req.param('id')])
   return c.json({ ...prod, materials })
 })
-app.post('/api/production', authMiddleware, canWrite, async c => {
+app.post('/api/production', authMiddleware, requirePerm('production.create'), async c => {
   try {
     const b = await c.req.json(); const u = c.get('user')
     const prodNum = `WO${Date.now()}`
@@ -1245,7 +1252,7 @@ app.post('/api/production', authMiddleware, canWrite, async c => {
     return c.json({ id: prodId, prod_number: prodNum }, 201)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.patch('/api/production/:id/status', authMiddleware, canWrite, async c => {
+app.patch('/api/production/:id/status', authMiddleware, requirePerm('production.create'), async c => {
   try {
     const id = c.req.param('id'); const { status, produced_qty } = await c.req.json(); const u = c.get('user')
     const validStatuses = ['confirmed', 'shortage', 'ready', 'in_progress', 'completed', 'cancelled']
@@ -1279,7 +1286,7 @@ app.patch('/api/production/:id/status', authMiddleware, canWrite, async c => {
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.delete('/api/production/:id', authMiddleware, canApprove, async c => {
+app.delete('/api/production/:id', authMiddleware, requirePerm('production.delete'), async c => {
   const id = c.req.param('id')
   const row = await queryOne<any>('SELECT prod_number,status FROM production_orders WHERE id=?', [id])
   if (row?.status === 'completed') return c.json({ error: '已完成的生產單不能刪除' }, 400)
@@ -1313,7 +1320,7 @@ app.get('/api/stock-adjustments/:id', authMiddleware, async c => {
   const items = await query('SELECT * FROM stock_adjustment_items WHERE adj_id=?', [c.req.param('id')])
   return c.json({ ...adj, items })
 })
-app.post('/api/stock-adjustments', authMiddleware, canWrite, async c => {
+app.post('/api/stock-adjustments', authMiddleware, requirePerm('stock.adjust'), async c => {
   try {
     const b = await c.req.json(); const u = c.get('user')
     const adjNum = `ADJ${Date.now()}`
@@ -1337,7 +1344,7 @@ app.post('/api/stock-adjustments', authMiddleware, canWrite, async c => {
     return c.json({ id: adjId, adj_number: adjNum }, 201)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.patch('/api/stock-adjustments/:id/approve', authMiddleware, canApprove, async c => {
+app.patch('/api/stock-adjustments/:id/approve', authMiddleware, requirePerm('stock.adjust'), async c => {
   try {
     const id = c.req.param('id'); const u = c.get('user')
     const adj = await queryOne<any>('SELECT * FROM stock_adjustments WHERE id=?', [id])
@@ -1361,7 +1368,7 @@ app.patch('/api/stock-adjustments/:id/approve', authMiddleware, canApprove, asyn
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.delete('/api/stock-adjustments/:id', authMiddleware, canApprove, async c => {
+app.delete('/api/stock-adjustments/:id', authMiddleware, requirePerm('stock.adjust'), async c => {
   const id = c.req.param('id')
   const row = await queryOne<any>('SELECT adj_number,status FROM stock_adjustments WHERE id=?', [id])
   if (row?.status === 'approved') return c.json({ error: '已核准的調整單不能刪除' }, 400)
