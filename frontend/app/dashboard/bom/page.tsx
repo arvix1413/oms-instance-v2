@@ -141,9 +141,9 @@ export default function BomPage() {
               </div>
               <div>
                 <label className="block text-[11px] text-slate-500 mb-1.5">供應商</label>
-                <select className={inp} value={editing.supplier_id||''} onChange={e=>onSupplierChange(e.target.value)}>
+                <select className={inp} value={editing.supplier_id != null ? String(editing.supplier_id) : ''} onChange={e=>onSupplierChange(e.target.value)}>
                   <option value="">-- 選擇供應商 --</option>
-                  {suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
+                  {suppliers.map(s=><option key={s.id} value={String(s.id)}>{s.name}</option>)}
                 </select>
               </div>
               <div>

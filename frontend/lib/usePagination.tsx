@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 
 export function usePagination<T>(items: T[], pageSize = 20) {
   const [page, setPage] = useState(1)
@@ -6,6 +6,11 @@ export function usePagination<T>(items: T[], pageSize = 20) {
 
   // Clamp page to valid range (handles filter reducing totalPages)
   const safePage = Math.max(1, Math.min(page, totalPages))
+
+  // Auto-reset to page 1 when items change (e.g. after filtering)
+  useEffect(() => {
+    setPage(1)
+  }, [items.length])
 
   const paged = useMemo(() => items.slice((safePage - 1) * pageSize, safePage * pageSize), [items, safePage, pageSize])
   const reset = () => setPage(1)
