@@ -323,6 +323,9 @@ app.put('/api/bom/:id', authMiddleware, canWrite, async c => {
 })
 app.delete('/api/bom/:id', authMiddleware, canApprove, async c => {
   const id = c.req.param('id')
+  // Check for linked customer orders or PO items
+  const linkedCO = await queryOne<any>('SELECT COUNT(*) as cnt FROM customer_order_items WHERE bom_id=?', [id])
+  if ((linkedCO?.cnt || 0) > 0) return c.json({ error: `此 BOM 有 ${linkedCO.cnt} 筆客戶訂單明細，無法刪除` }, 400)
   const row = await queryOne<any>('SELECT product_sku,product_name FROM bom WHERE id=?', [id])
   await execute('DELETE FROM bom_items WHERE bom_id=?', [id])
   await execute('DELETE FROM bom WHERE id=?', [id])

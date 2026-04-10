@@ -1,11 +1,10 @@
 'use client'
 import { useDialog } from '@/components/Dialog'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { apiFetch, getSignatureUrl } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, PO_STEPS, getPOActions } from '@/components/StatusFlow'
 import { SearchableSelect } from '@/components/SearchableSelect'
-import { getUser, PERMISSIONS } from '@/lib/permissions'
 import { can } from '@/lib/usePermissions'
 
 type PoItem = { material_code:string; material_name:string; spec:string; unit:string; quantity:number; unit_price:number; total_price:number; currency:string; remark:string; po_ref:string; thickness:number|string; image_url?:string; bom_id?:number }
@@ -45,7 +44,6 @@ export default function PoPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const me = getUser()
   const canWrite = can('po.create')
   const canApprove = can('po.approve')
   const canDel = can('po.delete')

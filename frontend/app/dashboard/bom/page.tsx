@@ -3,7 +3,7 @@ import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch, API, getToken } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
-import { getUser, PERMISSIONS } from '@/lib/permissions'
+import { getUser } from '@/lib/permissions'
 import { can } from '@/lib/usePermissions'
 
 type Bom = {
@@ -38,7 +38,6 @@ export default function BomPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [catFilter, setCatFilter] = useState('')
-  const me = getUser()
   const canWrite = can('bom.create')
   const canEdit = can('bom.edit')
   const canDel = can('bom.delete')

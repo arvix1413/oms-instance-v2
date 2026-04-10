@@ -1,12 +1,12 @@
 'use client'
 import { useDialog } from '@/components/Dialog'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { apiFetch, getSignatureUrl } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, CO_STEPS } from '@/components/StatusFlow'
 import { generateOrderHTML } from '@/lib/printOrder'
 import { SearchableSelect } from '@/components/SearchableSelect'
-import { getUser, PERMISSIONS } from '@/lib/permissions'
+import { getUser } from '@/lib/permissions'
 import { can } from '@/lib/usePermissions'
 
 // Customer order actions based on current status
@@ -59,7 +59,6 @@ export default function CustomerOrdersPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const me = getUser()
   const canWrite = can('customer_order.create')
   const canDel = can('customer_order.delete')
 
