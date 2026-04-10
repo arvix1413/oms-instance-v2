@@ -430,7 +430,9 @@ app.put('/api/po/:id', authMiddleware, canWrite, async c => {
 app.patch('/api/po/:id/approve', authMiddleware, canApprove, async c => {
   try {
     const id = c.req.param('id'); const u = c.get('user')
-    const row = await queryOne<any>('SELECT po_number FROM purchase_orders WHERE id=?', [id])
+    const row = await queryOne<any>('SELECT po_number, status FROM purchase_orders WHERE id=?', [id])
+    if (!row) return c.json({ error: 'Not found' }, 404)
+    if (row.status !== 'draft') return c.json({ error: '只有草稿狀態的採購單才能核准' }, 400)
     await execute('UPDATE purchase_orders SET status=?,approved_by=?,approved_at=? WHERE id=?', ['approved',u.userId,now8(),id])
     await audit(u, 'APPROVE', '採購單', id, row?.po_number)
     return c.json({ ok: true })
@@ -704,11 +706,16 @@ app.post('/api/quotations', authMiddleware, canWrite, async c => {
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 app.patch('/api/quotations/:id/status', authMiddleware, canApprove, async c => {
-  const id = c.req.param('id'); const { status } = await c.req.json()
-  const row = await queryOne<any>('SELECT quotation_number,customer_name FROM quotations WHERE id=?', [id])
-  await execute('UPDATE quotations SET status=? WHERE id=?', [status,id])
-  await audit(c.get('user'), 'STATUS_CHANGE', '報價單', id, `${row?.quotation_number} → ${status}`)
-  return c.json({ ok: true })
+  try {
+    const id = c.req.param('id'); const { status } = await c.req.json()
+    const validStatuses = ['sent', 'accepted', 'rejected']
+    if (!validStatuses.includes(status)) return c.json({ error: 'Invalid status' }, 400)
+    const row = await queryOne<any>('SELECT quotation_number,customer_name FROM quotations WHERE id=?', [id])
+    if (!row) return c.json({ error: 'Not found' }, 404)
+    await execute('UPDATE quotations SET status=? WHERE id=?', [status,id])
+    await audit(c.get('user'), 'STATUS_CHANGE', '報價單', id, `${row?.quotation_number} → ${status}`)
+    return c.json({ ok: true })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 app.delete('/api/quotations/:id', authMiddleware, canApprove, async c => {
   const id = c.req.param('id')
