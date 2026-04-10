@@ -58,6 +58,7 @@ export default function CustomerOrdersPage() {
   })
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
   const me = getUser()
   const canWrite = can('customer_order.create')
   const canDel = can('customer_order.delete')
@@ -158,9 +159,13 @@ export default function CustomerOrdersPage() {
     }))
   }
 
-  const filtered = orders.filter(o => !search ||
-    o.po_number.toLowerCase().includes(search.toLowerCase()) ||
-    (o.customer_name||'').toLowerCase().includes(search.toLowerCase()))
+  const filtered = orders.filter(o => {
+    const matchSearch = !search ||
+      o.po_number.toLowerCase().includes(search.toLowerCase()) ||
+      (o.customer_name||'').toLowerCase().includes(search.toLowerCase())
+    const matchStatus = !statusFilter || o.status === statusFilter
+    return matchSearch && matchStatus
+  })
   
   const { page, setPage, totalPages, paged, total } = usePagination(filtered, 20)
   const inp = 'oms-input text-xs py-1.5'
@@ -321,7 +326,17 @@ export default function CustomerOrdersPage() {
 
       {!creating && (
         <>
-          <div className="mb-4"><input className="oms-input w-64" placeholder="搜尋採購單號或客戶..." value={search} onChange={e=>setSearch(e.target.value)} /></div>
+          <div className="mb-4 flex gap-3">
+            <input className="oms-input w-64" placeholder="搜尋採購單號或客戶..." value={search} onChange={e=>setSearch(e.target.value)} />
+            <div className="flex gap-1">
+              {[['', '全部'], ['pending', '待出貨'], ['partial', '部分'], ['delay', '延遲'], ['completed', '已完成']].map(([val, label]) => (
+                <button key={val} onClick={() => setStatusFilter(val)}
+                  className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${statusFilter === val ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           <div className="oms-card overflow-hidden">
         {loading ? <div className="flex justify-center py-16"><div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"/></div> : (

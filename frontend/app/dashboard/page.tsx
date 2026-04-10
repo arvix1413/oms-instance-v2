@@ -53,6 +53,9 @@ export default function DashboardPage() {
     { href: '/dashboard/bom', label: '建立 BOM', desc: '產品物料清單' },
     { href: '/dashboard/po', label: '建立採購單', desc: '向供應商採購' },
     { href: '/dashboard/customer-orders', label: '新增客戶訂單', desc: '記錄客戶需求' },
+    { href: '/dashboard/delivery-notes', label: '新增出貨單', desc: '出貨給客戶' },
+    { href: '/dashboard/production', label: '新增生產單', desc: '安排生產工單' },
+    { href: '/dashboard/stock-adjustments', label: '庫存盤點', desc: '調整庫存數量' },
   ]
 
   const hasMonthSales = stats?.month_sales > 0

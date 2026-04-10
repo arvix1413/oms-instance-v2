@@ -85,6 +85,18 @@ export default function InventoryPage() {
         </div>
       </div>
 
+      {/* Low stock alert banner */}
+      {!loading && lowStock > 0 && (
+        <div className="mb-4 flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 flex-shrink-0 text-red-500">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <span>有 <strong>{lowStock}</strong> 個品項庫存為零，請及時補貨</span>
+          <button onClick={() => setStockFilter('low')} className="ml-auto text-xs underline hover:no-underline">查看零庫存</button>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex gap-3 mb-4">
         <input className="oms-input w-64" placeholder="搜尋料號、品名、規格、供應商..." value={search} onChange={e => setSearch(e.target.value)} />
