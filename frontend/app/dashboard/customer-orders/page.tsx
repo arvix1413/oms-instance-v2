@@ -1,7 +1,7 @@
 'use client'
 import { useDialog } from '@/components/Dialog'
 import { useEffect, useState, useRef } from 'react'
-import { apiFetch } from '@/lib/api'
+import { apiFetch, getSignatureUrl } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, CO_STEPS } from '@/components/StatusFlow'
 import { generateOrderHTML } from '@/lib/printOrder'
@@ -103,12 +103,7 @@ export default function CustomerOrdersPage() {
 
   const printOrder = async (orderId: number) => {
     const data = await apiFetch<any>(`/api/customer-orders/${orderId}`)
-    const storedUser = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('oms_user') || 'null') : null
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://oms-backend.arvix1413.workers.dev'
-    const signUrl = storedUser?.signature_url
-      ? (storedUser.signature_url.startsWith('http') ? storedUser.signature_url : `${apiBase}${storedUser.signature_url}`)
-      : undefined
-    const html = generateOrderHTML(data, signUrl)
+    const html = generateOrderHTML(data, getSignatureUrl() || undefined)
     const w = window.open('', '_blank', 'width=800,height=1000')
     if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500) }
   }

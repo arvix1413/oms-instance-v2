@@ -8,6 +8,16 @@ export function getToken() {
 export function setToken(t: string) { localStorage.setItem('oms_token', t) }
 export function clearToken() { localStorage.removeItem('oms_token') }
 
+/** Get the current user's full signature URL (handles relative paths) */
+export function getSignatureUrl(): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const user = JSON.parse(localStorage.getItem('oms_user') || 'null')
+    if (!user?.signature_url) return null
+    return user.signature_url.startsWith('http') ? user.signature_url : `${API}${user.signature_url}`
+  } catch { return null }
+}
+
 export async function apiFetch<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const token = getToken()
   // Don't set Content-Type for FormData (let browser set multipart boundary)

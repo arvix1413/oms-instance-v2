@@ -2,7 +2,7 @@
 import { generateDeliveryNoteHTML } from '@/lib/printDeliveryNote'
 import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
-import { apiFetch } from '@/lib/api'
+import { apiFetch, getSignatureUrl } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, DN_STEPS, getDNActions } from '@/components/StatusFlow'
 import { getUser, PERMISSIONS } from '@/lib/permissions'
@@ -151,11 +151,6 @@ export default function DeliveryNotesPage() {
   }
 
   const printDN = (dn: DN) => {
-    const storedUser = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('oms_user') || 'null') : null
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://oms-backend.arvix1413.workers.dev'
-    const signUrl = storedUser?.signature_url
-      ? (storedUser.signature_url.startsWith('http') ? storedUser.signature_url : `${apiBase}${storedUser.signature_url}`)
-      : undefined
     const html = generateDeliveryNoteHTML({
       dn_number: dn.dn_number,
       customer_name: dn.customer_name,
@@ -164,7 +159,7 @@ export default function DeliveryNotesPage() {
       address: (dn as any).address || '',
       remark: dn.remark,
       items: dn.items || []
-    }, signUrl)
+    }, getSignatureUrl() || undefined)
     const w = window.open('', '_blank', 'width=800,height=1000')
     if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500) }
   }

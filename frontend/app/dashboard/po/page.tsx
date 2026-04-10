@@ -1,7 +1,7 @@
 'use client'
 import { useDialog } from '@/components/Dialog'
 import { useEffect, useState, useRef } from 'react'
-import { apiFetch } from '@/lib/api'
+import { apiFetch, getSignatureUrl } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, PO_STEPS, getPOActions } from '@/components/StatusFlow'
 import { SearchableSelect } from '@/components/SearchableSelect'
@@ -175,11 +175,7 @@ export default function PoPage() {
     const currency = items[0]?.currency || data.currency || 'VND'
 
     // 取当前用户签名
-    const storedUser = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('oms_user') || 'null') : null
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://oms-backend.arvix1413.workers.dev'
-    const signatureUrl = storedUser?.signature_url
-      ? (storedUser.signature_url.startsWith('http') ? storedUser.signature_url : `${apiBase}${storedUser.signature_url}`)
-      : null
+    const signatureUrl = getSignatureUrl()
 
     const itemRows = items.map((item, idx) => `
       <tr>
