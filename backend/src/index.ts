@@ -450,12 +450,16 @@ app.patch('/api/po/:id/status', authMiddleware, canWrite, async c => {
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 app.delete('/api/po/:id', authMiddleware, canApprove, async c => {
-  const id = c.req.param('id')
-  const row = await queryOne<any>('SELECT po_number FROM purchase_orders WHERE id=?', [id])
-  await execute('DELETE FROM po_items WHERE po_id=?', [id])
-  await execute('DELETE FROM purchase_orders WHERE id=?', [id])
-  await audit(c.get('user'), 'DELETE', '採購單', id, row?.po_number)
-  return c.json({ ok: true })
+  try {
+    const id = c.req.param('id')
+    const row = await queryOne<any>('SELECT po_number, status FROM purchase_orders WHERE id=?', [id])
+    if (!row) return c.json({ error: 'Not found' }, 404)
+    if (row.status === 'received') return c.json({ error: '已收貨的採購單不能刪除（庫存已更新）' }, 400)
+    await execute('DELETE FROM po_items WHERE po_id=?', [id])
+    await execute('DELETE FROM purchase_orders WHERE id=?', [id])
+    await audit(c.get('user'), 'DELETE', '採購單', id, row?.po_number)
+    return c.json({ ok: true })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 
 // 採購單收貨：更新材料庫存
@@ -661,15 +665,26 @@ app.put('/api/customer-orders/:id', authMiddleware, canWrite, async c => {
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 app.delete('/api/customer-orders/:id', authMiddleware, canApprove, async c => {
-  const id = c.req.param('id')
-  const row = await queryOne<any>(`
-    SELECT co.po_number, c.customer_name
-    FROM customer_orders co LEFT JOIN customers c ON co.customer_id = c.id
-    WHERE co.id=?`, [id])
-  await execute('DELETE FROM customer_order_items WHERE order_id=?', [id])
-  await execute('DELETE FROM customer_orders WHERE id=?', [id])
-  await audit(c.get('user'), 'DELETE', '客戶訂單', id, `${row?.po_number} / ${row?.customer_name}`)
-  return c.json({ ok: true })
+  try {
+    const id = c.req.param('id')
+    // Check if any delivery note is already shipped — can't delete
+    const shippedDN = await queryOne<any>('SELECT COUNT(*) as cnt FROM delivery_notes WHERE customer_order_id=? AND status="shipped"', [id])
+    if ((shippedDN?.cnt || 0) > 0) return c.json({ error: '此訂單已有出貨記錄，無法刪除' }, 400)
+    const row = await queryOne<any>(`
+      SELECT co.po_number, c.customer_name
+      FROM customer_orders co LEFT JOIN customers c ON co.customer_id = c.id
+      WHERE co.id=?`, [id])
+    // Delete linked delivery notes and their items first
+    const dns = await query<any>('SELECT id FROM delivery_notes WHERE customer_order_id=?', [id])
+    for (const dn of dns) {
+      await execute('DELETE FROM delivery_note_items WHERE dn_id=?', [dn.id])
+    }
+    await execute('DELETE FROM delivery_notes WHERE customer_order_id=?', [id])
+    await execute('DELETE FROM customer_order_items WHERE order_id=?', [id])
+    await execute('DELETE FROM customer_orders WHERE id=?', [id])
+    await audit(c.get('user'), 'DELETE', '客戶訂單', id, `${row?.po_number} / ${row?.customer_name}`)
+    return c.json({ ok: true })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 
 // ── Quotations ────────────────────────────────────────────────────────────────
