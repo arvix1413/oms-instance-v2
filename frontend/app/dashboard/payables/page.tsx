@@ -29,6 +29,7 @@ export default function PayablesPage() {
   const [editing, setEditing] = useState<AP | null>(null)
   const [form, setForm] = useState({ payment_status: 'paid', paid_amount: 0, payment_date: '', payment_note: '' })
   const [search, setSearch] = useState('')
+  const [payFilter, setPayFilter] = useState('')
 
   const load = () => apiFetch<AP[]>('/api/payables').then(setItems).finally(() => setLoading(false))
   useEffect(() => { load() }, [])
@@ -53,9 +54,13 @@ export default function PayablesPage() {
     } catch (e: any) { toast('錯誤：' + e.message) }
   }
 
-  const filtered = items.filter(i => !search ||
-    i.po_number.toLowerCase().includes(search.toLowerCase()) ||
-    i.supplier_name.toLowerCase().includes(search.toLowerCase()))
+  const filtered = items.filter(i => {
+    const matchSearch = !search ||
+      i.po_number.toLowerCase().includes(search.toLowerCase()) ||
+      i.supplier_name.toLowerCase().includes(search.toLowerCase())
+    const matchPay = !payFilter || (i.payment_status || 'pending') === payFilter
+    return matchSearch && matchPay
+  })
   const { page, setPage, totalPages, paged, total } = usePagination(filtered, 20)
 
   const totalPayable = items.reduce((s, i) => s + (i.total_amount || 0), 0)
@@ -120,8 +125,16 @@ export default function PayablesPage() {
         </div>
       )}
 
-      <div className="mb-4">
+      <div className="mb-4 flex gap-3">
         <input className="oms-input w-64" placeholder="搜尋採購單號或供應商..." value={search} onChange={e => setSearch(e.target.value)} />
+        <div className="flex gap-1">
+          {[['', '全部'], ['pending', '待付款'], ['partial', '部分付款'], ['paid', '已付款']].map(([val, label]) => (
+            <button key={val} onClick={() => setPayFilter(val)}
+              className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${payFilter === val ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="oms-card overflow-hidden">

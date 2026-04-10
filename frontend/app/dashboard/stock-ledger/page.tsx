@@ -20,6 +20,8 @@ export default function StockLedgerPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   const load = () => {
     setLoading(true)
@@ -30,7 +32,10 @@ export default function StockLedgerPage() {
   const filtered = logs.filter(l => {
     const matchSearch = !search || l.material_code.toLowerCase().includes(search.toLowerCase()) || l.material_name.toLowerCase().includes(search.toLowerCase())
     const matchType = !filterType || l.transaction_type === filterType
-    return matchSearch && matchType
+    const d = l.created_at?.slice(0, 10) || ''
+    const matchFrom = !dateFrom || d >= dateFrom
+    const matchTo = !dateTo || d <= dateTo
+    return matchSearch && matchType && matchFrom && matchTo
   })
   const { page, setPage, totalPages, paged, total } = usePagination(filtered, 50)
 
@@ -44,13 +49,15 @@ export default function StockLedgerPage() {
         <button onClick={load} className="btn-ghost">↻ 重新整理</button>
       </div>
 
-      <div className="flex gap-3 mb-4">
+      <div className="flex gap-3 mb-4 flex-wrap">
         <input className="oms-input w-52" placeholder="搜尋料號或材料名稱..." value={search} onChange={e => setSearch(e.target.value)} />
         <select className="oms-input w-36" value={filterType} onChange={e => setFilterType(e.target.value)}>
           <option value="">全部類型</option>
           {Object.entries(TX_LABELS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>
-        {(search || filterType) && <button onClick={() => { setSearch(''); setFilterType('') }} className="btn-ghost">清除</button>}
+        <input type="date" className="oms-input w-36" value={dateFrom} onChange={e => setDateFrom(e.target.value)} title="開始日期" />
+        <input type="date" className="oms-input w-36" value={dateTo} onChange={e => setDateTo(e.target.value)} title="結束日期" />
+        {(search || filterType || dateFrom || dateTo) && <button onClick={() => { setSearch(''); setFilterType(''); setDateFrom(''); setDateTo('') }} className="btn-ghost">清除</button>}
       </div>
 
       <div className="oms-card overflow-hidden">
