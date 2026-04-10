@@ -5,6 +5,7 @@ import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, PO_STEPS, getPOActions } from '@/components/StatusFlow'
 import { SearchableSelect } from '@/components/SearchableSelect'
+import { getUser, PERMISSIONS } from '@/lib/permissions'
 
 type PoItem = { material_code:string; material_name:string; spec:string; unit:string; quantity:number; unit_price:number; total_price:number; currency:string; remark:string; po_ref:string; thickness:number|string; image_url?:string; bom_id?:number }
 type Po = { id:number; po_number:string; supplier_name:string; status:string; total_amount:number; currency:string; remark:string; created_at:string; approved_at?:string; items?:PoItem[] }
@@ -42,6 +43,10 @@ export default function PoPage() {
   const [form, setForm] = useState({ supplier_id: '', supplier_name:'', currency:'VND', remark:'', items:[emptyItem()] })
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const me = getUser()
+  const canWrite = me ? PERMISSIONS.canCreatePO(me.role) : false
+  const canApprove = me ? PERMISSIONS.canApprovePO(me.role) : false
+  const canDel = me ? PERMISSIONS.canDeletePO(me.role) : false
 
   const load = () => apiFetch<Po[]>('/api/po').then(setPos).finally(() => setLoading(false))
   useEffect(() => {
@@ -328,10 +333,10 @@ export default function PoPage() {
           <h1 className="text-xl font-bold text-slate-800">採購單管理</h1>
           <p className="text-xs text-slate-400 mt-0.5">點擊採購單列展開查看料號明細</p>
         </div>
-        <button onClick={() => setCreating(true)} className="btn-primary">+ 建立採購單</button>
+        {canWrite && <button onClick={() => setCreating(true)} className="btn-primary">+ 建立採購單</button>}
       </div>
 
-      {creating && (
+      {creating && canWrite && (
         <div className="oms-card p-6 mb-5">
           <h2 className="text-sm font-semibold text-slate-800 mb-4">建立採購單</h2>
           <div className="grid grid-cols-3 gap-3 mb-4">
@@ -468,14 +473,18 @@ export default function PoPage() {
                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center gap-1">
                             <StatusFlow compact steps={PO_STEPS} current={p.status}
-                              actions={getPOActions(p.status)}
+                              actions={getPOActions(p.status).filter(a => {
+                                if (a.toStatus === 'approved') return canApprove
+                                if (a.toStatus === 'received') return canApprove
+                                return canWrite
+                              })}
                               onAction={async (toStatus) => {
                                 if (toStatus === 'approved') await approve(p.id, { stopPropagation: ()=>{} } as any)
                                 else if (toStatus === 'received') await confirmReceipt(p, { stopPropagation: ()=>{} } as any)
                                 else await changeStatus(p.id, toStatus, { stopPropagation: ()=>{} } as any)
                               }} />
                             <button onClick={e => { e.stopPropagation(); printPo(p.id, p.po_number, p.supplier_name) }} className="btn-ghost ml-1">🖨</button>
-                            <button onClick={e => del(p.id, e)} className="btn-danger">刪除</button>
+                            {canDel && <button onClick={e => del(p.id, e)} className="btn-danger">刪除</button>}
                           </div>
                         </td>
                       </tr>

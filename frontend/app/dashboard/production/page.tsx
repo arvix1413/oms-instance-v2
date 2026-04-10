@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, PROD_STEPS, getProdActions } from '@/components/StatusFlow'
+import { getUser, PERMISSIONS } from '@/lib/permissions'
 
 type ProdMat = {
   material_code: string; material_name: string; spec: string; unit: string
@@ -38,6 +39,9 @@ export default function ProductionPage() {
   const [creating, setCreating] = useState(false)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const me = getUser()
+  const canWrite = me ? PERMISSIONS.canCreateProduction(me.role) : false
+  const canDel = me ? PERMISSIONS.canDeleteProduction(me.role) : false
 
   // Create form
   const [step, setStep] = useState<1 | 2>(1)
@@ -139,7 +143,7 @@ export default function ProductionPage() {
           <h1 className="text-xl font-bold text-slate-800">生產單管理</h1>
           <p className="text-xs text-slate-400 mt-0.5">選擇成品 BOM → 自動展開材料 → 庫存檢查 → 建立生產單</p>
         </div>
-        <button onClick={() => { setCreating(true); setStep(1) }} className="btn-primary">+ 建立生產單</button>
+        {canWrite && <button onClick={() => { setCreating(true); setStep(1) }} className="btn-primary">+ 建立生產單</button>}
       </div>
 
       {creating && (
@@ -330,7 +334,7 @@ export default function ProductionPage() {
                           actions={getProdActions(p.status)}
                           onAction={(toStatus) => changeStatus(p.id, toStatus, toStatus === 'completed' ? p.planned_qty : undefined)} />
                         <button onClick={() => viewProd(p.id)} className="btn-ghost ml-1">詳情</button>
-                        {p.status === 'draft' && <button onClick={() => del(p.id)} className="btn-danger">刪除</button>}
+                        {p.status === 'draft' && canDel && <button onClick={() => del(p.id)} className="btn-danger">刪除</button>}
                       </div>
                     </td>
                   </tr>

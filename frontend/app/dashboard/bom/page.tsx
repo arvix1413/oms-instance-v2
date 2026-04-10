@@ -3,6 +3,7 @@ import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch, API, getToken } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
+import { getUser, PERMISSIONS } from '@/lib/permissions'
 
 type Bom = {
   id:number; product_sku:string; product_name:string; material_name:string; spec:string; unit:string
@@ -36,6 +37,9 @@ export default function BomPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [catFilter, setCatFilter] = useState('')
+  const me = getUser()
+  const canWrite = me ? PERMISSIONS.canCreateBOM(me.role) : false
+  const canDel = me ? PERMISSIONS.canDeleteBOM(me.role) : false
 
   const load = () => apiFetch<Bom[]>('/api/bom').then(setBoms).finally(()=>setLoading(false))
   useEffect(()=>{
@@ -98,7 +102,7 @@ export default function BomPage() {
           <h1 className="text-xl font-bold text-slate-800">材料明細</h1>
           <p className="text-xs text-slate-500 mt-0.5">物料編號、規格、供應商單價、公司售價</p>
         </div>
-        <button onClick={()=>setEditing(empty())} className="btn-primary">+ 建立材料</button>
+        {canWrite && <button onClick={()=>setEditing(empty())} className="btn-primary">+ 建立材料</button>}
       </div>
 
       {/* Edit / Create Modal */}
@@ -228,8 +232,8 @@ export default function BomPage() {
                       <td className="px-3 py-2.5 text-slate-400 whitespace-nowrap">{b.currency}</td>
                       <td className="px-3 py-2.5 whitespace-nowrap">
                         <div className="flex gap-1">
-                          <button onClick={()=>setEditing(b)} className="btn-ghost text-blue-600">編輯</button>
-                          <button onClick={e=>del(b.id,e)} className="btn-danger">刪除</button>
+                          {canWrite && <button onClick={()=>setEditing(b)} className="btn-ghost text-blue-600">編輯</button>}
+                          {canDel && <button onClick={e=>del(b.id,e)} className="btn-danger">刪除</button>}
                         </div>
                       </td>
                     </tr>

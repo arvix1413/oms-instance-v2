@@ -6,6 +6,7 @@ import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, CO_STEPS } from '@/components/StatusFlow'
 import { generateOrderHTML } from '@/lib/printOrder'
 import { SearchableSelect } from '@/components/SearchableSelect'
+import { getUser, PERMISSIONS } from '@/lib/permissions'
 
 // Customer order actions based on current status
 function getCOActions(status: string) {
@@ -56,6 +57,9 @@ export default function CustomerOrdersPage() {
   })
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const me = getUser()
+  const canWrite = me ? PERMISSIONS.canCreateCustomerOrder(me.role) : false
+  const canDel = me ? PERMISSIONS.canDeleteCustomerOrder(me.role) : false
 
   const load = () => apiFetch<Order[]>('/api/customer-orders')
     .then(setOrders)
@@ -167,10 +171,10 @@ export default function CustomerOrdersPage() {
           <h1 className="text-xl font-bold text-slate-800">客戶訂單明細</h1>
           <p className="text-xs text-slate-400 mt-0.5">點擊訂單列展開查看品項明細</p>
         </div>
-        <button onClick={()=>setCreating(true)} className="btn-primary">+ 新增訂單</button>
+        {canWrite && <button onClick={()=>setCreating(true)} className="btn-primary">+ 新增訂單</button>}
       </div>
 
-      {creating && (
+      {creating && canWrite && (
         <div className="oms-card p-6 mb-5">
           <h2 className="text-sm font-semibold text-slate-800 mb-4">新增客戶訂單</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
@@ -357,7 +361,7 @@ export default function CustomerOrdersPage() {
                         <td className="px-4 py-3" onClick={e=>e.stopPropagation()}>
                           <div className="flex gap-1">
                             <button onClick={e=>{e.stopPropagation();printOrder(o.id)}} className="btn-ghost">🖨</button>
-                            <button onClick={()=>del(o.id)} className="btn-danger">刪除</button>
+                            {canDel && <button onClick={()=>del(o.id)} className="btn-danger">刪除</button>}
                           </div>
                         </td>
                       </tr>

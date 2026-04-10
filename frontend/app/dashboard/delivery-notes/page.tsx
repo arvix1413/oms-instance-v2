@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, DN_STEPS, getDNActions } from '@/components/StatusFlow'
+import { getUser, PERMISSIONS } from '@/lib/permissions'
 
 type DNItem = { bom_id?:number|null; item_name:string; material_code:string; qty:number; shipped_qty:number; remark:string }
 type DN = { id:number; dn_number:string; customer_name:string; delivery_date:string; status:string; remark:string; created_at:string; items?:DNItem[] }
@@ -27,6 +28,9 @@ export default function DeliveryNotesPage() {
   const [viewing, setViewing] = useState<DN|null>(null)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const me = getUser()
+  const canWrite = me ? PERMISSIONS.canCreateDelivery(me.role) : false
+  const canDel = me ? PERMISSIONS.canDeleteDelivery(me.role) : false
 
   // Create form state
   const [selectedCustomerId, setSelectedCustomerId] = useState('')
@@ -174,10 +178,10 @@ export default function DeliveryNotesPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold text-slate-800">出貨單</h1>
-        <button onClick={() => setCreating(true)} className="btn-primary">+ 新增出貨單</button>
+        {canWrite && <button onClick={() => setCreating(true)} className="btn-primary">+ 新增出貨單</button>}
       </div>
 
-      {creating && (
+      {creating && canWrite && (
         <div className="oms-card p-6 mb-5">
           <h2 className="font-semibold text-slate-800 mb-5">新增出貨單</h2>
 
@@ -332,7 +336,7 @@ export default function DeliveryNotesPage() {
                           actions={getDNActions(dn.status)}
                           onAction={(toStatus) => changeStatus(dn.id, toStatus)} />
                         <button onClick={() => viewDN(dn.id)} className="btn-ghost ml-1">詳情</button>
-                        <button onClick={() => del(dn.id)} className="btn-danger">刪除</button>
+                        {canDel && <button onClick={() => del(dn.id)} className="btn-danger">刪除</button>}
                       </div>
                     </td>
                   </tr>
