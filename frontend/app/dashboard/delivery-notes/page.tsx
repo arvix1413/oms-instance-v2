@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react'
 import { apiFetch, getSignatureUrl } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, DN_STEPS, getDNActions } from '@/components/StatusFlow'
-import { getUser, PERMISSIONS } from '@/lib/permissions'
 import { can } from '@/lib/usePermissions'
 
 type DNItem = { bom_id?:number|null; item_name:string; material_code:string; qty:number; shipped_qty:number; remark:string }
@@ -29,7 +28,7 @@ export default function DeliveryNotesPage() {
   const [viewing, setViewing] = useState<DN|null>(null)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const me = getUser()
+  const [actionLoading, setActionLoading] = useState<number | null>(null)
   const canWrite = can('delivery.create')
   const canDel = can('delivery.delete')
 
@@ -134,20 +133,26 @@ export default function DeliveryNotesPage() {
   const changeStatus = async (id: number, status: string) => {
     const labels: Record<string, string> = {
       confirmed: '確認此出貨單？',
-      shipped: '確認出貨？出貨後狀態不可撤銷',
+      shipped: '確認出貨？出貨後狀態不可撤銷，並將自動扣減庫存',
     }
     const btnLabels: Record<string, string> = { confirmed: '確認', shipped: '確認出貨' }
     if (!await confirmDialog(labels[status] || '確認變更狀態？', '', btnLabels[status] || '確認')) return
-    await apiFetch(`/api/delivery-notes/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
-    toast('狀態已更新')
+    setActionLoading(id)
+    try {
+      await apiFetch(`/api/delivery-notes/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
+      toast('狀態已更新')
       await load()
-    if (viewing?.id === id) viewDN(id)
+      if (viewing?.id === id) viewDN(id)
+    } catch (e: any) { toast('操作失敗：' + e.message, 'error') }
+    finally { setActionLoading(null) }
   }
 
   const del = async (id: number) => {
     if (!await confirmDialog('確定刪除？')) return
-    await apiFetch(`/api/delivery-notes/${id}`, { method: 'DELETE' })
+    try {
+      await apiFetch(`/api/delivery-notes/${id}`, { method: 'DELETE' })
       await load()
+    } catch (e: any) { toast('刪除失敗：' + e.message, 'error') }
   }
 
   const printDN = (dn: DN) => {
@@ -330,8 +335,9 @@ export default function DeliveryNotesPage() {
                     <td className="px-3 py-2 whitespace-nowrap">
                       <div className="flex gap-1 flex-wrap">
                         <StatusFlow compact steps={DN_STEPS} current={dn.status}
-                          actions={getDNActions(dn.status)}
+                          actions={actionLoading === dn.id ? [] : getDNActions(dn.status)}
                           onAction={(toStatus) => changeStatus(dn.id, toStatus)} />
+                        {actionLoading === dn.id && <span className="text-xs text-slate-400 px-2">處理中...</span>}
                         <button onClick={() => viewDN(dn.id)} className="btn-ghost ml-1">詳情</button>
                         {canDel && <button onClick={() => del(dn.id)} className="btn-danger">刪除</button>}
                       </div>
