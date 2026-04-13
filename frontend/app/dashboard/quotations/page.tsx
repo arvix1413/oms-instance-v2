@@ -32,6 +32,7 @@ export default function QuotationsPage() {
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [loadedItems, setLoadedItems] = useState<Record<number, QItem[]>>({})
   const [creating, setCreating] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
   const [form, setForm] = useState({ customer_id: '', customer_name:'', currency:'VND', valid_until:'', remark:'', items:[emptyItem()] })
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -41,6 +42,8 @@ export default function QuotationsPage() {
     load()
     apiFetch<Customer[]>('/api/customers').then(setCustomers).catch(()=>{})
   },[])
+
+  const resetForm = () => { setForm({customer_id:'', customer_name:'',currency:'VND',valid_until:'',remark:'',items:[emptyItem()]}); setCreating(false); setEditingId(null) }
 
   const toggleExpand = async (id: number) => {
     const next = new Set(expanded)
@@ -72,11 +75,33 @@ export default function QuotationsPage() {
   const save = async () => {
     if (!form.customer_name) { toast('請選擇客戶', 'error'); return }
     try {
-      await apiFetch('/api/quotations',{method:'POST',body:JSON.stringify(form)})
-      toast('報價單建立成功'); setCreating(false)
-      setForm({customer_id:'', customer_name:'',currency:'VND',valid_until:'',remark:'',items:[emptyItem()]})
+      if (editingId) {
+        await apiFetch(`/api/quotations/${editingId}`,{method:'PUT',body:JSON.stringify(form)})
+        toast('報價單已更新')
+      } else {
+        await apiFetch('/api/quotations',{method:'POST',body:JSON.stringify(form)})
+        toast('報價單建立成功')
+      }
+      resetForm()
       await load()
-    } catch(e:any){ toast('錯誤：'+e.message) }
+    } catch(e:any){ toast('錯誤：'+e.message, 'error') }
+  }
+
+  const startEdit = async (q: Q, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const data = await apiFetch<Q>(`/api/quotations/${q.id}`)
+    const cust = customers.find(c => c.customer_name === q.customer_name)
+    setForm({
+      customer_id: cust ? String(cust.id) : '',
+      customer_name: q.customer_name,
+      currency: q.currency,
+      valid_until: q.valid_until ? String(q.valid_until).slice(0,10) : '',
+      remark: q.remark || '',
+      items: (data.items || []).map(i => ({ ...i }))
+    })
+    setEditingId(q.id)
+    setCreating(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const printQuotation = async (id: number, q: Q) => {
@@ -114,12 +139,12 @@ export default function QuotationsPage() {
           <h1 className="text-xl font-bold text-slate-800">報價單</h1>
           <p className="text-xs text-slate-400 mt-0.5">點擊報價單列展開查看品項明細</p>
         </div>
-        <button onClick={()=>setCreating(true)} className="btn-primary">+ 新增報價單</button>
+        <button onClick={()=>{ setCreating(true); setEditingId(null); resetForm() }} className="btn-primary">+ 新增報價單</button>
       </div>
 
-      {creating && (
+      {(creating || editingId !== null) && (
         <div className="oms-card p-6 mb-5">
-          <h2 className="text-sm font-semibold text-slate-800 mb-4">新增報價單</h2>
+          <h2 className="text-sm font-semibold text-slate-800 mb-4">{editingId ? '編輯報價單（草稿）' : '新增報價單'}</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">客戶 *</label>
@@ -183,8 +208,8 @@ export default function QuotationsPage() {
             </table>
           </div>
           <div className="flex gap-2 mt-4">
-            <button onClick={save} className="btn-primary">建立報價單</button>
-            <button onClick={()=>setCreating(false)} className="btn-ghost border border-slate-200">取消</button>
+            <button onClick={save} className="btn-primary">{editingId ? '儲存修改' : '建立報價單'}</button>
+            <button onClick={resetForm} className="btn-ghost border border-slate-200">取消</button>
           </div>
         </div>
       )}
@@ -226,7 +251,8 @@ export default function QuotationsPage() {
                         <td className="px-4 py-3"><span className={sm.badge}>{sm.label}</span></td>
                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center gap-1">
-                            {q.status==='draft' && <button onClick={e=>changeStatus(q.id,'sent',e)} className="btn-ghost text-blue-600">發送</button>}
+                            {q.status==='draft' && <button onClick={e=>startEdit(q,e)} className="btn-ghost text-blue-600">編輯</button>}
+                            {q.status==='draft' && <button onClick={e=>changeStatus(q.id,'sent',e)} className="btn-ghost">發送</button>}
                             {q.status==='sent' && <>
                               <button onClick={e=>changeStatus(q.id,'accepted',e)} className="btn-ghost text-emerald-600">接受</button>
                               <button onClick={e=>changeStatus(q.id,'rejected',e)} className="btn-danger">拒絕</button>

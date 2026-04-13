@@ -26,6 +26,8 @@ export default function DeliveryNotesPage() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [creating, setCreating] = useState(false)
   const [viewing, setViewing] = useState<DN|null>(null)
+  const [editing, setEditing] = useState<DN|null>(null)
+  const [editForm, setEditForm] = useState({ delivery_date: '', remark: '', items: [] as DNItem[] })
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [actionLoading, setActionLoading] = useState<number | null>(null)
@@ -128,6 +130,26 @@ export default function DeliveryNotesPage() {
   const viewDN = async (id: number) => {
     const d = await apiFetch<DN>(`/api/delivery-notes/${id}`)
     setViewing(d)
+  }
+
+  const startEditDN = async (dn: DN) => {
+    const d = await apiFetch<DN>(`/api/delivery-notes/${dn.id}`)
+    setEditForm({
+      delivery_date: dn.delivery_date ? String(dn.delivery_date).slice(0,10) : '',
+      remark: dn.remark || '',
+      items: d.items || []
+    })
+    setEditing(d)
+  }
+
+  const saveEditDN = async () => {
+    if (!editing) return
+    try {
+      await apiFetch(`/api/delivery-notes/${editing.id}`, { method: 'PUT', body: JSON.stringify(editForm) })
+      toast('出貨單已更新')
+      setEditing(null)
+      load()
+    } catch (e: any) { toast('更新失敗：' + e.message, 'error') }
   }
 
   const changeStatus = async (id: number, status: string) => {
@@ -306,6 +328,59 @@ export default function DeliveryNotesPage() {
         </div>
       )}
 
+      {/* Edit DN Modal */}
+      {editing && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-2xl w-full max-h-[85vh] overflow-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold">編輯出貨單 {editing.dn_number}</h2>
+              <button onClick={() => setEditing(null)} className="text-slate-400 hover:text-slate-600 text-xl">✕</button>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="block text-[11px] text-slate-500 mb-1.5">出貨日期</label>
+                <input type="date" className="oms-input" value={editForm.delivery_date} onChange={e => setEditForm(p => ({ ...p, delivery_date: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-[11px] text-slate-500 mb-1.5">備註</label>
+                <input className="oms-input" value={editForm.remark} onChange={e => setEditForm(p => ({ ...p, remark: e.target.value }))} />
+              </div>
+            </div>
+            <div className="border border-slate-200 rounded-lg overflow-hidden mb-4">
+              <table className="w-full text-xs">
+                <thead><tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">品名</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">物料編號</th>
+                  <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase">數量</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">備註</th>
+                </tr></thead>
+                <tbody>
+                  {editForm.items.map((item, i) => (
+                    <tr key={i} className="border-b border-slate-100 last:border-0">
+                      <td className="px-3 py-2 text-slate-700">{item.item_name}</td>
+                      <td className="px-3 py-2 font-mono text-xs text-blue-600">{item.material_code}</td>
+                      <td className="px-3 py-2 text-right">
+                        <input type="number" className="oms-input text-xs py-1 w-20 text-right" min={0}
+                          value={item.qty}
+                          onChange={e => setEditForm(p => ({ ...p, items: p.items.map((it, idx) => idx === i ? { ...it, qty: Number(e.target.value) } : it) }))} />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input className="oms-input text-xs py-1" value={item.remark || ''}
+                          onChange={e => setEditForm(p => ({ ...p, items: p.items.map((it, idx) => idx === i ? { ...it, remark: e.target.value } : it) }))} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={saveEditDN} className="btn-primary">儲存修改</button>
+              <button onClick={() => setEditing(null)} className="btn-ghost border border-slate-200">取消</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {!creating && (
         <>
           <div className="mb-4">
@@ -339,6 +414,7 @@ export default function DeliveryNotesPage() {
                           onAction={(toStatus) => changeStatus(dn.id, toStatus)} />
                         {actionLoading === dn.id && <span className="text-xs text-slate-400 px-2">處理中...</span>}
                         <button onClick={() => viewDN(dn.id)} className="btn-ghost ml-1">詳情</button>
+                        {canWrite && dn.status === 'draft' && <button onClick={() => startEditDN(dn)} className="btn-ghost text-blue-600">編輯</button>}
                         {canDel && <button onClick={() => del(dn.id)} className="btn-danger">刪除</button>}
                       </div>
                     </td>

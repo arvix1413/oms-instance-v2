@@ -50,6 +50,7 @@ export default function CustomerOrdersPage() {
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [loadedItems, setLoadedItems] = useState<Record<number, OrderItem[]>>({})
   const [creating, setCreating] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
   const [form, setForm] = useState({
     po_date:'', po_number:'', customer_id:'', remark:'',
     tax_rate: 8, currency: 'VND', delivery_date:'', delivery_address:'', 
@@ -93,11 +94,41 @@ export default function CustomerOrdersPage() {
     const validItems = form.items.filter(i => i.bom_id)
     if (!validItems.length) { toast('請至少選擇一個 BOM 品項', 'error'); return }
     try {
-      await apiFetch('/api/customer-orders', { method:'POST', body:JSON.stringify({ ...form, items: validItems }) })
-      toast('建立成功'); setCreating(false)
+      if (editingId) {
+        await apiFetch(`/api/customer-orders/${editingId}`, { method:'PUT', body:JSON.stringify({ ...form, items: validItems }) })
+        toast('訂單已更新'); setEditingId(null)
+      } else {
+        await apiFetch('/api/customer-orders', { method:'POST', body:JSON.stringify({ ...form, items: validItems }) })
+        toast('建立成功'); setCreating(false)
+      }
       setForm({ po_date:'', po_number:'', customer_id:'', remark:'', tax_rate:8, currency:'VND', delivery_date:'', delivery_address:'', person_in_charge:'', payment_terms:'', items:[emptyItem()] })
       await load()
     } catch(e:any){ toast('錯誤：'+e.message, 'error') }
+  }
+
+  const startEdit = async (order: Order) => {
+    const data = await apiFetch<Order>(`/api/customer-orders/${order.id}`)
+    setForm({
+      po_date: order.po_date ? String(order.po_date).slice(0,10) : '',
+      po_number: order.po_number,
+      customer_id: String(order.customer_id),
+      remark: order.remark || '',
+      tax_rate: Number(order.tax_rate) || 8,
+      currency: (order as any).currency || 'VND',
+      delivery_date: order.delivery_date ? String(order.delivery_date).slice(0,10) : '',
+      delivery_address: (order as any).delivery_address || '',
+      person_in_charge: order.person_in_charge || '',
+      payment_terms: order.payment_terms || '',
+      items: (data.items || []).map(i => ({
+        bom_id: i.bom_id, qty: Number(i.qty), unit_price: Number(i.unit_price),
+        rta_date: i.rta_date ? String(i.rta_date).slice(0,10) : '',
+        spec: i.spec || '', unit: i.unit || 'PCS',
+        product_sku: i.product_sku, product_name: i.product_name, image_url: i.image_url,
+      }))
+    })
+    setEditingId(order.id)
+    setCreating(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const printOrder = async (orderId: number) => {
@@ -174,12 +205,12 @@ export default function CustomerOrdersPage() {
           <h1 className="text-xl font-bold text-slate-800">客戶訂單明細</h1>
           <p className="text-xs text-slate-400 mt-0.5">點擊訂單列展開查看品項明細</p>
         </div>
-        {canWrite && <button onClick={()=>setCreating(true)} className="btn-primary">+ 新增訂單</button>}
+        {canWrite && <button onClick={()=>{ setCreating(true); setEditingId(null); setForm({ po_date:'', po_number:'', customer_id:'', remark:'', tax_rate:8, currency:'VND', delivery_date:'', delivery_address:'', person_in_charge:'', payment_terms:'', items:[emptyItem()] }) }} className="btn-primary">+ 新增訂單</button>}
       </div>
 
-      {creating && canWrite && (
+      {(creating || editingId !== null) && canWrite && (
         <div className="oms-card p-6 mb-5">
-          <h2 className="text-sm font-semibold text-slate-800 mb-4">新增客戶訂單</h2>
+          <h2 className="text-sm font-semibold text-slate-800 mb-4">{editingId ? '編輯客戶訂單' : '新增客戶訂單'}</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">採購日期</label>
@@ -315,13 +346,13 @@ export default function CustomerOrdersPage() {
             )
           })()}
           <div className="flex gap-2 mt-4">
-            <button onClick={save} className="btn-primary">建立訂單</button>
-            <button onClick={()=>setCreating(false)} className="btn-ghost border border-slate-200">取消</button>
+            <button onClick={save} className="btn-primary">{editingId ? '儲存修改' : '建立訂單'}</button>
+            <button onClick={()=>{ setCreating(false); setEditingId(null); setForm({ po_date:'', po_number:'', customer_id:'', remark:'', tax_rate:8, currency:'VND', delivery_date:'', delivery_address:'', person_in_charge:'', payment_terms:'', items:[emptyItem()] }) }} className="btn-ghost border border-slate-200">取消</button>
           </div>
         </div>
       )}
 
-      {!creating && (
+      {!creating && editingId === null && (
         <>
           <div className="mb-4 flex gap-3">
             <input className="oms-input w-64" placeholder="搜尋採購單號或客戶..." value={search} onChange={e=>setSearch(e.target.value)} />
@@ -374,6 +405,7 @@ export default function CustomerOrdersPage() {
                         <td className="px-4 py-3" onClick={e=>e.stopPropagation()}>
                           <div className="flex gap-1">
                             <button onClick={e=>{e.stopPropagation();printOrder(o.id)}} className="btn-ghost">🖨</button>
+                            {canWrite && o.status !== 'completed' && <button onClick={e=>{e.stopPropagation();startEdit(o)}} className="btn-ghost text-blue-600">編輯</button>}
                             {canDel && <button onClick={()=>del(o.id)} className="btn-danger">刪除</button>}
                           </div>
                         </td>

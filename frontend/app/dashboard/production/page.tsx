@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, PROD_STEPS, getProdActions } from '@/components/StatusFlow'
-import { getUser, PERMISSIONS } from '@/lib/permissions'
 import { can } from '@/lib/usePermissions'
 
 type ProdMat = {
@@ -16,6 +15,7 @@ type Prod = {
   id: number; prod_number: string; product_sku: string; product_name: string
   planned_qty: number; produced_qty: number; status: string
   planned_start: string; planned_end: string; remark: string; created_at: string
+  bom_id?: number; customer_order_id?: number
   materials?: ProdMat[]
 }
 type CustomerOrder = { id: number; po_number: string; customer_name: string }
@@ -37,11 +37,12 @@ export default function ProductionPage() {
   const [boms, setBoms] = useState<BOM[]>([])
   const [orders, setOrders] = useState<CustomerOrder[]>([])
   const [viewing, setViewing] = useState<Prod | null>(null)
+  const [editing, setEditing] = useState<Prod | null>(null)
+  const [editForm, setEditForm] = useState({ bom_id: '', product_sku: '', product_name: '', planned_qty: 1, planned_start: '', planned_end: '', remark: '', customer_order_id: '' })
   const [creating, setCreating] = useState(false)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const me = getUser()
   const canWrite = can('production.create')
   const canDel = can('production.delete')
 
@@ -132,6 +133,30 @@ export default function ProductionPage() {
   }
 
   const viewProd = async (id: number) => { const d = await apiFetch<Prod>(`/api/production/${id}`); setViewing(d) }
+
+  const startEditProd = async (prod: Prod) => {
+    setEditForm({
+      bom_id: prod.bom_id ? String(prod.bom_id) : '',
+      product_sku: prod.product_sku || '',
+      product_name: prod.product_name,
+      planned_qty: prod.planned_qty,
+      planned_start: prod.planned_start ? String(prod.planned_start).slice(0,10) : '',
+      planned_end: prod.planned_end ? String(prod.planned_end).slice(0,10) : '',
+      remark: prod.remark || '',
+      customer_order_id: prod.customer_order_id ? String(prod.customer_order_id) : '',
+    })
+    setEditing(prod)
+  }
+
+  const saveEditProd = async () => {
+    if (!editing) return
+    try {
+      await apiFetch(`/api/production/${editing.id}`, { method: 'PUT', body: JSON.stringify(editForm) })
+      toast('生產單已更新')
+      setEditing(null)
+      load()
+    } catch (e: any) { toast('更新失敗：' + e.message, 'error') }
+  }
 
   const filtered = prods.filter(p => {
     const matchSearch = !search || p.prod_number.toLowerCase().includes(search.toLowerCase()) || p.product_name.toLowerCase().includes(search.toLowerCase())
@@ -317,6 +342,50 @@ export default function ProductionPage() {
         </div>
       )}
 
+      {/* Edit Production Modal */}
+      {editing && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-lg w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold">編輯生產單 {editing.prod_number}</h2>
+              <button onClick={() => setEditing(null)} className="text-slate-400 hover:text-slate-600 text-xl">✕</button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">成品 BOM</label>
+                <select className="oms-input" value={editForm.bom_id} onChange={e => {
+                  const bom = boms.find(b => String(b.id) === e.target.value)
+                  setEditForm(p => ({ ...p, bom_id: e.target.value, product_sku: bom?.product_sku || p.product_sku, product_name: bom?.product_name || p.product_name }))
+                }}>
+                  <option value="">-- 選擇 BOM --</option>
+                  {boms.map(b => <option key={b.id} value={String(b.id)}>{b.product_sku} — {b.product_name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">生產數量</label>
+                <input type="number" min="1" className="oms-input" value={editForm.planned_qty} onChange={e => setEditForm(p => ({ ...p, planned_qty: Number(e.target.value) }))} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">計劃開始</label>
+                <input type="date" className="oms-input" value={editForm.planned_start} onChange={e => setEditForm(p => ({ ...p, planned_start: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">計劃完成</label>
+                <input type="date" className="oms-input" value={editForm.planned_end} onChange={e => setEditForm(p => ({ ...p, planned_end: e.target.value }))} />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">備註</label>
+                <input className="oms-input" value={editForm.remark} onChange={e => setEditForm(p => ({ ...p, remark: e.target.value }))} />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button onClick={saveEditProd} className="btn-primary">儲存修改</button>
+              <button onClick={() => setEditing(null)} className="btn-ghost border border-slate-200">取消</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-4 flex gap-3">
         <input className="oms-input w-64" placeholder="搜尋生產單號或產品名稱..." value={search} onChange={e => setSearch(e.target.value)} />
         <div className="flex gap-1">
@@ -350,6 +419,7 @@ export default function ProductionPage() {
                           actions={getProdActions(p.status)}
                           onAction={(toStatus) => changeStatus(p.id, toStatus, toStatus === 'completed' ? p.planned_qty : undefined)} />
                         <button onClick={() => viewProd(p.id)} className="btn-ghost ml-1">詳情</button>
+                        {canWrite && ['draft','confirmed','shortage'].includes(p.status) && <button onClick={() => startEditProd(p)} className="btn-ghost text-blue-600">編輯</button>}
                         {p.status === 'draft' && canDel && <button onClick={() => del(p.id)} className="btn-danger">刪除</button>}
                       </div>
                     </td>

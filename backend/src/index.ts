@@ -729,6 +729,26 @@ app.post('/api/quotations', authMiddleware, requirePerm('customer_order.create')
     return c.json({ id: qId, quotation_number: qNum }, 201)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
+app.put('/api/quotations/:id', authMiddleware, requirePerm('customer_order.create'), async c => {
+  try {
+    const id = c.req.param('id'); const b = await c.req.json(); const u = c.get('user')
+    const existing = await queryOne<any>('SELECT status FROM quotations WHERE id=?', [id])
+    if (!existing) return c.json({ error: 'Not found' }, 404)
+    if (existing.status !== 'draft') return c.json({ error: '只能編輯草稿狀態的報價單' }, 400)
+    const total = (b.items||[]).reduce((s: number, i: any) => s + (i.total_price||0), 0)
+    await execute('UPDATE quotations SET customer_id=?,customer_name=?,currency=?,valid_until=?,remark=?,total_amount=? WHERE id=?',
+      [b.customer_id||null, b.customer_name, b.currency||'VND', b.valid_until||null, b.remark||'', total, id])
+    await execute('DELETE FROM quotation_items WHERE quotation_id=?', [id])
+    if (b.items?.length) {
+      for (const item of b.items) {
+        await execute('INSERT INTO quotation_items (quotation_id,item_name,material_code,spec,unit,qty,unit_price,total_price,remark,moq) VALUES (?,?,?,?,?,?,?,?,?,?)',
+          [id,item.item_name,item.material_code||'',item.spec||'',item.unit||'PCS',item.qty,item.unit_price||0,(item.qty||0)*(item.unit_price||0),item.remark||'',item.moq||null])
+      }
+    }
+    await audit(u, 'UPDATE', '報價單', id, b.customer_name)
+    return c.json({ ok: true })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
 app.patch('/api/quotations/:id/status', authMiddleware, requirePerm('customer_order.create'), async c => {
   try {
     const id = c.req.param('id'); const { status } = await c.req.json()
@@ -803,6 +823,25 @@ app.post('/api/delivery-notes', authMiddleware, requirePerm('delivery.create'), 
     }
     await audit(u, 'CREATE', '出貨單', dnId, `${dnNum} / ${customerName}`)
     return c.json({ id: dnId, dn_number: dnNum }, 201)
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+app.put('/api/delivery-notes/:id', authMiddleware, requirePerm('delivery.create'), async c => {
+  try {
+    const id = c.req.param('id'); const b = await c.req.json(); const u = c.get('user')
+    const existing = await queryOne<any>('SELECT status FROM delivery_notes WHERE id=?', [id])
+    if (!existing) return c.json({ error: 'Not found' }, 404)
+    if (existing.status !== 'draft') return c.json({ error: '只能編輯草稿狀態的出貨單' }, 400)
+    await execute('UPDATE delivery_notes SET delivery_date=?,remark=? WHERE id=?',
+      [b.delivery_date||null, b.remark||'', id])
+    await execute('DELETE FROM delivery_note_items WHERE dn_id=?', [id])
+    if (b.items?.length) {
+      for (const item of b.items) {
+        await execute('INSERT INTO delivery_note_items (dn_id,item_name,material_code,spec,unit,qty,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?)',
+          [id, item.item_name||'', item.material_code||'', item.spec||'', item.unit||'PCS', item.qty||0, item.remark||'', item.po_ref||'', item.thickness||null])
+      }
+    }
+    await audit(u, 'UPDATE', '出貨單', id, `id=${id}`)
+    return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 app.patch('/api/delivery-notes/:id/status', authMiddleware, requirePerm('delivery.create'), async c => {
@@ -1273,6 +1312,25 @@ app.post('/api/production', authMiddleware, requirePerm('production.create'), as
     }
     await audit(u, 'CREATE', '生產單', prodId, prodNum)
     return c.json({ id: prodId, prod_number: prodNum }, 201)
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+app.put('/api/production/:id', authMiddleware, requirePerm('production.create'), async c => {
+  try {
+    const id = c.req.param('id'); const b = await c.req.json(); const u = c.get('user')
+    const existing = await queryOne<any>('SELECT status FROM production_orders WHERE id=?', [id])
+    if (!existing) return c.json({ error: 'Not found' }, 404)
+    if (!['draft', 'confirmed', 'shortage'].includes(existing.status)) return c.json({ error: '此狀態的生產單不能修改' }, 400)
+    await execute('UPDATE production_orders SET bom_id=?,product_sku=?,product_name=?,planned_qty=?,planned_start=?,planned_end=?,remark=? WHERE id=?',
+      [b.bom_id||null, b.product_sku||'', b.product_name, b.planned_qty, b.planned_start||null, b.planned_end||null, b.remark||'', id])
+    if (b.materials?.length) {
+      await execute('DELETE FROM production_materials WHERE prod_id=?', [id])
+      for (const mat of b.materials) {
+        await execute('INSERT INTO production_materials (prod_id,material_code,material_name,spec,unit,planned_qty,issued_qty,batch_no,remark) VALUES (?,?,?,?,?,?,?,?,?)',
+          [id,mat.material_code,mat.material_name,mat.spec||'',mat.unit||'PCS',mat.planned_qty||0,0,mat.batch_no||'',mat.remark||''])
+      }
+    }
+    await audit(u, 'UPDATE', '生產單', id, b.product_name)
+    return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 app.patch('/api/production/:id/status', authMiddleware, requirePerm('production.create'), async c => {

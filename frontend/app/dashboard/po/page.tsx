@@ -40,6 +40,7 @@ export default function PoPage() {
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [loadedItems, setLoadedItems] = useState<Record<number, PoItem[]>>({})
   const [creating, setCreating] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
   const [form, setForm] = useState({ supplier_id: '', supplier_name:'', currency:'VND', remark:'', items:[emptyItem()] })
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -163,12 +164,42 @@ export default function PoPage() {
   }
 
   const save = async () => {
+    if (!form.supplier_id) { toast('請選擇供應商', 'error'); return }
     try {
-      await apiFetch('/api/po', { method: 'POST', body: JSON.stringify(form) })
-      toast('採購單建立成功'); setCreating(false)
+      if (editingId) {
+        await apiFetch(`/api/po/${editingId}`, { method: 'PUT', body: JSON.stringify(form) })
+        toast('採購單已更新')
+        setEditingId(null)
+      } else {
+        await apiFetch('/api/po', { method: 'POST', body: JSON.stringify(form) })
+        toast('採購單建立成功')
+        setCreating(false)
+      }
       setForm({ supplier_id: '', supplier_name:'', currency:'VND', remark:'', items:[emptyItem()] })
       await load()
-    } catch (e: any) { toast('錯誤：' + e.message) }
+    } catch (e: any) { toast('錯誤：' + e.message, 'error') }
+  }
+
+  const startEdit = async (po: Po, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const data = await apiFetch<Po>(`/api/po/${po.id}`)
+    const sup = suppliers.find(s => s.name === po.supplier_name)
+    setForm({
+      supplier_id: sup ? String(sup.id) : '',
+      supplier_name: po.supplier_name,
+      currency: po.currency,
+      remark: po.remark || '',
+      items: (data.items || []).map(i => ({
+        material_code: i.material_code, material_name: i.material_name,
+        spec: i.spec, unit: i.unit, quantity: Number(i.quantity),
+        unit_price: Number(i.unit_price), total_price: Number(i.total_price),
+        currency: i.currency, remark: i.remark, po_ref: i.po_ref,
+        thickness: i.thickness, image_url: i.image_url, bom_id: i.bom_id,
+      }))
+    })
+    setEditingId(po.id)
+    setCreating(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const printPo = async (id: number, poNumber: string, supplierName: string) => {
@@ -338,12 +369,12 @@ export default function PoPage() {
           <h1 className="text-xl font-bold text-slate-800">採購單管理</h1>
           <p className="text-xs text-slate-400 mt-0.5">點擊採購單列展開查看料號明細</p>
         </div>
-        {canWrite && <button onClick={() => setCreating(true)} className="btn-primary">+ 建立採購單</button>}
+        {canWrite && <button onClick={() => { setCreating(true); setEditingId(null); setForm({ supplier_id: '', supplier_name:'', currency:'VND', remark:'', items:[emptyItem()] }) }} className="btn-primary">+ 建立採購單</button>}
       </div>
 
-      {creating && canWrite && (
+      {(creating || editingId !== null) && canWrite && (
         <div className="oms-card p-6 mb-5">
-          <h2 className="text-sm font-semibold text-slate-800 mb-4">建立採購單</h2>
+          <h2 className="text-sm font-semibold text-slate-800 mb-4">{editingId ? '編輯採購單（草稿）' : '建立採購單'}</h2>
           <div className="grid grid-cols-3 gap-3 mb-4">
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">供應商 *</label>
@@ -430,13 +461,13 @@ export default function PoPage() {
             </table>
           </div>
           <div className="flex gap-2 mt-4">
-            <button onClick={save} className="btn-primary">建立採購單</button>
-            <button onClick={() => setCreating(false)} className="btn-ghost border border-slate-200">取消</button>
+            <button onClick={save} className="btn-primary">{editingId ? '儲存修改' : '建立採購單'}</button>
+            <button onClick={() => { setCreating(false); setEditingId(null); setForm({ supplier_id: '', supplier_name:'', currency:'VND', remark:'', items:[emptyItem()] }) }} className="btn-ghost border border-slate-200">取消</button>
           </div>
         </div>
       )}
 
-      {!creating && (
+      {!creating && editingId === null && (
         <>
           <div className="mb-4 flex gap-3">
             <input className="oms-input w-64" placeholder="搜尋採購單號或供應商..." value={search} onChange={e=>setSearch(e.target.value)} />
@@ -499,6 +530,7 @@ export default function PoPage() {
                                 else await changeStatus(p.id, toStatus, { stopPropagation: ()=>{} } as any)
                               }} />
                             <button onClick={e => { e.stopPropagation(); printPo(p.id, p.po_number, p.supplier_name) }} className="btn-ghost ml-1">🖨</button>
+                            {canWrite && p.status === 'draft' && <button onClick={e => startEdit(p, e)} className="btn-ghost text-blue-600">編輯</button>}
                             {canDel && <button onClick={e => del(p.id, e)} className="btn-danger">刪除</button>}
                           </div>
                         </td>
