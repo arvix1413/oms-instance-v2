@@ -596,17 +596,15 @@ export default function PoPage() {
                                   </table>
                                 </div>
                               )}
-                              {/* Edit/Delete actions in expanded row */}
-                              {items.length > 0 && (
-                                <div className="px-4 py-2.5 border-t border-slate-100 flex items-center gap-2 bg-slate-50/80">
-                                  {canWrite && p.status === 'draft' && (
-                                    <button onClick={e => startEdit(p, e)} className="btn-ghost text-blue-600 text-xs">✏ 編輯採購單</button>
-                                  )}
-                                  {canDel && (
-                                    <button onClick={e => del(p.id, e)} className="btn-danger text-xs">刪除</button>
-                                  )}
-                                </div>
-                              )}
+                              {/* Edit/Delete actions in expanded row - always show */}
+                              <div className="px-4 py-2.5 border-t border-slate-100 flex items-center gap-2 bg-slate-50/80">
+                                {canWrite && p.status === 'draft' && (
+                                  <button onClick={e => startEdit(p, e)} className="btn-ghost text-blue-600 text-xs">✏ 編輯採購單</button>
+                                )}
+                                {canDel && (
+                                  <button onClick={e => del(p.id, e)} className="btn-danger text-xs">刪除</button>
+                                )}
+                              </div>
                             </div>
                           </td>
                         </tr>
