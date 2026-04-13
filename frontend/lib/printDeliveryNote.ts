@@ -15,13 +15,13 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
     return [
       '<tr>',
       '<td style="text-align:center">' + (i+1) + '</td>',
-      '<td style="font-family:monospace;font-size:10px;color:#1a56db">' + (data.po_ref || '—') + '</td>',
+      '<td style="font-family:monospace;font-size:10px;color:#1a56db">' + (item.po_ref || data.po_ref || '—') + '</td>',
       '<td style="font-family:monospace;font-size:10px;color:#1a56db">' + (item.material_code || '—') + '</td>',
       '<td>' + (item.item_name || '—') + '</td>',
-      '<td style="color:#555">' + (item.spec || '—') + '</td>',
+      '<td style="color:#555;font-size:10px">' + (item.spec || '—') + '</td>',
       '<td style="text-align:center">' + (item.unit || 'PCS') + '</td>',
       '<td style="text-align:right;font-weight:600">' + Number(item.qty).toLocaleString() + '</td>',
-      '<td style="color:#666">' + (item.remark || '') + '</td>',
+      '<td style="color:#666;font-size:10px">' + (item.remark || '') + '</td>',
       '</tr>',
     ].join('')
   }).join('')
@@ -75,14 +75,14 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
   // Table
   parts.push('<table class="items">')
   parts.push('<thead><tr>')
-  parts.push('<th style="width:30px">ST</th>')
-  parts.push('<th style="width:90px">訂單編號</th>')
-  parts.push('<th style="width:90px">物料編號</th>')
-  parts.push('<th>品名</th>')
-  parts.push('<th style="width:100px">規格</th>')
-  parts.push('<th style="width:50px">單位</th>')
-  parts.push('<th style="width:70px">數量</th>')
-  parts.push('<th style="width:90px">備註</th>')
+  parts.push('<th style="width:28px">ST</th>')
+  parts.push('<th style="width:85px">訂單編號</th>')
+  parts.push('<th style="width:85px">物料編號</th>')
+  parts.push('<th style="min-width:120px">品名</th>')
+  parts.push('<th style="width:80px">規格</th>')
+  parts.push('<th style="width:45px">單位</th>')
+  parts.push('<th style="width:60px">數量</th>')
+  parts.push('<th style="width:80px">備註</th>')
   parts.push('</tr></thead>')
   parts.push('<tbody>')
   parts.push(itemRows)

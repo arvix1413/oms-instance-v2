@@ -624,11 +624,11 @@ app.post('/api/customer-orders', authMiddleware, requirePerm('customer_order.cre
     if (b.items?.length) {
       for (const item of b.items) {
         if (!item.bom_id) continue
-        // Get BOM info for item_name and material_code
-        const bom = await queryOne<any>('SELECT product_sku, product_name FROM bom WHERE id=?', [item.bom_id])
+        // Get BOM info for item_name, material_code, spec, unit
+        const bom = await queryOne<any>('SELECT product_sku, product_name, spec, unit FROM bom WHERE id=?', [item.bom_id])
         await execute(
           'INSERT INTO delivery_note_items (dn_id,item_name,material_code,spec,unit,qty,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?)',
-          [dnId, bom?.product_name||'', bom?.product_sku||'', '', 'PCS', item.qty||0, '', b.po_number||'', null]
+          [dnId, bom?.product_name||'', bom?.product_sku||'', bom?.spec||'', bom?.unit||'PCS', item.qty||0, '', b.po_number||'', null]
         )
       }
     }
@@ -790,12 +790,14 @@ app.get('/api/delivery-notes/:id', authMiddleware, async c => {
     WHERE dn.id=?`, [c.req.param('id')])
   if (!dn) return c.json({ error: 'Not found' }, 404)
   const items = await query(`
-    SELECT dni.*, b.spec, b.unit
+    SELECT dni.*, 
+           COALESCE(NULLIF(dni.spec,''), b.spec) as spec,
+           COALESCE(NULLIF(dni.unit,''), b.unit, 'PCS') as unit
     FROM delivery_note_items dni
     LEFT JOIN (
       SELECT bom.id, bom.product_sku, bom.product_name, 
-             GROUP_CONCAT(DISTINCT bi.spec SEPARATOR ', ') as spec,
-             MAX(bi.unit) as unit
+             COALESCE(bom.spec, GROUP_CONCAT(DISTINCT bi.spec SEPARATOR ', ')) as spec,
+             COALESCE(bom.unit, MAX(bi.unit)) as unit
       FROM bom
       LEFT JOIN bom_items bi ON bom.id = bi.bom_id
       GROUP BY bom.id, bom.product_sku, bom.product_name
