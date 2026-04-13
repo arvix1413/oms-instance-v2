@@ -189,13 +189,25 @@ export default function PoPage() {
       supplier_name: po.supplier_name,
       currency: po.currency,
       remark: po.remark || '',
-      items: (data.items || []).map(i => ({
-        material_code: i.material_code, material_name: i.material_name,
-        spec: i.spec, unit: i.unit, quantity: Number(i.quantity),
-        unit_price: Number(i.unit_price), total_price: Number(i.total_price),
-        currency: i.currency, remark: i.remark, po_ref: i.po_ref,
-        thickness: i.thickness, image_url: i.image_url, bom_id: i.bom_id,
-      }))
+      items: (data.items || []).map(i => {
+        // Match BOM by product_sku = material_code
+        const matchedBom = boms.find(b => b.product_sku === i.material_code)
+        return {
+          material_code: i.material_code,
+          material_name: i.material_name,
+          spec: i.spec,
+          unit: i.unit,
+          quantity: Number(i.quantity),
+          unit_price: Number(i.unit_price),
+          total_price: Number(i.total_price),
+          currency: i.currency,
+          remark: i.remark,
+          po_ref: i.po_ref,
+          thickness: i.thickness,
+          image_url: i.image_url || matchedBom?.image_url || '',
+          bom_id: matchedBom ? matchedBom.id : undefined,
+        }
+      })
     })
     setEditingId(po.id)
     setCreating(false)
@@ -529,9 +541,7 @@ export default function PoPage() {
                                 else if (toStatus === 'received') await confirmReceipt(p, { stopPropagation: ()=>{} } as any)
                                 else await changeStatus(p.id, toStatus, { stopPropagation: ()=>{} } as any)
                               }} />
-                            <button onClick={e => { e.stopPropagation(); printPo(p.id, p.po_number, p.supplier_name) }} className="btn-ghost ml-1">🖨</button>
-                            {canWrite && p.status === 'draft' && <button onClick={e => startEdit(p, e)} className="btn-ghost text-blue-600">編輯</button>}
-                            {canDel && <button onClick={e => del(p.id, e)} className="btn-danger">刪除</button>}
+                            <button onClick={e => { e.stopPropagation(); printPo(p.id, p.po_number, p.supplier_name) }} className="btn-ghost ml-1" title="列印">🖨</button>
                           </div>
                         </td>
                       </tr>
@@ -582,6 +592,17 @@ export default function PoPage() {
                                       </tr>
                                     </tfoot>
                                   </table>
+                                </div>
+                              )}
+                              {/* Edit/Delete actions in expanded row */}
+                              {items.length > 0 && (
+                                <div className="px-4 py-2.5 border-t border-slate-100 flex items-center gap-2 bg-slate-50/80">
+                                  {canWrite && p.status === 'draft' && (
+                                    <button onClick={e => startEdit(p, e)} className="btn-ghost text-blue-600 text-xs">✏ 編輯採購單</button>
+                                  )}
+                                  {canDel && (
+                                    <button onClick={e => del(p.id, e)} className="btn-danger text-xs">刪除</button>
+                                  )}
                                 </div>
                               )}
                             </div>
