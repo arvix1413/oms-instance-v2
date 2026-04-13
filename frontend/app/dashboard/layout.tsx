@@ -104,7 +104,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     })
   }, [pathname])
 
-  const logout = () => { clearToken(); localStorage.removeItem('oms_user'); window.location.href = '/login' }
+  const logout = () => {
+    clearToken()
+    localStorage.removeItem('oms_user')
+    localStorage.removeItem('oms_permissions')
+    window.location.href = '/login'
+  }
   const role = user?.role as Role
   const isAdmin = can('user.manage')
 
