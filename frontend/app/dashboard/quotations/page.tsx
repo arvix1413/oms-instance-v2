@@ -3,6 +3,7 @@ import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch, getSignatureUrl } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
+import { getCompany } from '@/lib/useCompany'
 
 type QItem = { item_name:string; material_code:string; spec:string; unit:string; qty:number; unit_price:number; total_price:number; remark:string; moq:number|string; image_url?:string }
 type Q = { id:number; quotation_number:string; customer_name:string; customer_id?:number; status:string; total_amount:number; currency:string; valid_until:string; remark:string; created_at:string; items?:QItem[] }
@@ -108,10 +109,14 @@ export default function QuotationsPage() {
   }
 
   const printQuotation = async (id: number, q: Q) => {
-    const data = await apiFetch<Q>(`/api/quotations/${id}`)
+    const [data, company] = await Promise.all([
+      apiFetch<Q>(`/api/quotations/${id}`),
+      getCompany(),
+    ])
     const items = data.items || []
     const signUrl = getSignatureUrl()
     const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://43.133.56.234'
+    const logoUrl = company.logo_url ? (company.logo_url.startsWith('http') ? company.logo_url : `${apiBase}${company.logo_url}`) : null
 
     const itemRows = items.map((item, idx) => {
       // Find BOM image from loaded data
@@ -171,21 +176,21 @@ export default function QuotationsPage() {
       <!-- Title -->
       <div class="title-row">
         <div class="title-text">報價單+樣品費 Quotation</div>
-        <div class="logo-box">FAN YONG</div>
+        <div>${logoUrl ? `<img src="${logoUrl}" style="max-height:40px;max-width:120px;object-fit:contain" onerror="this.style.display='none'"/>` : `<div class="logo-box">${company.company_name.split(' ')[0]}</div>`}</div>
       </div>
 
       <!-- Our company info -->
       <div class="info-section">
-        <div class="info-section-title">公司名稱 Company Name：CÔNG TY TNHH SX TM XNK FAN YONG</div>
+        <div class="info-section-title">公司名稱 Company Name：${company.company_name_local || company.company_name}</div>
         <div style="padding:3px 6px;font-size:10px;border-bottom:1px solid #ccc">
-          地址 Address: 152 Hà Huy Tập, P. Tân Hưng, TP. HCM (Office)
+          地址 Address: ${company.address || '—'}
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;padding:3px 6px;font-size:10px;border-bottom:1px solid #ccc">
-          <span>電話 Tel: 0909883372 Danny Lin / 0909042239 Mỹ Linh</span>
+          <span>電話 Tel: ${company.phone || '—'}</span>
           <span>報價日期 Date Issue: ${String(q.created_at||'').slice(0,10)}</span>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;padding:3px 6px;font-size:10px">
-          <span>聯繫人 Contact per: Danny Lin / Mỹ Linh Ellachen</span>
+          <span>聯繫人 Contact per: ${company.contact_person || '—'}</span>
           <span>報價期限 Date Expire: ${q.valid_until ? String(q.valid_until).slice(0,10) : '1個月/1Month'}</span>
         </div>
       </div>
@@ -225,11 +230,11 @@ export default function QuotationsPage() {
       <!-- Signature -->
       <div class="sign-row">
         <div class="sign-box">
-          <div class="sign-label">FAN YONG CO.,LTD(VN)</div>
+          <div class="sign-label">${company.company_name}</div>
           <div class="sign-area">
             ${signUrl ? `<img src="${signUrl}" style="max-height:44px;max-width:150px;object-fit:contain"/>` : ''}
           </div>
-          <div class="sign-name">FAN YONG CO., LTD</div>
+          <div class="sign-name">${company.company_name}</div>
         </div>
         <div class="sign-box">
           <div class="sign-label">客戶確認 / Khách hàng xác nhận</div>

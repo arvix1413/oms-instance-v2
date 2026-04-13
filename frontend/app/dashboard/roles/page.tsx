@@ -53,7 +53,7 @@ const PERM_GROUPS = [
   },
   {
     label: '系統管理（僅管理員）',
-    perms: ['user.manage', 'audit.view'],
+    perms: ['company.manage', 'user.manage', 'audit.view'],
     adminOnly: true,
   },
 ]

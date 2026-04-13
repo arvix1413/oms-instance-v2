@@ -6,6 +6,7 @@ import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, PO_STEPS, getPOActions } from '@/components/StatusFlow'
 import { SearchableSelect } from '@/components/SearchableSelect'
 import { can } from '@/lib/usePermissions'
+import { getCompany } from '@/lib/useCompany'
 
 type PoItem = { material_code:string; material_name:string; spec:string; unit:string; quantity:number; unit_price:number; total_price:number; currency:string; remark:string; po_ref:string; thickness:number|string; image_url?:string; bom_id?:number }
 type Po = { id:number; po_number:string; supplier_name:string; status:string; total_amount:number; currency:string; remark:string; created_at:string; approved_at?:string; items?:PoItem[] }
@@ -215,13 +216,16 @@ export default function PoPage() {
   }
 
   const printPo = async (id: number, poNumber: string, supplierName: string) => {
-    const data = await apiFetch<Po>(`/api/po/${id}`)
+    const [data, company] = await Promise.all([
+      apiFetch<Po>(`/api/po/${id}`),
+      getCompany(),
+    ])
     const items = data.items || []
     const total = items.reduce((s, i) => s + Number(i.total_price), 0)
     const currency = items[0]?.currency || data.currency || 'VND'
-
-    // 取当前用户签名
     const signatureUrl = getSignatureUrl()
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://43.133.56.234'
+    const logoUrl = company.logo_url ? (company.logo_url.startsWith('http') ? company.logo_url : `${API_BASE}${company.logo_url}`) : null
 
     const itemRows = items.map((item, idx) => `
       <tr>
@@ -279,8 +283,9 @@ export default function PoPage() {
     <div class="page">
       <div class="header">
         <div>
-          <div class="company">FAN YONG CO., LTD</div>
-          <div class="subtitle">CÔNG TY TNHH FAN YONG VIỆT NAM</div>
+          ${logoUrl ? `<img src="${logoUrl}" style="max-height:40px;max-width:160px;object-fit:contain;margin-bottom:4px" onerror="this.style.display='none'"/><br/>` : ''}
+          <div class="company">${company.company_name}</div>
+          <div class="subtitle">${company.company_name_local}</div>
         </div>
         <div>
           <div class="doc-title">採購單</div>
@@ -352,7 +357,7 @@ export default function PoPage() {
           <div class="sign-area">
             ${signatureUrl ? `<img src="${signatureUrl}" style="max-height:44px;max-width:150px;object-fit:contain" />` : ''}
           </div>
-          <div class="sign-line">FAN YONG CO., LTD</div>
+          <div class="sign-line">${company.company_name}</div>
         </div>
       </div>
     </div>

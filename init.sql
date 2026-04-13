@@ -279,6 +279,24 @@ CREATE TABLE IF NOT EXISTS products (
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Company settings table
+CREATE TABLE IF NOT EXISTS company_settings (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  company_name VARCHAR(255) NOT NULL DEFAULT 'FAN YONG CO., LTD',
+  company_name_local VARCHAR(255) DEFAULT 'CÔNG TY TNHH FAN YONG VIỆT NAM',
+  address TEXT DEFAULT '152 Hà Huy Tập, P. Tân Hưng, TP. HCM',
+  phone VARCHAR(255) DEFAULT '0909883372',
+  contact_person VARCHAR(255) DEFAULT 'Danny Lin',
+  email VARCHAR(255) DEFAULT '',
+  tax_id VARCHAR(100) DEFAULT '',
+  logo_url TEXT DEFAULT NULL,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Default company settings
+INSERT IGNORE INTO company_settings (id, company_name, company_name_local, address, phone, contact_person) VALUES
+(1, 'FAN YONG CO., LTD', 'CÔNG TY TNHH FAN YONG VIỆT NAM', '152 Hà Huy Tập, P. Tân Hưng, TP. HCM', '0909883372 Danny Lin / 0909042239 Mỹ Linh', 'Danny Lin / Mỹ Linh Ellachen');
+
 -- Default manager user (password: admin123)
 INSERT IGNORE INTO users (email, password_hash, name, role) VALUES
 ('admin@oms.com', SHA2('admin123', 256), 'Admin', 'manager');

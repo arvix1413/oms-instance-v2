@@ -1,4 +1,13 @@
-export function generateOrderHTML(data: any, signatureUrl?: string): string {
+import { type CompanySettings } from './useCompany'
+
+export function generateOrderHTML(data: any, signatureUrl?: string, company?: CompanySettings): string {
+  const co = company || {
+    company_name: 'FAN YONG CO., LTD',
+    company_name_local: 'CÔNG TY TNHH FAN YONG VIỆT NAM',
+    address: '', phone: '', contact_person: '', logo_url: null,
+  }
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://43.133.56.234'
+  const logoUrl = co.logo_url ? (co.logo_url.startsWith('http') ? co.logo_url : `${API_BASE}${co.logo_url}`) : null
   const items: any[] = data.items || []
   const subtotal = items.reduce((s: number, i: any) => s + (Number(i.qty)||0) * (Number(i.unit_price)||0), 0)
   const taxRate = Number(data.tax_rate) || 0
@@ -62,7 +71,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string): string {
 
   // Header
   parts.push('<div class="header">')
-  parts.push('<div><div class="company">FAN YONG CO., LTD</div><div class="subtitle">CÔNG TY TNHH FAN YONG VIỆT NAM</div></div>')
+  parts.push('<div>' + (logoUrl ? `<img src="${logoUrl}" style="max-height:40px;max-width:160px;object-fit:contain;margin-bottom:4px" onerror="this.style.display='none'"/><br/>` : '') + '<div class="company">' + co.company_name + '</div><div class="subtitle">' + co.company_name_local + '</div></div>')
   parts.push('<div><div class="doc-title">客戶訂單</div><div class="doc-sub">CUSTOMER ORDER / ĐƠN HÀNG KHÁCH</div><div class="doc-no">No. ' + data.po_number + '</div></div>')
   parts.push('</div>')
 
@@ -107,7 +116,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string): string {
   if (signatureUrl) {
     parts.push('<img src="' + signatureUrl + '" style="max-height:44px;max-width:150px;object-fit:contain" />')
   }
-  parts.push('</div><div class="sign-line">FAN YONG CO., LTD</div></div>')
+  parts.push('</div><div class="sign-line">' + co.company_name + '</div></div>')
   parts.push('<div class="sign-box"><div class="sign-label">客戶簽章 / Khách hàng ký</div><div class="sign-area"></div><div class="sign-line">' + (data.customer_name || '') + '</div></div>')
   parts.push('</div>')
 

@@ -82,6 +82,7 @@ const ALL_PERMISSIONS = [
   { key: 'customer.manage', label: '管理客戶' },
   { key: 'supplier.manage', label: '管理供應商' },
   { key: 'stock.adjust', label: '庫存調整' },
+  { key: 'company.manage', label: '公司設定' },
   { key: 'user.manage', label: '用戶管理' },
   { key: 'audit.view', label: '查看操作日誌' },
 ]
@@ -1457,6 +1458,31 @@ app.delete('/api/stock-adjustments/:id', authMiddleware, requirePerm('stock.adju
   await execute('DELETE FROM stock_adjustments WHERE id=?', [id])
   await audit(c.get('user'), 'DELETE', '庫存調整', id, row?.adj_number)
   return c.json({ ok: true })
+})
+
+// ── Company Settings ──────────────────────────────────────────────────────────
+app.get('/api/company', authMiddleware, async c => {
+  try {
+    const row = await queryOne<any>('SELECT * FROM company_settings WHERE id=1')
+    if (!row) {
+      // Return defaults if not set
+      return c.json({ id: 1, company_name: 'FAN YONG CO., LTD', company_name_local: 'CÔNG TY TNHH FAN YONG VIỆT NAM', address: '', phone: '', contact_person: '', email: '', tax_id: '', logo_url: null })
+    }
+    return c.json(row)
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+app.put('/api/company', authMiddleware, requirePerm('company.manage'), async c => {
+  try {
+    const b = await c.req.json(); const u = c.get('user')
+    // Upsert
+    await execute(`INSERT INTO company_settings (id,company_name,company_name_local,address,phone,contact_person,email,tax_id,logo_url)
+      VALUES (1,?,?,?,?,?,?,?,?)
+      ON DUPLICATE KEY UPDATE company_name=?,company_name_local=?,address=?,phone=?,contact_person=?,email=?,tax_id=?,logo_url=?`,
+      [b.company_name,b.company_name_local||'',b.address||'',b.phone||'',b.contact_person||'',b.email||'',b.tax_id||'',b.logo_url||null,
+       b.company_name,b.company_name_local||'',b.address||'',b.phone||'',b.contact_person||'',b.email||'',b.tax_id||'',b.logo_url||null])
+    await audit(u, 'UPDATE', '公司設定', 1, b.company_name)
+    return c.json({ ok: true })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 
 // ── Stats ─────────────────────────────────────────────────────────────────────

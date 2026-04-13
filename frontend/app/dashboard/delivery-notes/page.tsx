@@ -6,6 +6,7 @@ import { apiFetch, getSignatureUrl } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, DN_STEPS, getDNActions } from '@/components/StatusFlow'
 import { can } from '@/lib/usePermissions'
+import { getCompany } from '@/lib/useCompany'
 
 type DNItem = { bom_id?:number|null; item_name:string; material_code:string; qty:number; shipped_qty:number; remark:string }
 type DN = { id:number; dn_number:string; customer_name:string; delivery_date:string; status:string; remark:string; created_at:string; items?:DNItem[]; order_po_number?:string }
@@ -177,7 +178,8 @@ export default function DeliveryNotesPage() {
     } catch (e: any) { toast('刪除失敗：' + e.message, 'error') }
   }
 
-  const printDN = (dn: DN) => {
+  const printDN = async (dn: DN) => {
+    const company = await getCompany()
     const html = generateDeliveryNoteHTML({
       dn_number: dn.dn_number,
       customer_name: dn.customer_name,
@@ -186,7 +188,7 @@ export default function DeliveryNotesPage() {
       address: (dn as any).address || '',
       remark: dn.remark,
       items: dn.items || []
-    }, getSignatureUrl() || undefined)
+    }, getSignatureUrl() || undefined, company)
     const w = window.open('', '_blank', 'width=800,height=1000')
     if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500) }
   }

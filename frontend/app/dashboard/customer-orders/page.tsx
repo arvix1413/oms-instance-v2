@@ -8,6 +8,7 @@ import { generateOrderHTML } from '@/lib/printOrder'
 import { SearchableSelect } from '@/components/SearchableSelect'
 import { getUser } from '@/lib/permissions'
 import { can } from '@/lib/usePermissions'
+import { getCompany } from '@/lib/useCompany'
 
 // Customer order actions based on current status
 function getCOActions(status: string) {
@@ -132,8 +133,11 @@ export default function CustomerOrdersPage() {
   }
 
   const printOrder = async (orderId: number) => {
-    const data = await apiFetch<any>(`/api/customer-orders/${orderId}`)
-    const html = generateOrderHTML(data, getSignatureUrl() || undefined)
+    const [data, company] = await Promise.all([
+      apiFetch<any>(`/api/customer-orders/${orderId}`),
+      getCompany(),
+    ])
+    const html = generateOrderHTML(data, getSignatureUrl() || undefined, company)
     const w = window.open('', '_blank', 'width=800,height=1000')
     if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500) }
   }
