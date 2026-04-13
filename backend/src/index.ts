@@ -709,7 +709,18 @@ app.get('/api/quotations/:id', authMiddleware, async c => {
     FROM quotations q LEFT JOIN customers c ON q.customer_id = c.id
     WHERE q.id=?`, [c.req.param('id')])
   if (!q) return c.json({ error: 'Not found' }, 404)
-  const items = await query('SELECT * FROM quotation_items WHERE quotation_id=?', [c.req.param('id')])
+  const rawItems = await query<any>('SELECT * FROM quotation_items WHERE quotation_id=?', [c.req.param('id')])
+  // Parse moq JSON into moq_tiers array
+  const items = rawItems.map((item: any) => {
+    let moq_tiers: {moq:number;price:number}[] = []
+    if (item.moq) {
+      try {
+        const parsed = JSON.parse(String(item.moq))
+        if (Array.isArray(parsed)) moq_tiers = parsed
+      } catch { /* legacy number */ }
+    }
+    return { ...item, moq_tiers }
+  })
   return c.json({ ...q, items })
 })
 app.post('/api/quotations', authMiddleware, requirePerm('customer_order.create'), async c => {

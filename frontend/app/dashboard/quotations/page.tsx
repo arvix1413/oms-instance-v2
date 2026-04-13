@@ -5,11 +5,14 @@ import { apiFetch, getSignatureUrl } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { getCompany } from '@/lib/useCompany'
 
-type QItem = { item_name:string; material_code:string; spec:string; unit:string; qty:number; unit_price:number; total_price:number; remark:string; moq:number|string; image_url?:string }
+type MoqTier = { moq: number; price: number }
+type QItem = { item_name:string; material_code:string; spec:string; unit:string; qty:number; unit_price:number; total_price:number; remark:string; moq_tiers:MoqTier[]; image_url?:string }
 type Q = { id:number; quotation_number:string; customer_name:string; customer_id?:number; status:string; total_amount:number; currency:string; valid_until:string; remark:string; created_at:string; items?:QItem[] }
 type Customer = { id:number; customer_name:string; customer_code:string }
 type BOM = { id:number; product_sku:string; product_name:string; spec:string; unit:string; company_price:number; image_url?:string }
-const emptyItem = (): QItem => ({ item_name:'', material_code:'', spec:'', unit:'PCS', qty:1, unit_price:0, total_price:0, remark:'', moq:'', image_url:'' })
+
+const emptyTiers = (): MoqTier[] => Array.from({length:5}, () => ({ moq: 0, price: 0 }))
+const emptyItem = (): QItem => ({ item_name:'', material_code:'', spec:'', unit:'PCS', qty:0, unit_price:0, total_price:0, remark:'', moq_tiers:emptyTiers(), image_url:'' })
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
   draft:    { label:'草稿',   badge:'badge-gray'  },
   sent:     { label:'已發送', badge:'badge-blue'  },
@@ -78,12 +81,23 @@ export default function QuotationsPage() {
   }
   const save = async () => {
     if (!form.customer_name) { toast('請選擇客戶', 'error'); return }
+    // Serialize moq_tiers as JSON string for storage, also set unit_price from first tier
+    const itemsToSave = form.items.map(item => {
+      const activeTiers = item.moq_tiers.filter(t => t.moq > 0 || t.price > 0)
+      const firstPrice = activeTiers[0]?.price || item.unit_price || 0
+      return {
+        ...item,
+        unit_price: firstPrice,
+        total_price: (item.qty || 0) * firstPrice,
+        moq: activeTiers.length > 0 ? JSON.stringify(activeTiers) : null,
+      }
+    })
     try {
       if (editingId) {
-        await apiFetch(`/api/quotations/${editingId}`,{method:'PUT',body:JSON.stringify(form)})
+        await apiFetch(`/api/quotations/${editingId}`,{method:'PUT',body:JSON.stringify({...form, items: itemsToSave})})
         toast('報價單已更新')
       } else {
-        await apiFetch('/api/quotations',{method:'POST',body:JSON.stringify(form)})
+        await apiFetch('/api/quotations',{method:'POST',body:JSON.stringify({...form, items: itemsToSave})})
         toast('報價單建立成功')
       }
       resetForm()
@@ -101,9 +115,19 @@ export default function QuotationsPage() {
       currency: q.currency,
       valid_until: q.valid_until ? String(q.valid_until).slice(0,10) : '',
       remark: q.remark || '',
-      items: (data.items || []).map(i => {
+      items: (data.items || []).map((i: any) => {
         // Match BOM by material_code = product_sku for pre-fill
         const matchedBom = boms.find(b => b.product_sku === i.material_code)
+        // Parse moq_tiers from stored moq field (JSON array or legacy number)
+        let moq_tiers = emptyTiers()
+        if (i.moq_tiers) {
+          moq_tiers = i.moq_tiers
+        } else if (i.moq) {
+          try {
+            const parsed = JSON.parse(String(i.moq))
+            if (Array.isArray(parsed)) moq_tiers = [...parsed, ...emptyTiers()].slice(0,5)
+          } catch { /* legacy number, ignore */ }
+        }
         return {
           item_name: i.item_name || '',
           material_code: i.material_code || '',
@@ -113,7 +137,7 @@ export default function QuotationsPage() {
           unit_price: Number(i.unit_price) || 0,
           total_price: Number(i.total_price) || 0,
           remark: i.remark || '',
-          moq: i.moq ?? '',
+          moq_tiers,
           image_url: i.image_url || matchedBom?.image_url || '',
         }
       })
@@ -134,19 +158,33 @@ export default function QuotationsPage() {
     const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://43.133.56.234'
     const logoUrl = company.logo_url ? (company.logo_url.startsWith('http') ? company.logo_url : `${apiBase}${company.logo_url}`) : null
 
-    const itemRows = items.map((item, idx) => {
-      // Find BOM image from loaded data
-      const imgUrl = (item as any).image_url
-        ? ((item as any).image_url.startsWith('http') ? (item as any).image_url : `${apiBase}${(item as any).image_url}`)
+    const itemRows = items.map((item: any, idx: number) => {
+      const imgUrl = item.image_url
+        ? (item.image_url.startsWith('http') ? item.image_url : `${apiBase}${item.image_url}`)
         : ''
+      // Parse moq_tiers from stored moq field
+      let tiers: {moq:number;price:number}[] = []
+      if (item.moq_tiers && Array.isArray(item.moq_tiers)) {
+        tiers = item.moq_tiers.filter((t: any) => t.moq > 0 || t.price > 0)
+      } else if (item.moq) {
+        try {
+          const parsed = JSON.parse(String(item.moq))
+          if (Array.isArray(parsed)) tiers = parsed.filter((t: any) => t.moq > 0 || t.price > 0)
+        } catch { if (item.moq) tiers = [{moq: Number(item.moq)||0, price: Number(item.unit_price)||0}] }
+      }
+      if (tiers.length === 0 && item.unit_price) tiers = [{moq:0, price: Number(item.unit_price)}]
+
+      const moqCell = tiers.map(t => `<div style="line-height:1.6">${t.moq > 0 ? t.moq.toLocaleString() : '—'}</div>`).join('')
+      const priceCell = tiers.map(t => `<div style="line-height:1.6;font-weight:600">${t.price > 0 ? Number(t.price).toLocaleString() : '—'}</div>`).join('')
+
       return `
       <tr>
         <td style="text-align:center;font-size:11px">${idx+1}</td>
         <td style="font-size:11px">${item.item_name||''}</td>
         <td style="font-size:10px;color:#444">${item.spec||''}</td>
         <td style="text-align:center;font-size:11px">${item.unit||'PCS'}</td>
-        <td style="text-align:center;font-size:11px">${item.moq??''}</td>
-        <td style="text-align:right;font-size:11px;font-weight:600">${Number(item.unit_price||0).toLocaleString()}</td>
+        <td style="text-align:center;font-size:11px">${moqCell}</td>
+        <td style="text-align:right;font-size:11px">${priceCell}</td>
         <td style="text-align:center;padding:2px">
           ${imgUrl ? `<img src="${imgUrl}" style="max-width:60px;max-height:50px;object-fit:contain" onerror="this.style.display='none'"/>` : ''}
         </td>
@@ -273,6 +311,17 @@ export default function QuotationsPage() {
     return u
   })}))
 
+  const updateTier = (itemIdx:number, tierIdx:number, field:'moq'|'price', val:number) => {
+    setForm(p => ({
+      ...p,
+      items: p.items.map((item, idx) => {
+        if (idx !== itemIdx) return item
+        const tiers = [...item.moq_tiers]
+        tiers[tierIdx] = { ...tiers[tierIdx], [field]: val }
+        return { ...item, moq_tiers: tiers }
+      })
+    }))
+  }
   const filtered = items.filter(q => !search || q.quotation_number.toLowerCase().includes(search.toLowerCase()) || q.customer_name.toLowerCase().includes(search.toLowerCase()))
   const { page, setPage, totalPages, paged, total: filteredTotal } = usePagination(filtered, 20)
   const inp = 'oms-input text-xs py-1.5'
@@ -324,8 +373,8 @@ export default function QuotationsPage() {
           <div className="overflow-x-auto rounded-lg border border-slate-200">
             <table className="w-full text-xs">
               <thead><tr className="border-b border-slate-200">
-                {['選擇BOM','品名','規格','單位','數量','MOQ','單價','小計','備註',''].map(h=>(
-                  <th key={h} className="px-2 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">{h}</th>
+                {['選擇BOM','品名','規格','單位','MOQ 1','單價 1','MOQ 2','單價 2','MOQ 3','單價 3','MOQ 4','單價 4','MOQ 5','單價 5','備註',''].map(h=>(
+                  <th key={h} className="px-1.5 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
                 ))}
               </tr></thead>
               <tbody>
@@ -336,42 +385,34 @@ export default function QuotationsPage() {
                         const bom = boms.find(b => b.product_sku === e.target.value)
                         if (bom) {
                           setForm(p => ({ ...p, items: p.items.map((it, idx) => idx !== i ? it : {
-                            ...it,
-                            material_code: bom.product_sku,
-                            item_name: bom.product_name,
-                            spec: bom.spec || '',
-                            unit: bom.unit || 'PCS',
-                            unit_price: bom.company_price || 0,
-                            total_price: (it.qty || 0) * (bom.company_price || 0),
-                            image_url: bom.image_url || '',
+                            ...it, material_code: bom.product_sku, item_name: bom.product_name,
+                            spec: bom.spec || '', unit: bom.unit || 'PCS',
+                            unit_price: bom.company_price || 0, image_url: bom.image_url || '',
                           })}))
-                        } else {
-                          updateItem(i, 'material_code', e.target.value)
-                        }
+                        } else { updateItem(i, 'material_code', e.target.value) }
                       }}>
                         <option value="">-- 選擇 BOM --</option>
                         {boms.map(b => <option key={b.id} value={b.product_sku}>{b.product_sku} — {b.product_name}</option>)}
                       </select>
                     </td>
                     <td className="p-1"><input className={inp} value={item.item_name} onChange={e=>updateItem(i,'item_name',e.target.value)} /></td>
-                    <td className="p-1"><input className={inp} style={{width:80}} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} /></td>
-                    <td className="p-1"><input className={inp} style={{width:45}} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} /></td>
-                    <td className="p-1"><input type="number" className={inp} style={{width:65}} value={item.qty || ""} onChange={e=>updateItem(i,'qty',Number(e.target.value))} /></td>
-                    <td className="p-1"><input type="number" className={inp} style={{width:65}} value={item.moq||""} placeholder="MOQ" onChange={e=>updateItem(i,'moq',e.target.value)} /></td>
-                    <td className="p-1"><input type="number" className={inp} style={{width:85}} value={item.unit_price || ""} onChange={e=>updateItem(i,'unit_price',Number(e.target.value))} /></td>
-                    <td className="p-1 px-2 text-right text-slate-600 font-medium whitespace-nowrap">{Number(item.total_price).toLocaleString()}</td>
+                    <td className="p-1"><input className={inp} style={{width:70}} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} /></td>
+                    <td className="p-1"><input className={inp} style={{width:40}} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} /></td>
+                    {item.moq_tiers.map((tier, t) => (
+                      <>
+                        <td key={`moq-${t}`} className="p-1">
+                          <input type="number" className={inp} style={{width:60}} value={tier.moq||''} placeholder="MOQ" onChange={e=>updateTier(i,t,'moq',Number(e.target.value))} />
+                        </td>
+                        <td key={`price-${t}`} className="p-1">
+                          <input type="number" className={inp} style={{width:70}} value={tier.price||''} placeholder="單價" onChange={e=>updateTier(i,t,'price',Number(e.target.value))} />
+                        </td>
+                      </>
+                    ))}
                     <td className="p-1"><input className={inp} value={item.remark} onChange={e=>updateItem(i,'remark',e.target.value)} /></td>
                     <td className="p-1 text-center"><button onClick={()=>removeItem(i)} className="text-slate-300 hover:text-red-600 transition-colors">✕</button></td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot>
-                <tr className="border-t border-slate-200">
-                  <td colSpan={7} className="px-3 py-2 text-right text-[11px] text-slate-400 font-semibold uppercase">合計</td>
-                  <td className="px-2 py-2 text-right text-slate-600 font-bold">{formTotal.toLocaleString()}</td>
-                  <td colSpan={2} className="px-2 py-2 text-slate-400 text-xs">{form.currency}</td>
-                </tr>
-              </tfoot>
             </table>
           </div>
           <div className="flex gap-2 mt-4">
@@ -462,8 +503,8 @@ export default function QuotationsPage() {
                                   <div className="overflow-x-auto rounded-lg border border-slate-200 mb-3">
                                     <table className="w-full text-xs">
                                       <thead><tr className="border-b border-slate-200 bg-slate-50">
-                                        {['選擇BOM','品名','規格','單位','數量','MOQ','單價','小計','備註',''].map(h=>(
-                                          <th key={h} className="px-2 py-1.5 text-left text-[10px] font-semibold text-slate-500 uppercase">{h}</th>
+                                        {['選擇BOM','品名','規格','單位','MOQ 1','單價 1','MOQ 2','單價 2','MOQ 3','單價 3','MOQ 4','單價 4','MOQ 5','單價 5','備註',''].map(h=>(
+                                          <th key={h} className="px-1.5 py-1.5 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
                                         ))}
                                       </tr></thead>
                                       <tbody>
@@ -476,9 +517,7 @@ export default function QuotationsPage() {
                                                   setForm(p => ({ ...p, items: p.items.map((it, idx) => idx !== i ? it : {
                                                     ...it, material_code: bom.product_sku, item_name: bom.product_name,
                                                     spec: bom.spec || '', unit: bom.unit || 'PCS',
-                                                    unit_price: bom.company_price || 0,
-                                                    total_price: (it.qty || 0) * (bom.company_price || 0),
-                                                    image_url: bom.image_url || '',
+                                                    unit_price: bom.company_price || 0, image_url: bom.image_url || '',
                                                   })}))
                                                 } else { updateItem(i, 'material_code', e.target.value) }
                                               }}>
@@ -487,24 +526,23 @@ export default function QuotationsPage() {
                                               </select>
                                             </td>
                                             <td className="p-1"><input className={inp} value={item.item_name} onChange={e=>updateItem(i,'item_name',e.target.value)} /></td>
-                                            <td className="p-1"><input className={inp} style={{width:80}} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} /></td>
+                                            <td className="p-1"><input className={inp} style={{width:70}} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} /></td>
                                             <td className="p-1"><input className={inp} style={{width:40}} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} /></td>
-                                            <td className="p-1"><input type="number" className={inp} style={{width:60}} value={item.qty || ""} onChange={e=>updateItem(i,'qty',Number(e.target.value))} /></td>
-                                            <td className="p-1"><input type="number" className={inp} style={{width:60}} value={item.moq||""} onChange={e=>updateItem(i,'moq',e.target.value)} /></td>
-                                            <td className="p-1"><input type="number" className={inp} style={{width:80}} value={item.unit_price || ""} onChange={e=>updateItem(i,'unit_price',Number(e.target.value))} /></td>
-                                            <td className="p-1 px-2 text-right text-slate-600 font-medium whitespace-nowrap">{Number(item.total_price).toLocaleString()}</td>
+                                            {item.moq_tiers.map((tier, t) => (
+                                              <>
+                                                <td key={`moq-${t}`} className="p-1">
+                                                  <input type="number" className={inp} style={{width:55}} value={tier.moq||''} placeholder="MOQ" onChange={e=>updateTier(i,t,'moq',Number(e.target.value))} />
+                                                </td>
+                                                <td key={`price-${t}`} className="p-1">
+                                                  <input type="number" className={inp} style={{width:65}} value={tier.price||''} placeholder="單價" onChange={e=>updateTier(i,t,'price',Number(e.target.value))} />
+                                                </td>
+                                              </>
+                                            ))}
                                             <td className="p-1"><input className={inp} value={item.remark} onChange={e=>updateItem(i,'remark',e.target.value)} /></td>
                                             <td className="p-1 text-center"><button onClick={()=>removeItem(i)} className="text-slate-300 hover:text-red-600">✕</button></td>
                                           </tr>
                                         ))}
                                       </tbody>
-                                      <tfoot>
-                                        <tr className="border-t border-slate-200">
-                                          <td colSpan={7} className="px-2 py-1.5 text-right text-[10px] text-slate-400 font-semibold uppercase">合計</td>
-                                          <td className="px-2 py-1.5 text-right text-slate-600 font-bold">{formTotal.toLocaleString()}</td>
-                                          <td colSpan={2} className="px-2 py-1.5 text-slate-400 text-xs">{form.currency}</td>
-                                        </tr>
-                                      </tfoot>
                                     </table>
                                   </div>
                                   <div className="flex gap-2">
@@ -518,32 +556,45 @@ export default function QuotationsPage() {
                                 <div className="overflow-x-auto">
                                   <table className="w-full text-xs" style={{minWidth:600}}>
                                     <thead><tr className="border-b border-slate-100">
-                                      {['品名','物料編號','規格','單位','數量','MOQ','單價','小計','備註'].map(h=>(
+                                      {['品名','物料編號','規格','單位','MOQ / 單價（阶梯）','備註'].map(h=>(
                                         <th key={h} className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
                                       ))}
                                     </tr></thead>
                                     <tbody>
-                                      {qItems.map((item, i) => (
-                                        <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                                          <td className="px-3 py-2 text-slate-600 whitespace-nowrap">{item.item_name}</td>
-                                          <td className="px-3 py-2 font-mono text-blue-600 whitespace-nowrap">{item.material_code}</td>
-                                          <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.spec}</td>
-                                          <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.unit}</td>
-                                          <td className="px-3 py-2 text-right text-slate-600 font-medium whitespace-nowrap">{item.qty?.toLocaleString()}</td>
-                                          <td className="px-3 py-2 text-right text-slate-500 whitespace-nowrap">{item.moq ?? '—'}</td>
-                                          <td className="px-3 py-2 text-right text-slate-600 whitespace-nowrap">{Number(item.unit_price||0).toLocaleString()}</td>
-                                          <td className="px-3 py-2 text-right text-slate-800 font-semibold whitespace-nowrap">{Number(item.total_price||0).toLocaleString()}</td>
-                                          <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.remark}</td>
-                                        </tr>
-                                      ))}
+                                      {qItems.map((item: any, i: number) => {
+                                        // Parse tiers
+                                        let tiers: {moq:number;price:number}[] = []
+                                        if (item.moq_tiers && Array.isArray(item.moq_tiers)) {
+                                          tiers = item.moq_tiers.filter((t: any) => t.moq > 0 || t.price > 0)
+                                        } else if (item.moq) {
+                                          try {
+                                            const p = JSON.parse(String(item.moq))
+                                            if (Array.isArray(p)) tiers = p.filter((t: any) => t.moq > 0 || t.price > 0)
+                                          } catch { tiers = [{moq: Number(item.moq)||0, price: Number(item.unit_price)||0}] }
+                                        }
+                                        if (tiers.length === 0 && item.unit_price) tiers = [{moq:0, price: Number(item.unit_price)}]
+                                        return (
+                                          <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                                            <td className="px-3 py-2 text-slate-600">{item.item_name}</td>
+                                            <td className="px-3 py-2 font-mono text-blue-600 whitespace-nowrap">{item.material_code}</td>
+                                            <td className="px-3 py-2 text-slate-400">{item.spec}</td>
+                                            <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.unit}</td>
+                                            <td className="px-3 py-2">
+                                              <div className="flex flex-wrap gap-2">
+                                                {tiers.map((t, ti) => (
+                                                  <span key={ti} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 border border-blue-100 rounded text-[10px]">
+                                                    <span className="text-slate-500">{t.moq > 0 ? t.moq.toLocaleString() : '—'}</span>
+                                                    <span className="text-slate-300">→</span>
+                                                    <span className="font-semibold text-blue-700">{t.price > 0 ? Number(t.price).toLocaleString() : '—'}</span>
+                                                  </span>
+                                                ))}
+                                              </div>
+                                            </td>
+                                            <td className="px-3 py-2 text-slate-400">{item.remark}</td>
+                                          </tr>
+                                        )
+                                      })}
                                     </tbody>
-                                    <tfoot>
-                                      <tr className="border-t border-slate-200">
-                                        <td colSpan={7} className="px-3 py-2 text-right text-[10px] text-slate-300 font-semibold uppercase">合計</td>
-                                        <td className="px-3 py-2 text-right text-slate-600 font-bold">{qItems.reduce((s,i)=>s+Number(i.total_price),0).toLocaleString()}</td>
-                                        <td className="px-3 py-2 text-slate-400 text-xs">{q.currency}</td>
-                                      </tr>
-                                    </tfoot>
                                   </table>
                                 </div>
                               )}
