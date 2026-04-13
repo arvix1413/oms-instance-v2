@@ -1,7 +1,7 @@
 'use client'
 import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
-import { apiFetch } from '@/lib/api'
+import { apiFetch, getSignatureUrl } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 
 type QItem = { item_name:string; material_code:string; spec:string; unit:string; qty:number; unit_price:number; total_price:number; remark:string; moq:number|string }
@@ -107,16 +107,119 @@ export default function QuotationsPage() {
   const printQuotation = async (id: number, q: Q) => {
     const data = await apiFetch<Q>(`/api/quotations/${id}`)
     const items = data.items || []
-    const html = `<html><head><title>報價單 ${q.quotation_number}</title>
-    <style>body{font-family:sans-serif;font-size:12px;padding:20px}h2{margin-bottom:4px}p{color:#666;margin:0 0 12px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}th{background:#f5f5f5;font-weight:600}.num{text-align:right}tfoot td{font-weight:bold;background:#f9f9f9}</style>
-    </head><body>
-    <h2>報價單 ${q.quotation_number}</h2>
-    <p>客戶：${q.customer_name} | 有效期：${q.valid_until||'—'} | FAN YONG CO., LTD</p>
-    <table><thead><tr><th>品名</th><th>物料編號</th><th>規格</th><th>單位</th><th class="num">數量</th><th class="num">MOQ</th><th class="num">單價</th><th class="num">小計</th><th>備註</th></tr></thead>
-    <tbody>${items.map(i=>`<tr><td>${i.item_name}</td><td>${i.material_code}</td><td>${i.spec}</td><td>${i.unit}</td><td class="num">${i.qty?.toLocaleString()}</td><td class="num">${i.moq??''}</td><td class="num">${i.unit_price?.toLocaleString()}</td><td class="num">${i.total_price?.toLocaleString()}</td><td>${i.remark}</td></tr>`).join('')}
-    </tbody><tfoot><tr><td colspan="7" style="text-align:right">合計</td><td class="num">${items.reduce((s,i)=>s+i.total_price,0).toLocaleString()} ${q.currency}</td><td></td></tr></tfoot>
-    </table></body></html>`
-    const w = window.open('','_blank'); w?.document.write(html); w?.document.close(); w?.print()
+    const total = items.reduce((s,i)=>s+(i.total_price||0),0)
+    const signUrl = getSignatureUrl()
+
+    const itemRows = items.map((item, idx) => `
+      <tr>
+        <td style="text-align:center">${idx+1}</td>
+        <td>${item.item_name||''}</td>
+        <td style="color:#555">${item.spec||''}</td>
+        <td style="text-align:center">${item.unit||'PCS'}</td>
+        <td style="text-align:center">${item.moq??''}</td>
+        <td style="text-align:right;font-weight:600">${(item.unit_price||0).toLocaleString()}</td>
+        <td style="text-align:right;font-weight:700">${(item.total_price||0).toLocaleString()}</td>
+        <td>${item.remark||''}</td>
+      </tr>`).join('')
+
+    const html = `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="utf-8"/>
+    <title>報價單 ${q.quotation_number}</title>
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:"Microsoft YaHei","PingFang TC",Arial,sans-serif;font-size:11px;color:#000;padding:12mm 15mm;background:#fff;line-height:1.4}
+      .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:5mm;margin-bottom:5mm}
+      .company{font-size:18px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+      .subtitle{font-size:10px;color:#666;margin-top:3px}
+      .doc-title{font-size:22px;font-weight:700;color:#1a56db;text-align:right}
+      .doc-sub{font-size:10px;color:#666;text-align:right;margin-top:2px}
+      .doc-no{font-size:12px;font-weight:600;text-align:right;margin-top:3px}
+      .info-table{width:100%;border-collapse:collapse;margin-bottom:5mm}
+      .info-table td{border:1px solid #bbb;padding:5px 8px;font-size:11px;vertical-align:middle}
+      .info-table .lbl{font-weight:600;background:#f5f5f5;white-space:nowrap;width:110px;color:#333}
+      table.items{width:100%;border-collapse:collapse;margin-bottom:5mm}
+      table.items th{border:1px solid #555;background:#e8e8e8;padding:5px 6px;text-align:center;font-size:10px;font-weight:600;color:#000}
+      table.items td{border:1px solid #bbb;padding:5px 6px;font-size:11px;color:#000}
+      table.items tbody tr:nth-child(even){background:#fafafa}
+      .total-row td{border:1px solid #555;background:#efefef;font-weight:600;font-size:11px;padding:6px 8px}
+      .notes{border:1px solid #bbb;padding:6px 10px;margin-bottom:5mm;font-size:10px}
+      .notes-title{font-weight:600;margin-bottom:3px}
+      .footer{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:8mm}
+      .sign-box{border:1px solid #bbb;padding:8px 10px;text-align:center;display:flex;flex-direction:column}
+      .sign-label{font-weight:600;font-size:10px;color:#333;padding-bottom:4px;border-bottom:1px solid #eee}
+      .sign-area{flex:1;min-height:50px;display:flex;align-items:center;justify-content:center}
+      .sign-line{border-top:1px solid #555;padding-top:4px;font-size:10px;color:#333;margin-top:4px}
+      @media print{body{padding:10mm}@page{size:A4;margin:0}}
+    </style></head><body>
+    <div class="header">
+      <div>
+        <div class="company">FAN YONG CO., LTD</div>
+        <div class="subtitle">CÔNG TY TNHH FAN YONG VIỆT NAM</div>
+      </div>
+      <div>
+        <div class="doc-title">報價單 Quotation</div>
+        <div class="doc-no">No. ${q.quotation_number}</div>
+      </div>
+    </div>
+
+    <table class="info-table">
+      <tr>
+        <td class="lbl">客戶<br/>Khách hàng</td>
+        <td style="font-weight:600;font-size:12px" colspan="3">${q.customer_name||'—'}</td>
+        <td class="lbl">報價日期<br/>Ngày báo giá</td>
+        <td>${String(q.created_at||'').slice(0,10)}</td>
+      </tr>
+      <tr>
+        <td class="lbl">有效期限<br/>Ngày hết hạn</td>
+        <td>${q.valid_until ? String(q.valid_until).slice(0,10) : '—'}</td>
+        <td class="lbl">幣別<br/>Loại tiền</td>
+        <td>${q.currency||'VND'}</td>
+        <td class="lbl">狀態<br/>Trạng thái</td>
+        <td>${{draft:'草稿',sent:'已發送',accepted:'已接受',rejected:'已拒絕'}[q.status as string]||q.status}</td>
+      </tr>
+      ${q.remark ? `<tr><td class="lbl">備註</td><td colspan="5">${q.remark}</td></tr>` : ''}
+    </table>
+
+    <table class="items">
+      <thead><tr>
+        <th style="width:28px">ST</th>
+        <th>品名 / Products</th>
+        <th style="width:100px">規格 / Spec</th>
+        <th style="width:45px">單位</th>
+        <th style="width:60px">MOQ</th>
+        <th style="width:90px">單價 / Vnd</th>
+        <th style="width:90px">小計</th>
+        <th style="width:90px">備註</th>
+      </tr></thead>
+      <tbody>${itemRows}</tbody>
+      <tfoot>
+        <tr class="total-row">
+          <td colspan="6" style="text-align:right">合計 / Total</td>
+          <td style="text-align:right;font-size:12px;color:#1a56db">${total.toLocaleString()}</td>
+          <td style="text-align:center">${q.currency||'VND'}</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <div class="notes">
+      <div class="notes-title">備註 / Mark：</div>
+      <div style="white-space:pre-line">${q.remark||''}</div>
+    </div>
+
+    <div class="footer">
+      <div class="sign-box">
+        <div class="sign-label">FAN YONG 確認 / Xác nhận</div>
+        <div class="sign-area">${signUrl ? `<img src="${signUrl}" style="max-height:44px;max-width:150px;object-fit:contain"/>` : ''}</div>
+        <div class="sign-line">FAN YONG CO., LTD</div>
+      </div>
+      <div class="sign-box">
+        <div class="sign-label">客戶簽章 / Khách hàng ký</div>
+        <div class="sign-area"></div>
+        <div class="sign-line">${q.customer_name||''}</div>
+      </div>
+    </div>
+    </body></html>`
+    const w = window.open('','_blank','width=900,height=1100')
+    if (w) { w.document.write(html); w.document.close(); setTimeout(()=>w.print(),500) }
   }
   const addItem = () => setForm(p=>({...p,items:[...p.items,emptyItem()]}))
   const removeItem = (i:number) => setForm(p=>({...p,items:p.items.filter((_,idx)=>idx!==i)}))
