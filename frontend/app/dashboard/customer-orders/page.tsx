@@ -262,7 +262,12 @@ export default function CustomerOrdersPage() {
             </div>
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">稅率 (%)</label>
-              <input type="number" className={inp} value={form.tax_rate} min={0} max={100} onChange={e=>setForm(p=>({...p,tax_rate:Number(e.target.value)}))} />
+              <select className={inp} value={form.tax_rate} onChange={e=>setForm(p=>({...p,tax_rate:Number(e.target.value)}))}>
+                <option value={0}>0% (免稅)</option>
+                {Array.from({length: 25}, (_, i) => i + 1).map(n => (
+                  <option key={n} value={n}>{n}%</option>
+                ))}
+              </select>
             </div>
             <div className="md:col-span-3">
               <label className="block text-[11px] text-slate-500 mb-1.5">備註（交易條件、特殊要求等）</label>
