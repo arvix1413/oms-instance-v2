@@ -721,8 +721,8 @@ app.post('/api/quotations', authMiddleware, requirePerm('customer_order.create')
     const qId = r.insertId
     if (b.items?.length) {
       for (const item of b.items) {
-        await execute('INSERT INTO quotation_items (quotation_id,item_name,material_code,spec,unit,qty,unit_price,total_price,remark,moq) VALUES (?,?,?,?,?,?,?,?,?,?)',
-          [qId,item.item_name,item.material_code||'',item.spec||'',item.unit||'PCS',item.qty,item.unit_price||0,(item.qty||0)*(item.unit_price||0),item.remark||'',item.moq||null])
+        await execute('INSERT INTO quotation_items (quotation_id,item_name,material_code,spec,unit,qty,unit_price,total_price,remark,moq,image_url) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+          [qId,item.item_name,item.material_code||'',item.spec||'',item.unit||'PCS',item.qty,item.unit_price||0,(item.qty||0)*(item.unit_price||0),item.remark||'',item.moq||null,item.image_url||null])
       }
     }
     await audit(u, 'CREATE', '報價單', qId, `${qNum} / ${b.customer_name}`)
@@ -741,8 +741,8 @@ app.put('/api/quotations/:id', authMiddleware, requirePerm('customer_order.creat
     await execute('DELETE FROM quotation_items WHERE quotation_id=?', [id])
     if (b.items?.length) {
       for (const item of b.items) {
-        await execute('INSERT INTO quotation_items (quotation_id,item_name,material_code,spec,unit,qty,unit_price,total_price,remark,moq) VALUES (?,?,?,?,?,?,?,?,?,?)',
-          [id,item.item_name,item.material_code||'',item.spec||'',item.unit||'PCS',item.qty,item.unit_price||0,(item.qty||0)*(item.unit_price||0),item.remark||'',item.moq||null])
+        await execute('INSERT INTO quotation_items (quotation_id,item_name,material_code,spec,unit,qty,unit_price,total_price,remark,moq,image_url) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+          [id,item.item_name,item.material_code||'',item.spec||'',item.unit||'PCS',item.qty,item.unit_price||0,(item.qty||0)*(item.unit_price||0),item.remark||'',item.moq||null,item.image_url||null])
       }
     }
     await audit(u, 'UPDATE', '報價單', id, b.customer_name)

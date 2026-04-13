@@ -105,7 +105,7 @@ export default function PayablesPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] text-slate-500 mb-1.5">付款金額（應付：{editing.total_amount?.toLocaleString()} {editing.currency}）</label>
+                <label className="block text-[11px] text-slate-500 mb-1.5">付款金額（應付：{Number(editing.total_amount||0).toLocaleString()} {editing.currency}）</label>
                 <input type="number" className="oms-input" value={form.paid_amount} onChange={e => setForm(p => ({ ...p, paid_amount: Number(e.target.value) }))} />
               </div>
               <div>

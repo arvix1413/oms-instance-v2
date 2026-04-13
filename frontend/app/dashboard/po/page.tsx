@@ -217,7 +217,7 @@ export default function PoPage() {
   const printPo = async (id: number, poNumber: string, supplierName: string) => {
     const data = await apiFetch<Po>(`/api/po/${id}`)
     const items = data.items || []
-    const total = items.reduce((s, i) => s + i.total_price, 0)
+    const total = items.reduce((s, i) => s + Number(i.total_price), 0)
     const currency = items[0]?.currency || data.currency || 'VND'
 
     // 取当前用户签名
@@ -309,18 +309,18 @@ export default function PoPage() {
 
       <table class="items">
         <thead><tr>
-          <th style="width:28px">ST</th>
-          <th style="width:75px">PO訂單編號</th>
-          <th style="width:95px">物料編號</th>
-          <th>材料名稱</th>
-          <th style="width:90px">規格</th>
-          <th style="width:50px">重量</th>
-          <th style="width:42px">單位</th>
-          <th style="width:55px">數量</th>
-          <th style="width:75px">單價</th>
-          <th style="width:85px">小計</th>
-          <th style="width:42px">幣別</th>
-          <th style="width:70px">備註</th>
+          <th style="width:24px">ST</th>
+          <th style="width:70px">PO訂單編號</th>
+          <th style="width:90px">物料編號</th>
+          <th style="min-width:80px">材料名稱</th>
+          <th style="width:80px">規格</th>
+          <th style="width:45px">重量</th>
+          <th style="width:38px">單位</th>
+          <th style="width:50px">數量</th>
+          <th style="width:70px">單價</th>
+          <th style="width:80px">小計</th>
+          <th style="width:38px">幣別</th>
+          <th style="width:60px">備註</th>
         </tr></thead>
         <tbody>${itemRows}</tbody>
         <tfoot>
@@ -333,10 +333,7 @@ export default function PoPage() {
         </tfoot>
       </table>
 
-      <div class="remark-box">
-        <div class="remark-title">交貨條件 / Điều kiện giao hàng：</div>
-        <div>${data.remark || ''}</div>
-      </div>
+      ${data.remark ? `<div class="remark-box"><div class="remark-title">備註 / Ghi chú：</div><div>${data.remark}</div></div>` : ''}
 
       <div class="terms">
         <strong>注意事項 / Lưu ý：</strong>
@@ -452,7 +449,7 @@ export default function PoPage() {
                     <td className="p-1"><input className={inp} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} readOnly style={{width:45, backgroundColor:'#f8fafc'}} /></td>
                     <td className="p-1"><input type="number" className={inp} style={{width:65}} value={item.quantity || ""} onChange={e=>updateItem(i,'quantity',Number(e.target.value))} /></td>
                     <td className="p-1"><input type="number" className={inp} style={{width:85}} value={item.unit_price || ""} onChange={e=>updateItem(i,'unit_price',Number(e.target.value))} /></td>
-                    <td className="p-1 px-2 text-right text-slate-600 font-medium whitespace-nowrap">{item.total_price.toLocaleString()}</td>
+                    <td className="p-1 px-2 text-right text-slate-600 font-medium whitespace-nowrap">{Number(item.total_price).toLocaleString()}</td>
                     <td className="p-1">
                       <select className={inp} style={{width:55}} value={item.currency} onChange={e=>updateItem(i,'currency',e.target.value)}>
                         <option>VND</option><option>TWD</option><option>CNY</option><option>USD</option>
@@ -524,7 +521,7 @@ export default function PoPage() {
                         </td>
                         <td className="px-4 py-3 font-mono text-xs text-blue-600">{p.po_number}</td>
                         <td className="px-4 py-3 text-slate-800 font-medium max-w-[200px] truncate" title={p.supplier_name}>{p.supplier_name}</td>
-                        <td className="px-4 py-3 text-right text-slate-600 font-medium">{p.total_amount.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-right text-slate-600 font-medium">{Number(p.total_amount).toLocaleString()}</td>
                         <td className="px-4 py-3 text-slate-400 text-xs">{p.currency}</td>
                         <td className="px-4 py-3"><span className={sm.badge}>{sm.label}</span></td>
                         <td className="px-4 py-3 text-slate-300 text-xs">{p.created_at?.slice(0,10)}</td>
@@ -575,9 +572,9 @@ export default function PoPage() {
                                           <td className="px-3 py-2 text-slate-600 whitespace-nowrap max-w-[160px] truncate" title={item.material_name}>{item.material_name}</td>
                                           <td className="px-3 py-2 text-slate-400 whitespace-nowrap max-w-[120px] truncate" title={item.spec}>{item.spec}</td>
                                           <td className="px-3 py-2 text-right text-slate-500 whitespace-nowrap">{item.thickness ?? '—'}</td>
-                                          <td className="px-3 py-2 text-right text-slate-600 font-medium whitespace-nowrap">{item.quantity.toLocaleString()}</td>
-                                          <td className="px-3 py-2 text-right text-slate-600 whitespace-nowrap">{item.unit_price.toLocaleString()}</td>
-                                          <td className="px-3 py-2 text-right text-slate-800 font-semibold whitespace-nowrap">{item.total_price.toLocaleString()}</td>
+                                          <td className="px-3 py-2 text-right text-slate-600 font-medium whitespace-nowrap">{Number(item.quantity).toLocaleString()}</td>
+                                          <td className="px-3 py-2 text-right text-slate-600 whitespace-nowrap">{Number(item.unit_price).toLocaleString()}</td>
+                                          <td className="px-3 py-2 text-right text-slate-800 font-semibold whitespace-nowrap">{Number(item.total_price).toLocaleString()}</td>
                                           <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.unit}</td>
                                           <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.currency}</td>
                                           <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.remark}</td>
@@ -587,7 +584,7 @@ export default function PoPage() {
                                     <tfoot>
                                       <tr className="border-t border-slate-200">
                                         <td colSpan={8} className="px-3 py-2 text-right text-[10px] text-slate-300 font-semibold uppercase">合計</td>
-                                        <td className="px-3 py-2 text-right text-slate-600 font-bold">{items.reduce((s,i)=>s+i.total_price,0).toLocaleString()}</td>
+                                        <td className="px-3 py-2 text-right text-slate-600 font-bold">{items.reduce((s,i)=>s+Number(i.total_price),0).toLocaleString()}</td>
                                         <td colSpan={2} className="px-3 py-2 text-slate-400 text-xs">{items[0]?.currency}</td>
                                       </tr>
                                     </tfoot>
