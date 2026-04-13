@@ -159,7 +159,7 @@ app.get('/api/suppliers', authMiddleware, async c => {
   const rows = await query('SELECT * FROM suppliers ORDER BY created_at DESC')
   return c.json(rows)
 })
-app.post('/api/suppliers', authMiddleware, async c => {
+app.post('/api/suppliers', authMiddleware, requirePerm('supplier.manage'), async c => {
   try {
     const b = await c.req.json()
     if (!b.name) return c.json({ error: 'name required' }, 400)
@@ -169,7 +169,7 @@ app.post('/api/suppliers', authMiddleware, async c => {
     return c.json({ id: r.insertId, ...b }, 201)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.put('/api/suppliers/:id', authMiddleware, async c => {
+app.put('/api/suppliers/:id', authMiddleware, requirePerm('supplier.manage'), async c => {
   try {
     const id = c.req.param('id')
     const b = await c.req.json()
@@ -179,7 +179,7 @@ app.put('/api/suppliers/:id', authMiddleware, async c => {
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.delete('/api/suppliers/:id', authMiddleware, async c => {
+app.delete('/api/suppliers/:id', authMiddleware, requirePerm('supplier.manage'), async c => {
   const id = c.req.param('id')
   // Check for linked POs before deleting
   const linked = await queryOne<any>('SELECT COUNT(*) as cnt FROM purchase_orders WHERE supplier_id=?', [id])
@@ -241,7 +241,7 @@ app.get('/api/materials', authMiddleware, async c => {
   const rows = await query(sql, params.length ? params : undefined)
   return c.json(rows)
 })
-app.post('/api/materials', authMiddleware, canWrite, async c => {
+app.post('/api/materials', authMiddleware, requirePerm('bom.create'), async c => {
   try {
     const b = await c.req.json()
     if (!b.material_code || !b.material_name) return c.json({ error: 'material_code and material_name required' }, 400)
@@ -250,7 +250,7 @@ app.post('/api/materials', authMiddleware, canWrite, async c => {
     return c.json({ id: r.insertId, ...b }, 201)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.put('/api/materials/:id', authMiddleware, canWrite, async c => {
+app.put('/api/materials/:id', authMiddleware, requirePerm('bom.edit'), async c => {
   try {
     const b = await c.req.json()
     await execute('UPDATE materials SET material_code=?,material_name=?,spec=?,unit=?,category=?,product_category=?,supplier_id=?,supplier_price=?,company_price=?,currency=?,stock=?,image_url=? WHERE id=?',
@@ -258,11 +258,11 @@ app.put('/api/materials/:id', authMiddleware, canWrite, async c => {
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.delete('/api/materials/:id', authMiddleware, async c => {
+app.delete('/api/materials/:id', authMiddleware, requirePerm('bom.delete'), async c => {
   await execute('DELETE FROM materials WHERE id=?', [c.req.param('id')])
   return c.json({ ok: true })
 })
-app.post('/api/materials/bulk', authMiddleware, canWrite, async c => {
+app.post('/api/materials/bulk', authMiddleware, requirePerm('bom.create'), async c => {
   try {
     const items = await c.req.json()
     let success = 0, updated = 0, newSuppliers = 0
@@ -902,7 +902,7 @@ app.get('/api/inventory/bom', authMiddleware, async c => c.json(await query(`
   LEFT JOIN suppliers s ON b.supplier_id = s.id
   ORDER BY b.category, b.product_sku
 `)))
-app.post('/api/inventory', authMiddleware, canWrite, async c => {
+app.post('/api/inventory', authMiddleware, requirePerm('stock.adjust'), async c => {
   try {
     const b = await c.req.json()
     const closing = (b.opening_balance||0)+(b.inbound_qty||0)-(b.outbound_qty||0)
@@ -912,7 +912,7 @@ app.post('/api/inventory', authMiddleware, canWrite, async c => {
     return c.json({ id: r.insertId }, 201)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.put('/api/inventory/:id', authMiddleware, canWrite, async c => {
+app.put('/api/inventory/:id', authMiddleware, requirePerm('stock.adjust'), async c => {
   try {
     const b = await c.req.json()
     const closing = (b.opening_balance||0)+(b.inbound_qty||0)-(b.outbound_qty||0)
@@ -1046,7 +1046,7 @@ app.get('/api/receivables', authMiddleware, async c => {
     return c.json(rows)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.patch('/api/receivables/:id/payment', authMiddleware, canWrite, async c => {
+app.patch('/api/receivables/:id/payment', authMiddleware, async c => {
   try {
     const id = c.req.param('id')
     const { payment_status, received_amount, payment_date, payment_note } = await c.req.json()
@@ -1075,7 +1075,7 @@ app.get('/api/payables', authMiddleware, async c => {
     return c.json(rows)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.patch('/api/payables/:id/payment', authMiddleware, canWrite, async c => {
+app.patch('/api/payables/:id/payment', authMiddleware, async c => {
   try {
     const id = c.req.param('id')
     const { payment_status, paid_amount, payment_date, payment_note } = await c.req.json()
