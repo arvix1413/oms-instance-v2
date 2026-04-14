@@ -422,6 +422,7 @@ export default function DeliveryNotesPage() {
                           onAction={(toStatus) => changeStatus(dn.id, toStatus)} />
                         {actionLoading === dn.id && <span className="text-xs text-slate-400 px-2">處理中...</span>}
                         <button onClick={() => viewDN(dn.id)} className="btn-ghost ml-1">詳情</button>
+                        <button onClick={async () => { const d = await apiFetch<DN>(`/api/delivery-notes/${dn.id}`); printDN({...dn, items: d.items}) }} className="btn-ghost" title="列印">🖨</button>
                         {canWrite && dn.status === 'draft' && <button onClick={() => startEditDN(dn)} className="btn-ghost text-blue-600">編輯</button>}
                         {canDel && <button onClick={() => del(dn.id)} className="btn-danger">刪除</button>}
                       </div>
