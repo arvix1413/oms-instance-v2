@@ -83,8 +83,8 @@ const ALL_PERMISSIONS = [
   { key: 'supplier.manage', label: '管理供應商' },
   { key: 'stock.adjust', label: '庫存調整' },
   { key: 'company.manage', label: '公司設定' },
-  { key: 'user.manage', label: '用戶管理' },
-  { key: 'audit.view', label: '查看操作日誌' },
+  { key: 'user.manage', label: '使用者管理' },
+  { key: 'audit.view', label: '檢視操作日誌' },
 ]
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ app.post('/api/auth/change-password', authMiddleware, async c => {
     const user = await queryOne<any>('SELECT password_hash FROM users WHERE id=?', [u.userId])
     if (!user || hashPw(currentPassword) !== user.password_hash) return c.json({ error: '目前密碼不正確' }, 400)
     await execute('UPDATE users SET password_hash=? WHERE id=?', [hashPw(newPassword), u.userId])
-    await audit(u, 'UPDATE', '用戶', u.userId, '修改密碼')
+    await audit(u, 'UPDATE', '使用者', u.userId, '修改密碼')
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
@@ -150,7 +150,7 @@ app.post('/api/users/:id/reset-password', authMiddleware, requirePerm('user.mana
     if (!row) return c.json({ error: 'User not found' }, 404)
     if (u.role !== 'admin' && row.role === 'admin') return c.json({ error: '無法重置管理員密碼' }, 403)
     await execute('UPDATE users SET password_hash=? WHERE id=?', [hashPw('admin123'), id])
-    await audit(u, 'UPDATE', '用戶', id, `重置密碼: ${row.email}`)
+    await audit(u, 'UPDATE', '使用者', id, `重設密碼: ${row.email}`)
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
@@ -479,7 +479,7 @@ app.patch('/api/po/:id/receive', authMiddleware, requirePerm('po.approve'), asyn
     const po = await queryOne<any>('SELECT * FROM purchase_orders WHERE id=?', [id])
     if (!po) return c.json({ error: 'Not found' }, 404)
     if (po.status === 'received') return c.json({ error: '此採購單已收貨，不可重複操作' }, 400)
-    if (!['approved', 'sent'].includes(po.status)) return c.json({ error: '只有已核准或已發送的採購單才能收貨' }, 400)
+    if (!['approved', 'sent'].includes(po.status)) return c.json({ error: '只有已核准或已送出的採購單才能收貨' }, 400)
     const items = await query<any>('SELECT * FROM po_items WHERE po_id=?', [id])
     for (const item of items) {
       const qty = parseFloat(item.quantity) || 0
@@ -1002,7 +1002,7 @@ app.post('/api/users', authMiddleware, requirePerm('user.manage'), async c => {
     const existing = await queryOne('SELECT id FROM users WHERE email=?', [email])
     if (existing) return c.json({ error: 'Email already exists' }, 409)
     const r = await execute('INSERT INTO users (email,password_hash,name,role) VALUES (?,?,?,?)', [email,hashPw(password),name,role||'employee'])
-    await audit(u, 'CREATE', '用戶', r.insertId, `${email} (${role})`)
+    await audit(u, 'CREATE', '使用者', r.insertId, `${email} (${role})`)
     return c.json({ id: r.insertId, email, name, role }, 201)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
@@ -1020,7 +1020,7 @@ app.put('/api/users/:id', authMiddleware, requirePerm('user.manage'), async c =>
     } else {
       await execute('UPDATE users SET name=?,role=? WHERE id=?', [name,role,id])
     }
-    await audit(u, 'UPDATE', '用戶', id, `${name} → ${role}`)
+    await audit(u, 'UPDATE', '使用者', id, `${name} → ${role}`)
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
@@ -1033,7 +1033,7 @@ app.delete('/api/users/:id', authMiddleware, requirePerm('user.manage'), async c
     // manager cannot delete admin accounts
     if (u.role !== 'admin' && target.role === 'admin') return c.json({ error: '無法刪除管理員帳號' }, 403)
     await execute('DELETE FROM users WHERE id=?', [id])
-    await audit(u, 'DELETE', '用戶', id, `${target.email} (${target.name})`)
+    await audit(u, 'DELETE', '使用者', id, `${target.email} (${target.name})`)
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })

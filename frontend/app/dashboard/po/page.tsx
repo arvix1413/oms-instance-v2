@@ -16,7 +16,7 @@ type BOM = { id: number; product_sku: string; product_name: string; spec: string
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
   draft:     { label:'草稿',   badge:'badge-gray'   },
   approved:  { label:'已核准', badge:'badge-green'  },
-  sent:      { label:'已發送', badge:'badge-blue'   },
+  sent:      { label:'已送出', badge:'badge-blue'   },
   received:  { label:'已收貨', badge:'badge-purple' },
   cancelled: { label:'已取消', badge:'badge-red'    },
 }
@@ -127,8 +127,8 @@ export default function PoPage() {
 
   const changeStatus = async (id: number, status: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    const labels: Record<string, string> = { sent: '確認發送此採購單？' }
-    const btnLabels: Record<string, string> = { sent: '確認發送' }
+    const labels: Record<string, string> = { sent: '確認送出此採購單？' }
+    const btnLabels: Record<string, string> = { sent: '確認送出' }
     if (!await confirmDialog(labels[status] || '確認變更狀態？', '', btnLabels[status] || '確認')) return
     try {
       await apiFetch(`/api/po/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
@@ -384,7 +384,7 @@ export default function PoPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-slate-800">採購單管理</h1>
-          <p className="text-xs text-slate-400 mt-0.5">點擊採購單列展開查看料號明細</p>
+          <p className="text-xs text-slate-400 mt-0.5">點選採購單列展開檢視料號明細</p>
         </div>
         {canWrite && <button onClick={() => { setCreating(true); setEditingId(null); setForm({ supplier_id: '', supplier_name:'', currency:'VND', remark:'', items:[emptyItem()] }) }} className="btn-primary">+ 建立採購單</button>}
       </div>
@@ -489,7 +489,7 @@ export default function PoPage() {
           <div className="mb-4 flex gap-3">
             <input className="oms-input w-64" placeholder="搜尋採購單號或供應商..." value={search} onChange={e=>setSearch(e.target.value)} />
             <div className="flex gap-1">
-              {[['', '全部'], ['draft', '草稿'], ['approved', '已核准'], ['sent', '已發送'], ['received', '已收貨']].map(([val, label]) => (
+              {[['', '全部'], ['draft', '草稿'], ['approved', '已核准'], ['sent', '已送出'], ['received', '已收貨']].map(([val, label]) => (
                 <button key={val} onClick={() => setStatusFilter(val)}
                   className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${statusFilter === val ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}>
                   {label}

@@ -65,16 +65,16 @@ export default function UsersPage() {
   }
 
   const del = async (id: number, name: string) => {
-    if (!await confirmDialog(`確定刪除用戶「${name}」？`, '此操作無法復原')) return
+    if (!await confirmDialog(`確定刪除使用者「${name}」？`, '此操作無法復原')) return
     try {
       await apiFetch(`/api/users/${id}`, { method: 'DELETE' })
-      toast('用戶已刪除')
+      toast('使用者已刪除')
       await load()
     } catch (e: any) { toast('刪除失敗：' + e.message, 'error') }
   }
 
   const resetPassword = async (id: number, name: string) => {
-    if (!await confirmDialog(`重置「${name}」的密碼？`, '密碼將重置為 admin123，請通知用戶盡快修改', '確認重置')) return
+    if (!await confirmDialog(`重置「${name}」的密碼？`, '密碼將重置為 admin123，請通知使用者盡快修改', '確認重置')) return
     try {
       await apiFetch(`/api/users/${id}/reset-password`, { method: 'POST' })
       toast(`已重置 ${name} 的密碼為 admin123`)
@@ -90,10 +90,10 @@ export default function UsersPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-slate-800">用戶管理</h1>
-          <p className="text-xs text-slate-400 mt-0.5">管理系統用戶及其權限角色</p>
+          <h1 className="text-xl font-bold text-slate-800">使用者管理</h1>
+          <p className="text-xs text-slate-400 mt-0.5">管理系統使用者及其權限角色</p>
         </div>
-        <button onClick={() => setEditing(empty())} className="btn-primary">+ 新增用戶</button>
+        <button onClick={() => setEditing(empty())} className="btn-primary">+ 新增使用者</button>
       </div>
 
       {/* Role cards */}
@@ -102,10 +102,10 @@ export default function UsersPage() {
           <div key={role} className={`rounded-xl border border-slate-200 bg-slate-50 p-4 ${ROLE_COLORS[role].replace('text-', 'border-').split(' ')[0]}`}>
             <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium mb-2 ${ROLE_COLORS[role]}`}>{label}</span>
             <div className="text-xs text-slate-400 leading-relaxed">
-              {role === 'admin' && '全部權限 + 用戶管理'}
+              {role === 'admin' && '全部權限 + 使用者管理'}
               {role === 'manager' && '審批採購單、刪除資料'}
               {role === 'purchaser' && '建立/編輯料號、BOM、採購單'}
-              {role === 'viewer' && '只能查看，不能修改'}
+              {role === 'viewer' && '僅可檢視，不能修改'}
             </div>
             <div className="text-xs font-semibold mt-2" style={{color: 'inherit'}}>
               {users.filter(u => u.role === role).length} 人
@@ -117,7 +117,7 @@ export default function UsersPage() {
       {/* Create/Edit Form */}
       {editing && (
         <div className="oms-card p-6 mb-5 shadow-sm">
-          <h2 className="font-semibold mb-4 text-lg">{editing.id ? '編輯用戶資料' : '新增用戶'}</h2>
+          <h2 className="font-semibold mb-4 text-lg">{editing.id ? '編輯使用者資料' : '新增使用者'}</h2>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium mb-1 text-gray-700">Email *</label>
@@ -127,7 +127,7 @@ export default function UsersPage() {
             </div>
             <div>
               <label className="block text-xs font-medium mb-1 text-gray-700">姓名 *</label>
-              <input className={inp} value={editing.name||''} onChange={e=>setEditing(p=>({...p,name:e.target.value}))} placeholder="用戶姓名" />
+              <input className={inp} value={editing.name||''} onChange={e=>setEditing(p=>({...p,name:e.target.value}))} placeholder="使用者姓名" />
             </div>
             <div>
               <label className="block text-xs font-medium mb-1 text-gray-700">角色 *</label>
@@ -146,7 +146,7 @@ export default function UsersPage() {
           </div>
           <div className="flex gap-3 mt-5">
             <button onClick={save} className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
-              {editing.id ? '儲存變更' : '建立用戶'}
+              {editing.id ? '儲存變更' : '建立使用者'}
             </button>
             <button onClick={() => setEditing(null)} className="btn-ghost border border-slate-200 px-6 py-2">取消</button>
           </div>
@@ -156,10 +156,10 @@ export default function UsersPage() {
       {/* Users Table */}
       <div className="oms-card overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-          <span className="text-sm font-semibold text-slate-600">共 {users.length} 位用戶</span>
+          <span className="text-sm font-semibold text-slate-600">共 {users.length} 位使用者</span>
           <div className="flex items-center gap-3">
             <input className="oms-input w-48" placeholder="搜尋姓名或Email..." value={search} onChange={e=>setSearch(e.target.value)} />
-            <span className="text-xs text-slate-300">點擊角色標籤可快速修改</span>
+            <span className="text-xs text-slate-300">點選角色標籤可快速修改</span>
           </div>
         </div>
         {loading ? (
@@ -169,7 +169,7 @@ export default function UsersPage() {
             <table className="oms-table">
               <thead className="bg-transparent text-xs text-slate-400 uppercase">
                 <tr>
-                  <th className="px-4 py-3 text-left">用戶</th>
+                  <th className="px-4 py-3 text-left">使用者</th>
                   <th className="px-4 py-3 text-left">角色權限</th>
                   <th className="px-4 py-3 text-left">建立時間</th>
                   <th className="px-4 py-3 text-left">操作</th>
@@ -230,7 +230,7 @@ export default function UsersPage() {
                   </tr>
                 ))}
                 {paged.length === 0 && (
-                  <tr><td colSpan={4} className="px-4 py-12 text-center text-slate-400">尚無用戶</td></tr>
+                  <tr><td colSpan={4} className="px-4 py-12 text-center text-slate-400">尚無使用者</td></tr>
                 )}
               </tbody>
             </table>

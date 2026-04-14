@@ -11,7 +11,7 @@ type AP = {
 }
 
 const PO_STATUS: Record<string, string> = {
-  approved: '已核准', sent: '已發送', received: '已收貨'
+  approved: '已核准', sent: '已送出', received: '已收貨'
 }
 
 const PAY_STATUS = {

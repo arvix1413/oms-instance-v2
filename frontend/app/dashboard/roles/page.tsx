@@ -131,7 +131,7 @@ export default function RolesPage() {
             </div>
             <div className="text-xs text-slate-400">
               {role === 'manager' && '主管預設擁有全部權限，無需額外賦權'}
-              {role === 'employee' && '可設定：基本新增/查看操作'}
+              {role === 'employee' && '可設定：基本新增/檢視操作'}
             </div>
           </div>
         ))}

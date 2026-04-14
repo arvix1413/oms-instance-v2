@@ -100,7 +100,7 @@ export function StatusFlow({ steps, current, actions, onAction, compact = false 
 export const PO_STEPS: StatusStep[] = [
   { key: 'draft',     label: '草稿',   color: 'gray'  },
   { key: 'approved',  label: '已核准', color: 'blue'  },
-  { key: 'sent',      label: '已發送', color: 'blue'  },
+  { key: 'sent',      label: '已送出', color: 'blue'  },
   { key: 'received',  label: '已收貨', color: 'green' },
   { key: 'cancelled', label: '已取消', color: 'red'   },
 ]
@@ -139,7 +139,7 @@ export const CO_STEPS: StatusStep[] = [
 
 export function getPOActions(status: string): StatusAction[] {
   if (status === 'draft')    return [{ label: '核准', toStatus: 'approved', icon: '✓' }]
-  if (status === 'approved') return [{ label: '發送', toStatus: 'sent', icon: '📤' }]
+  if (status === 'approved') return [{ label: '送出', toStatus: 'sent', icon: '📤' }]
   if (status === 'sent')     return [{ label: '確認收貨', toStatus: 'received', icon: '📦' }]
   return []
 }

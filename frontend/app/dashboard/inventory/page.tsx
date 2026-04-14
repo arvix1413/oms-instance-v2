@@ -65,7 +65,7 @@ export default function InventoryPage() {
             <path d="M23 4v6h-6M1 20v-6h6"/>
             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
           </svg>
-          刷新
+          重新整理
         </button>
       </div>
 
@@ -93,7 +93,7 @@ export default function InventoryPage() {
             <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
           <span>有 <strong>{lowStock}</strong> 個品項庫存為零，請及時補貨</span>
-          <button onClick={() => setStockFilter('low')} className="ml-auto text-xs underline hover:no-underline">查看零庫存</button>
+          <button onClick={() => setStockFilter('low')} className="ml-auto text-xs underline hover:no-underline">檢視零庫存</button>
         </div>
       )}
 

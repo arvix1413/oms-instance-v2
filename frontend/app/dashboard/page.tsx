@@ -97,7 +97,7 @@ export default function DashboardPage() {
               <div className="text-sm text-blue-200">{stats ? salesSub : '載入中...'}</div>
               <div className="mt-4 pt-4 border-t border-blue-500/40 flex items-center justify-between text-xs text-blue-200">
                 <span>已收貨採購額：{stats ? fmt(stats.po_total || 0) : '—'} VND</span>
-                <Link href="/dashboard/customer-orders" className="hover:text-white transition-colors">查看訂單 →</Link>
+                <Link href="/dashboard/customer-orders" className="hover:text-white transition-colors">檢視訂單 →</Link>
               </div>
             </div>
             <div className="oms-card p-5 flex flex-col justify-between">

@@ -54,7 +54,7 @@ export default function CompanyPage() {
     try {
       await apiFetch('/api/company', { method: 'PUT', body: JSON.stringify(form) })
       clearCompanyCache()
-      toast('公司設定已儲存，所有打印表單將使用新資訊')
+      toast('公司設定已儲存，所有列印表單將使用新資訊')
     } catch (e: any) { toast('儲存失敗：' + e.message, 'error') }
     finally { setSaving(false) }
   }
@@ -69,7 +69,7 @@ export default function CompanyPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-xl font-bold text-slate-800">公司設定</h1>
-        <p className="text-xs text-slate-400 mt-0.5">修改後將套用到所有打印表單（採購單、出貨單、報價單、客戶訂單）</p>
+        <p className="text-xs text-slate-400 mt-0.5">修改後將套用到所有列印表單（採購單、出貨單、報價單、客戶訂單）</p>
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(360px,1fr)] gap-6 items-start">
         <div className="oms-card p-6 space-y-5">
@@ -131,7 +131,7 @@ export default function CompanyPage() {
 
         {/* Preview */}
         <div className="oms-card p-5 xl:sticky xl:top-6">
-          <div className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wider">打印預覽</div>
+          <div className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wider">列印預覽</div>
           <div className="border border-slate-200 rounded-lg p-4 bg-white text-xs">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-3">
               <div>

@@ -29,7 +29,7 @@ const ACTION_LABEL: Record<string, string> = {
   STATUS_CHANGE: '狀態變更',
 }
 
-const RESOURCES = ['', '供應商', '客戶', '料號', 'BOM', '採購單', '客戶訂單', '報價單', '出貨單', '庫存', '用戶']
+const RESOURCES = ['', '供應商', '客戶', '料號', 'BOM', '採購單', '客戶訂單', '報價單', '出貨單', '庫存', '使用者']
 
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState<Log[]>([])
@@ -69,7 +69,7 @@ export default function AuditLogsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-slate-800">操作日誌</h1>
-          <p className="text-xs text-slate-500 mt-0.5">記錄所有用戶的新增、修改、刪除操作</p>
+          <p className="text-xs text-slate-500 mt-0.5">記錄所有使用者的新增、修改、刪除操作</p>
         </div>
         <button onClick={load} className="btn-ghost">↻ 重新整理</button>
       </div>
@@ -101,7 +101,7 @@ export default function AuditLogsPage() {
           <option value="">全部操作</option>
           {Object.entries(ACTION_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <input className="oms-input w-52" placeholder="搜尋用戶 Email..." value={filterEmail}
+        <input className="oms-input w-52" placeholder="搜尋使用者 Email..." value={filterEmail}
           onChange={e => setFilterEmail(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && load()} />
         <button onClick={load} className="btn-primary">搜尋</button>

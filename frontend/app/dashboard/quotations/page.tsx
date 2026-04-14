@@ -16,7 +16,7 @@ const emptyTiers = (): MoqTier[] => Array.from({length:5}, () => ({ moq: 0, pric
 const emptyItem = (): QItem => ({ item_name:'', material_code:'', spec:'', unit:'PCS', qty:0, unit_price:0, total_price:0, remark:'', moq_tiers:emptyTiers(), image_url:'' })
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
   draft:    { label:'草稿',   badge:'badge-gray'  },
-  sent:     { label:'已發送', badge:'badge-blue'  },
+  sent:     { label:'已送出', badge:'badge-blue'  },
   accepted: { label:'已接受', badge:'badge-green' },
   rejected: { label:'已拒絕', badge:'badge-red'   },
 }
@@ -340,7 +340,7 @@ export default function QuotationsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-slate-800">報價單</h1>
-          <p className="text-xs text-slate-400 mt-0.5">點擊報價單列展開查看品項明細</p>
+          <p className="text-xs text-slate-400 mt-0.5">點選報價單列展開檢視品項明細</p>
         </div>
         <button onClick={startCreate} className="btn-primary">+ 新增報價單</button>
       </div>
@@ -610,7 +610,7 @@ export default function QuotationsPage() {
                               {editingId !== q.id && (
                                 <div className="px-4 py-2.5 border-t border-slate-100 flex items-center gap-2 bg-slate-50/80">
                                   {q.status==='draft' && <button onClick={e=>startEdit(q,e)} className="btn-ghost text-blue-600 text-xs">✏ 編輯</button>}
-                                  {q.status==='draft' && <button onClick={e=>changeStatus(q.id,'sent',e)} className="btn-ghost text-xs">發送</button>}
+                                  {q.status==='draft' && <button onClick={e=>changeStatus(q.id,'sent',e)} className="btn-ghost text-xs">送出</button>}
                                   {q.status==='sent' && <>
                                     <button onClick={e=>changeStatus(q.id,'accepted',e)} className="btn-ghost text-emerald-600 text-xs">接受</button>
                                     <button onClick={e=>changeStatus(q.id,'rejected',e)} className="btn-danger text-xs">拒絕</button>

@@ -1,12 +1,12 @@
 export type Role = 'admin' | 'manager' | 'employee' | 'purchaser' | 'viewer'
 
 export const ROLE_LABELS: Record<string, string> = {
-  admin: '系統管理員',
+  admin: '系統管理者',
   manager: '主管',
   employee: '員工',
   // Legacy roles (kept for backward compatibility)
   purchaser: '採購員',
-  viewer: '只讀',
+  viewer: '唯讀',
 }
 
 export const ROLE_COLORS: Record<string, string> = {
