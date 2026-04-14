@@ -1,6 +1,18 @@
 import { type CompanySettings } from './useCompany'
 
 export function generateOrderHTML(data: any, signatureUrl?: string, company?: CompanySettings): string {
+  const txt = (v: any) => {
+    if (v === null || v === undefined) return ''
+    const s = String(v).trim()
+    if (!s || s === 'null' || s === 'undefined' || s === '—' || s === '-') return ''
+    return s
+  }
+  const num = (v: any) => {
+    const n = Number(v)
+    return Number.isFinite(n) ? n : 0
+  }
+  const fmt = (v: any) => num(v).toLocaleString()
+
   const co = company || {
     company_name: 'FAN YONG CO., LTD',
     company_name_local: 'CÔNG TY TNHH FAN YONG VIỆT NAM',
@@ -15,27 +27,28 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
   const total = subtotal + taxAmt
 
   const itemRows = items.map((item: any, idx: number) => {
-    const unitPrice = Number(item.unit_price) || 0
-    const qty = Number(item.qty) || 0
+    const unitPrice = num(item.unit_price)
+    const qty = num(item.qty)
     const amt = qty * unitPrice
-    const nameText = item.product_name || '—'
-    const skuText = item.product_sku ? '<div style="font-size:9px;color:#888;margin-top:1px">(' + item.product_sku + ')</div>' : ''
+    const nameText = txt(item.product_name)
+    const skuVal = txt(item.product_sku)
+    const skuText = skuVal ? '<div style="font-size:9px;color:#888;margin-top:1px">(' + skuVal + ')</div>' : ''
     return [
       '<tr>',
       '<td style="text-align:center">' + (idx+1) + '</td>',
       '<td>' + nameText + skuText + '</td>',
-      '<td style="color:#555">' + (item.spec || '—') + '</td>',
-      '<td style="text-align:right;font-weight:600">' + qty.toLocaleString() + '</td>',
-      '<td style="text-align:center">' + (item.unit || 'PCS') + '</td>',
-      '<td style="text-align:right">' + unitPrice.toLocaleString() + '</td>',
-      '<td style="text-align:right;font-weight:600">' + amt.toLocaleString() + '</td>',
+      '<td style="color:#555">' + txt(item.spec) + '</td>',
+      '<td style="text-align:right;font-weight:600">' + fmt(qty) + '</td>',
+      '<td style="text-align:center">' + (txt(item.unit) || 'PCS') + '</td>',
+      '<td style="text-align:right">' + fmt(unitPrice) + '</td>',
+      '<td style="text-align:right;font-weight:600">' + fmt(amt) + '</td>',
       '</tr>',
     ].join('')
   }).join('')
 
   const CSS = `
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:"Microsoft YaHei","PingFang TC",Arial,sans-serif;font-size:11px;font-weight:400;color:#000;padding:12mm 15mm;background:#fff;line-height:1.4}
+    body{font-family:"Microsoft JhengHei","PingFang TC",Arial,sans-serif;font-size:11px;font-weight:400;color:#000;padding:12mm 15mm;background:#fff;line-height:1.4}
     .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:5mm;margin-bottom:5mm}
     .company{font-size:18px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
     .subtitle{font-size:10px;color:#666;margin-top:3px}
@@ -66,19 +79,19 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
 
   const parts: string[] = []
   parts.push('<!DOCTYPE html><html lang="zh-TW"><head><meta charset="utf-8"/>')
-  parts.push('<title>客戶訂單 ' + data.po_number + '</title>')
+  parts.push('<title>客戶訂單 ' + txt(data.po_number) + '</title>')
   parts.push('<style>' + CSS + '</style></head><body>')
 
   // Header
   parts.push('<div class="header">')
-  parts.push('<div>' + (logoUrl ? `<img src="${logoUrl}" style="max-height:40px;max-width:160px;object-fit:contain;margin-bottom:4px" onerror="this.style.display='none'"/><br/>` : '') + '<div class="company">' + co.company_name + '</div><div class="subtitle">' + co.company_name_local + '</div></div>')
-  parts.push('<div><div class="doc-title">客戶訂單</div><div class="doc-sub">CUSTOMER ORDER / ĐƠN HÀNG KHÁCH</div><div class="doc-no">No. ' + data.po_number + '</div></div>')
+  parts.push('<div>' + (logoUrl ? `<img src="${logoUrl}" style="max-height:40px;max-width:160px;object-fit:contain;margin-bottom:4px" onerror="this.style.display='none'"/><br/>` : '') + '<div class="company">' + txt(co.company_name) + '</div><div class="subtitle">' + txt(co.company_name_local) + '</div></div>')
+  parts.push('<div><div class="doc-title">客戶訂單</div><div class="doc-sub">CUSTOMER ORDER / ĐƠN HÀNG KHÁCH</div><div class="doc-no">No. ' + txt(data.po_number) + '</div></div>')
   parts.push('</div>')
 
   // Info table
   parts.push('<table class="info-table">')
-  parts.push('<tr><td class="lbl">客戶<br/>Khách hàng</td><td style="font-weight:600;font-size:12px" colspan="3">' + (data.customer_name || '—') + '</td><td class="lbl">訂單號<br/>Số đơn</td><td style="font-family:monospace;font-weight:600">' + data.po_number + '</td></tr>')
-  parts.push('<tr><td class="lbl">採購日期<br/>Ngày đặt</td><td>' + (data.po_date || '—') + '</td><td class="lbl">交貨日<br/>Ngày giao</td><td>' + (data.delivery_date || '—') + '</td><td class="lbl">幣種<br/>Loại tiền</td><td>' + (data.currency || 'VND') + '</td></tr>')
+  parts.push('<tr><td class="lbl">客戶<br/>Khách hàng</td><td style="font-weight:600;font-size:12px" colspan="3">' + txt(data.customer_name) + '</td><td class="lbl">訂單號<br/>Số đơn</td><td style="font-family:monospace;font-weight:600">' + txt(data.po_number) + '</td></tr>')
+  parts.push('<tr><td class="lbl">採購日期<br/>Ngày đặt</td><td>' + txt(data.po_date) + '</td><td class="lbl">交貨日<br/>Ngày giao</td><td>' + txt(data.delivery_date) + '</td><td class="lbl">幣種<br/>Loại tiền</td><td>' + (txt(data.currency) || 'VND') + '</td></tr>')
   if (data.payment_terms) {
     parts.push('<tr><td class="lbl">付款方式<br/>Thanh toán</td><td colspan="5">' + data.payment_terms + '</td></tr>')
   }
@@ -94,18 +107,18 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
   parts.push('<table class="items"><thead><tr>')
   parts.push('<th style="width:30px">ST</th><th>品名 / Tên hàng</th><th style="width:100px">規格</th><th style="width:65px">數量</th><th style="width:45px">單位</th><th style="width:80px">單價</th><th style="width:90px">金額</th>')
   parts.push('</tr></thead><tbody>' + itemRows + '</tbody>')
-  parts.push('<tfoot><tr class="total-row"><td colspan="6" style="text-align:right">小計 / Tổng chưa thuế</td><td style="text-align:right">' + subtotal.toLocaleString() + '</td></tr></tfoot>')
+  parts.push('<tfoot><tr class="total-row"><td colspan="6" style="text-align:right">小計 / Tổng chưa thuế</td><td style="text-align:right">' + fmt(subtotal) + '</td></tr></tfoot>')
   parts.push('</table>')
 
   // Summary
   parts.push('<div class="summary-right">')
-  parts.push('<div class="sum-row"><span>小計</span><span>' + subtotal.toLocaleString() + '</span></div>')
-  parts.push('<div class="sum-row"><span>稅額 (' + taxRate + '%)</span><span>' + taxAmt.toLocaleString() + '</span></div>')
-  parts.push('<div class="sum-row"><span>含稅總計</span><span style="font-size:13px;color:#1a56db">' + total.toLocaleString() + ' ' + (data.currency || 'VND') + '</span></div>')
+  parts.push('<div class="sum-row"><span>小計</span><span>' + fmt(subtotal) + '</span></div>')
+  parts.push('<div class="sum-row"><span>稅額 (' + taxRate + '%)</span><span>' + fmt(taxAmt) + '</span></div>')
+  parts.push('<div class="sum-row"><span>含稅總計</span><span style="font-size:13px;color:#1a56db">' + fmt(total) + ' ' + (txt(data.currency) || 'VND') + '</span></div>')
   parts.push('</div>')
 
   // Notes
-  parts.push('<div class="notes"><div class="notes-title">備註 / Ghi chú：</div><div>' + (data.remark || '') + '</div></div>')
+  parts.push('<div class="notes"><div class="notes-title">備註 / Ghi chú：</div><div>' + txt(data.remark) + '</div></div>')
 
   // Terms
   parts.push('<div class="terms"><strong>注意事項：</strong> 訂單確認後不得擅自更改，如需更改須經本公司書面同意。收到本訂單後，請簽名並蓋章回傳。</div>')
@@ -116,8 +129,8 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
   if (signatureUrl) {
     parts.push('<img src="' + signatureUrl + '" style="max-height:44px;max-width:150px;object-fit:contain" />')
   }
-  parts.push('</div><div class="sign-line">' + co.company_name + '</div></div>')
-  parts.push('<div class="sign-box"><div class="sign-label">客戶簽章 / Khách hàng ký</div><div class="sign-area"></div><div class="sign-line">' + (data.customer_name || '') + '</div></div>')
+  parts.push('</div><div class="sign-line">' + txt(co.company_name) + '</div></div>')
+  parts.push('<div class="sign-box"><div class="sign-label">客戶簽章 / Khách hàng ký</div><div class="sign-area"></div><div class="sign-line">' + txt(data.customer_name) + '</div></div>')
   parts.push('</div>')
 
   parts.push('</body></html>')

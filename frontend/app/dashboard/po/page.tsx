@@ -219,13 +219,25 @@ export default function PoPage() {
   }
 
   const printPo = async (id: number, poNumber: string, supplierName: string) => {
+    const txt = (v: any) => {
+      if (v === null || v === undefined) return ''
+      const s = String(v).trim()
+      if (!s || s === 'null' || s === 'undefined' || s === '—' || s === '-') return ''
+      return s
+    }
+    const num = (v: any) => {
+      const n = Number(v)
+      return Number.isFinite(n) ? n : 0
+    }
+    const fmt = (v: any) => num(v).toLocaleString()
+
     const [data, company] = await Promise.all([
       apiFetch<Po>(`/api/po/${id}`),
       getCompany(),
     ])
     const items = data.items || []
-    const total = items.reduce((s, i) => s + Number(i.total_price), 0)
-    const currency = items[0]?.currency || data.currency || 'VND'
+    const total = items.reduce((s, i) => s + num(i.total_price), 0)
+    const currency = txt(items[0]?.currency) || txt(data.currency) || 'VND'
     const signatureUrl = getSignatureUrl()
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://43.133.56.234'
     const logoUrl = company.logo_url ? (company.logo_url.startsWith('http') ? company.logo_url : `${API_BASE}${company.logo_url}`) : null
@@ -233,24 +245,24 @@ export default function PoPage() {
     const itemRows = items.map((item, idx) => `
       <tr>
         <td style="text-align:center">${idx + 1}</td>
-        <td style="text-align:center;font-family:monospace;font-size:10px">${item.po_ref || ''}</td>
-        <td style="font-family:monospace;font-size:10px;color:#1a56db">${item.material_code || ''}</td>
-        <td>${item.material_name || ''}</td>
-        <td style="font-size:10px;color:#555">${item.spec || ''}</td>
-        <td style="text-align:right">${item.thickness ?? ''}</td>
-        <td style="text-align:center">${item.unit || 'PCS'}</td>
-        <td style="text-align:right;font-weight:600">${Number(item.quantity).toLocaleString()}</td>
-        <td style="text-align:right">${Number(item.unit_price).toLocaleString()}</td>
-        <td style="text-align:right;font-weight:700">${Number(item.total_price).toLocaleString()}</td>
-        <td style="text-align:center;font-size:10px">${item.currency || currency}</td>
-        <td style="font-size:10px;color:#666">${item.remark || ''}</td>
+        <td style="text-align:center;font-family:monospace;font-size:10px">${txt(item.po_ref)}</td>
+        <td style="font-family:monospace;font-size:10px;color:#1a56db">${txt(item.material_code)}</td>
+        <td>${txt(item.material_name)}</td>
+        <td style="font-size:10px;color:#555">${txt(item.spec)}</td>
+        <td style="text-align:right">${txt(item.thickness)}</td>
+        <td style="text-align:center">${txt(item.unit) || 'PCS'}</td>
+        <td style="text-align:right;font-weight:600">${fmt(item.quantity)}</td>
+        <td style="text-align:right">${fmt(item.unit_price)}</td>
+        <td style="text-align:right;font-weight:700">${fmt(item.total_price)}</td>
+        <td style="text-align:center;font-size:10px">${txt(item.currency) || currency}</td>
+        <td style="font-size:10px;color:#666">${txt(item.remark)}</td>
       </tr>`).join('')
 
     const html = `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="utf-8"/>
     <title>採購單 ${poNumber}</title>
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: "Microsoft YaHei", "PingFang TC", Arial, sans-serif; font-size: 11px; font-weight: 400; color: #000; background: #fff; }
+      body { font-family: "Microsoft JhengHei", "PingFang TC", Arial, sans-serif; font-size: 11px; font-weight: 400; color: #000; background: #fff; }
       .page { padding: 12mm 15mm; max-width: 210mm; margin: 0 auto; }
       /* Header */
       .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 5mm; margin-bottom: 5mm; }
@@ -287,32 +299,32 @@ export default function PoPage() {
       <div class="header">
         <div>
           ${logoUrl ? `<img src="${logoUrl}" style="max-height:40px;max-width:160px;object-fit:contain;margin-bottom:4px" onerror="this.style.display='none'"/><br/>` : ''}
-          <div class="company">${company.company_name}</div>
-          <div class="subtitle">${company.company_name_local}</div>
+          <div class="company">${txt(company.company_name)}</div>
+          <div class="subtitle">${txt(company.company_name_local)}</div>
         </div>
         <div>
           <div class="doc-title">採購單</div>
           <div class="doc-sub">PURCHASE ORDER / ĐƠN ĐẶT HÀNG</div>
-          <div class="doc-no">No. ${poNumber}</div>
+          <div class="doc-no">No. ${txt(poNumber)}</div>
         </div>
       </div>
 
       <table class="info-table">
         <tr>
           <td class="lbl">供應商<br/>Nhà cung cấp</td>
-          <td class="val" colspan="3" style="font-weight:600;font-size:12px">${supplierName}</td>
+          <td class="val" colspan="3" style="font-weight:600;font-size:12px">${txt(supplierName)}</td>
           <td class="lbl">採購單號<br/>Số PO</td>
-          <td class="val" style="font-family:monospace;font-weight:600">${poNumber}</td>
+          <td class="val" style="font-family:monospace;font-weight:600">${txt(poNumber)}</td>
         </tr>
         <tr>
           <td class="lbl">幣別<br/>Loại tiền</td>
           <td class="val">${currency}</td>
           <td class="lbl">建立日期<br/>Ngày lập</td>
-          <td class="val">${data.created_at ? String(data.created_at).slice(0,10) : '—'}</td>
+          <td class="val">${data.created_at ? String(data.created_at).slice(0,10) : ''}</td>
           <td class="lbl">狀態<br/>Trạng thái</td>
-          <td class="val">${data.status || '—'}</td>
+          <td class="val">${txt(data.status)}</td>
         </tr>
-        ${data.remark ? `<tr><td class="lbl">備註<br/>Ghi chú</td><td class="val" colspan="5">${data.remark}</td></tr>` : ''}
+        ${txt(data.remark) ? `<tr><td class="lbl">備註<br/>Ghi chú</td><td class="val" colspan="5">${txt(data.remark)}</td></tr>` : ''}
       </table>
 
       <table class="items">
@@ -334,14 +346,14 @@ export default function PoPage() {
         <tfoot>
           <tr class="total-row">
             <td colspan="9" style="text-align:right">合計 / Tổng cộng</td>
-            <td style="text-align:right;font-size:12px;color:#1a56db">${total.toLocaleString()}</td>
+            <td style="text-align:right;font-size:12px;color:#1a56db">${fmt(total)}</td>
             <td style="text-align:center">${currency}</td>
             <td></td>
           </tr>
         </tfoot>
       </table>
 
-      ${data.remark ? `<div class="remark-box"><div class="remark-title">備註 / Ghi chú：</div><div>${data.remark}</div></div>` : ''}
+      ${txt(data.remark) ? `<div class="remark-box"><div class="remark-title">備註 / Ghi chú：</div><div>${txt(data.remark)}</div></div>` : ''}
 
       <div class="terms">
         <strong>注意事項 / Lưu ý：</strong>
@@ -353,14 +365,14 @@ export default function PoPage() {
         <div class="sign-box">
           <div class="sign-label">供應商確認 / NCC xác nhận</div>
           <div class="sign-area"></div>
-          <div class="sign-line">${supplierName}</div>
+          <div class="sign-line">${txt(supplierName)}</div>
         </div>
         <div class="sign-box">
           <div class="sign-label">採購確認 / Người lập biểu xác nhận</div>
           <div class="sign-area">
             ${signatureUrl ? `<img src="${signatureUrl}" style="max-height:44px;max-width:150px;object-fit:contain" />` : ''}
           </div>
-          <div class="sign-line">${company.company_name}</div>
+          <div class="sign-line">${txt(company.company_name)}</div>
         </div>
       </div>
     </div>

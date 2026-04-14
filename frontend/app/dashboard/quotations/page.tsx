@@ -166,6 +166,18 @@ export default function QuotationsPage() {
   }
 
   const printQuotation = async (id: number, q: Q) => {
+    const txt = (v: any) => {
+      if (v === null || v === undefined) return ''
+      const s = String(v).trim()
+      if (!s || s === 'null' || s === 'undefined' || s === '—' || s === '-') return ''
+      return s
+    }
+    const num = (v: any) => {
+      const n = Number(v)
+      return Number.isFinite(n) ? n : 0
+    }
+    const fmt = (v: any) => num(v).toLocaleString()
+
     const [data, company] = await Promise.all([
       apiFetch<Q>(`/api/quotations/${id}`),
       getCompany(),
@@ -189,23 +201,23 @@ export default function QuotationsPage() {
           if (Array.isArray(parsed)) tiers = parsed.filter((t: any) => t.moq > 0 || t.price > 0)
         } catch { if (item.moq) tiers = [{moq: Number(item.moq)||0, price: Number(item.unit_price)||0}] }
       }
-      if (tiers.length === 0 && item.unit_price) tiers = [{moq:0, price: Number(item.unit_price)}]
+      if (tiers.length === 0 && num(item.unit_price) > 0) tiers = [{moq:0, price: num(item.unit_price)}]
 
-      const moqCell = tiers.map(t => `<div style="line-height:1.6">${t.moq > 0 ? t.moq.toLocaleString() : '—'}</div>`).join('')
-      const priceCell = tiers.map(t => `<div style="line-height:1.6;font-weight:600">${t.price > 0 ? Number(t.price).toLocaleString() : '—'}</div>`).join('')
+      const moqCell = tiers.map(t => `<div style="line-height:1.6">${t.moq > 0 ? fmt(t.moq) : ''}</div>`).join('')
+      const priceCell = tiers.map(t => `<div style="line-height:1.6;font-weight:600">${t.price > 0 ? fmt(t.price) : ''}</div>`).join('')
 
       return `
       <tr>
         <td style="text-align:center;font-size:11px">${idx+1}</td>
-        <td style="font-size:11px">${item.item_name||''}</td>
-        <td style="font-size:10px;color:#444">${item.spec||''}</td>
-        <td style="text-align:center;font-size:11px">${item.unit||'PCS'}</td>
+        <td style="font-size:11px">${txt(item.item_name)}</td>
+        <td style="font-size:10px;color:#444">${txt(item.spec)}</td>
+        <td style="text-align:center;font-size:11px">${txt(item.unit) || 'PCS'}</td>
         <td style="text-align:center;font-size:11px">${moqCell}</td>
         <td style="text-align:right;font-size:11px">${priceCell}</td>
         <td style="text-align:center;padding:2px">
           ${imgUrl ? `<img src="${imgUrl}" style="max-width:60px;max-height:50px;object-fit:contain" onerror="this.style.display='none'"/>` : ''}
         </td>
-        <td style="font-size:10px;color:#555">${item.remark||''}</td>
+        <td style="font-size:10px;color:#555">${txt(item.remark)}</td>
       </tr>`
     }).join('')
 
@@ -213,7 +225,7 @@ export default function QuotationsPage() {
     <title>報價單 ${q.quotation_number}</title>
     <style>
       *{box-sizing:border-box;margin:0;padding:0}
-      body{font-family:"Microsoft YaHei","PingFang TC",Arial,sans-serif;font-size:11px;font-weight:400;color:#000;background:#fff}
+      body{font-family:"Microsoft JhengHei","PingFang TC",Arial,sans-serif;font-size:11px;font-weight:400;color:#000;background:#fff}
       .page{padding:12mm 15mm;max-width:210mm;margin:0 auto}
       .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:5mm;margin-bottom:5mm}
       .company{font-size:18px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
@@ -241,34 +253,34 @@ export default function QuotationsPage() {
       <div class="header">
         <div>
           ${logoUrl ? `<img src="${logoUrl}" style="max-height:40px;max-width:160px;object-fit:contain;margin-bottom:4px" onerror="this.style.display='none'"/><br/>` : ''}
-          <div class="company">${company.company_name}</div>
-          <div class="subtitle">${company.company_name_local || ''}</div>
+          <div class="company">${txt(company.company_name)}</div>
+          <div class="subtitle">${txt(company.company_name_local)}</div>
         </div>
         <div>
           <div class="doc-title">報價單</div>
           <div class="doc-sub">QUOTATION / BẢNG BÁO GIÁ</div>
-          <div class="doc-no">No. ${q.quotation_number || '—'}</div>
+          <div class="doc-no">No. ${txt(q.quotation_number)}</div>
         </div>
       </div>
 
       <table class="info-table">
         <tr>
           <td class="lbl">客戶<br/>Khách hàng</td>
-          <td style="font-weight:600;font-size:12px" colspan="3">${q.customer_name || '—'}</td>
+          <td style="font-weight:600;font-size:12px" colspan="3">${txt(q.customer_name)}</td>
           <td class="lbl">報價日<br/>Date issue</td>
-          <td>${String(q.created_at || '').slice(0,10) || '—'}</td>
+          <td>${String(q.created_at || '').slice(0,10) || ''}</td>
         </tr>
         <tr>
           <td class="lbl">聯絡人<br/>Contact</td>
-          <td>${company.contact_person || '—'}</td>
+          <td>${txt(company.contact_person)}</td>
           <td class="lbl">有效期<br/>Valid until</td>
-          <td>${q.valid_until ? String(q.valid_until).slice(0,10) : '—'}</td>
+          <td>${q.valid_until ? String(q.valid_until).slice(0,10) : ''}</td>
           <td class="lbl">幣別<br/>Currency</td>
-          <td>${q.currency || 'VND'}</td>
+          <td>${txt(q.currency) || 'VND'}</td>
         </tr>
         <tr>
           <td class="lbl">地址<br/>Address</td>
-          <td colspan="5">${company.address || '—'}</td>
+          <td colspan="5">${txt(company.address)}</td>
         </tr>
       </table>
 
@@ -288,7 +300,7 @@ export default function QuotationsPage() {
 
       <div class="note-box">
         <div class="note-title">備註 / Ghi chú：</div>
-        <div style="white-space:pre-line">${q.remark || '1. 交易方式：現金轉款\n2. 樣品日期：8-10天\n3. 以上單價不包含8%VAT\n4. 交貨方式：越南當地門到門\n5. 如有問題根據樣品報價單\n6. 三天內確認打樣費用，請簽回並確認\n7. 收到量產訂單出貨後，打樣費將在8天內退還'}</div>
+        <div style="white-space:pre-line">${txt(q.remark) || '1. 交易方式：現金轉款\n2. 樣品日期：8-10天\n3. 以上單價不包含8%VAT\n4. 交貨方式：越南當地門到門\n5. 如有問題根據樣品報價單\n6. 三天內確認打樣費用，請簽回並確認\n7. 收到量產訂單出貨後，打樣費將在8天內退還'}</div>
       </div>
 
       <div class="sign-row">
@@ -297,12 +309,12 @@ export default function QuotationsPage() {
           <div class="sign-area">
             ${signUrl ? `<img src="${signUrl}" style="max-height:44px;max-width:150px;object-fit:contain"/>` : ''}
           </div>
-          <div class="sign-line">${company.company_name}</div>
+          <div class="sign-line">${txt(company.company_name)}</div>
         </div>
         <div class="sign-box">
           <div class="sign-label">客戶確認 / Khách hàng xác nhận</div>
           <div class="sign-area"></div>
-          <div class="sign-line">${q.customer_name || ''}</div>
+          <div class="sign-line">${txt(q.customer_name)}</div>
         </div>
       </div>
     </div>

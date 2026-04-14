@@ -134,18 +134,30 @@ export default function ProductionPage() {
   }
 
   const printProd = async (prod: Prod) => {
+    const txt = (v: any) => {
+      if (v === null || v === undefined) return ''
+      const s = String(v).trim()
+      if (!s || s === 'null' || s === 'undefined' || s === '—' || s === '-') return ''
+      return s
+    }
+    const num = (v: any) => {
+      const n = Number(v)
+      return Number.isFinite(n) ? n : 0
+    }
+    const fmt = (v: any) => num(v).toLocaleString()
+
     const detail = loadedProds[prod.id] || await apiFetch<Prod>(`/api/production/${prod.id}`)
     const company = await getCompany()
     const mats = detail.materials || []
     const rows = mats.map((m, i) => `
       <tr>
         <td style="border:1px solid #bbb;padding:6px;text-align:center">${i + 1}</td>
-        <td style="border:1px solid #bbb;padding:6px;font-family:monospace">${m.material_code || '—'}</td>
-        <td style="border:1px solid #bbb;padding:6px">${m.material_name || '—'}</td>
-        <td style="border:1px solid #bbb;padding:6px">${m.spec || '—'}</td>
-        <td style="border:1px solid #bbb;padding:6px;text-align:center">${m.unit || 'PCS'}</td>
-        <td style="border:1px solid #bbb;padding:6px;text-align:right">${Number(m.planned_qty || 0).toLocaleString()}</td>
-        <td style="border:1px solid #bbb;padding:6px;text-align:right">${Number(m.issued_qty || 0).toLocaleString()}</td>
+        <td style="border:1px solid #bbb;padding:6px;font-family:monospace">${txt(m.material_code)}</td>
+        <td style="border:1px solid #bbb;padding:6px">${txt(m.material_name)}</td>
+        <td style="border:1px solid #bbb;padding:6px">${txt(m.spec)}</td>
+        <td style="border:1px solid #bbb;padding:6px;text-align:center">${txt(m.unit) || 'PCS'}</td>
+        <td style="border:1px solid #bbb;padding:6px;text-align:right">${fmt(m.planned_qty)}</td>
+        <td style="border:1px solid #bbb;padding:6px;text-align:right">${fmt(m.issued_qty)}</td>
       </tr>
     `).join('')
     const html = `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="utf-8"/>
@@ -156,11 +168,11 @@ export default function ProductionPage() {
       table{width:100%;border-collapse:collapse} th{border:1px solid #555;background:#eee;padding:6px;font-size:11px}
       @media print{@page{size:A4;margin:10mm} body{padding:0}}
     </style></head><body>
-    <h1>${company.company_name || 'FAN YONG CO., LTD'}</h1>
-    <div class="sub">${company.company_name_local || ''}</div>
+    <h1>${txt(company.company_name) || 'FAN YONG CO., LTD'}</h1>
+    <div class="sub">${txt(company.company_name_local)}</div>
     <h2 style="font-size:20px;margin:8px 0 10px">生產單</h2>
-    <div style="margin-bottom:10px">單號：<b>${prod.prod_number}</b>　產品：<b>${prod.product_name || '—'}</b>　狀態：<b>${STATUS_MAP[prod.status]?.label || prod.status}</b></div>
-    <div style="margin-bottom:10px">計畫數量：${Number(prod.planned_qty || 0).toLocaleString()}　已完成：${Number(prod.produced_qty || 0).toLocaleString()}　期間：${prod.planned_start ? String(prod.planned_start).slice(0,10) : '—'} ~ ${prod.planned_end ? String(prod.planned_end).slice(0,10) : '—'}</div>
+    <div style="margin-bottom:10px">單號：<b>${txt(prod.prod_number)}</b>　產品：<b>${txt(prod.product_name)}</b>　狀態：<b>${txt(STATUS_MAP[prod.status]?.label || prod.status)}</b></div>
+    <div style="margin-bottom:10px">計畫數量：${fmt(prod.planned_qty)}　已完成：${fmt(prod.produced_qty)}　期間：${prod.planned_start ? String(prod.planned_start).slice(0,10) : ''} ~ ${prod.planned_end ? String(prod.planned_end).slice(0,10) : ''}</div>
     <table>
       <thead><tr><th style="width:40px">序</th><th>料號</th><th>材料名稱</th><th>規格</th><th style="width:60px">單位</th><th style="width:90px">計劃用量</th><th style="width:90px">實際領料</th></tr></thead>
       <tbody>${rows || '<tr><td colspan="7" style="border:1px solid #bbb;padding:8px;text-align:center;color:#666">無材料明細</td></tr>'}</tbody>
