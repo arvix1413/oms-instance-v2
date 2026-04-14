@@ -1,10 +1,11 @@
 'use client'
+import { normalizeRole } from './permissions'
 
 function getCurrentRole(): string | null {
   if (typeof window === 'undefined') return null
   try {
     const user = JSON.parse(localStorage.getItem('oms_user') || 'null')
-    return user?.role || null
+    return user?.role ? normalizeRole(user.role) : null
   } catch {
     return null
   }
@@ -21,8 +22,7 @@ export function getPermissions(): string[] {
 // Check if current user has a specific permission
 export function can(permission: string): boolean {
   const role = getCurrentRole()
-  // Compatibility: manager/admin are treated as full-access roles on frontend.
-  if (role === 'manager' || role === 'admin') return true
+  if (role === 'manager') return true
   return getPermissions().includes(permission)
 }
 
@@ -31,7 +31,7 @@ export function usePermissions() {
   const perms = getPermissions()
   const role = getCurrentRole()
   return {
-    can: (permission: string) => (role === 'manager' || role === 'admin') ? true : perms.includes(permission),
+    can: (permission: string) => role === 'manager' ? true : perms.includes(permission),
     perms,
   }
 }

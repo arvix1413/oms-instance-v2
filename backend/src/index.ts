@@ -8,6 +8,7 @@ import path from 'path'
 
 type Variables = { user: any }
 const app = new Hono<{ Variables: Variables }>()
+const normalizeUserRole = (role: any): 'manager' | 'employee' => (role === 'manager' || role === 'admin' ? 'manager' : 'employee')
 
 app.use('/api/*', cors({
   origin: '*',
@@ -32,16 +33,15 @@ const isAdmin = async (c: any, next: () => Promise<void>) => {
   await next()
 }
 
-// Dynamic RBAC permission check — admin and manager always pass, others check role_permissions table
+// Dynamic RBAC permission check — manager always pass, employee checks role_permissions
 function requirePerm(permKey: string) {
   return async (c: any, next: () => Promise<void>) => {
     const user = c.get('user')
     if (!user) return c.json({ error: 'Unauthorized' }, 401)
-    // admin and manager have all permissions
-    if (user.role === 'admin' || user.role === 'manager') return next()
+    if (user.role === 'manager') return next()
     const row = await queryOne<any>(
       'SELECT allowed FROM role_permissions WHERE role=? AND permission=? AND allowed=1',
-      [user.role, permKey]
+      [normalizeUserRole(user.role), permKey]
     )
     if (!row) return c.json({ error: `無此操作權限（${permKey}）` }, 403)
     return next()
@@ -94,17 +94,17 @@ app.post('/api/auth/login', async c => {
     const user = await queryOne<any>('SELECT * FROM users WHERE email=?', [email])
     if (!user) return c.json({ error: 'Invalid credentials' }, 401)
     if (hashPw(password) !== user.password_hash) return c.json({ error: 'Invalid credentials' }, 401)
-    const token = await signJwt({ userId: user.id, email: user.email, name: user.name, role: user.role })
+    const normalizedRole = normalizeUserRole(user.role)
+    const token = await signJwt({ userId: user.id, email: user.email, name: user.name, role: normalizedRole })
     // Load role permissions
     let permissions: string[] = []
-    if (user.role === 'admin' || user.role === 'manager') {
-      // admin and manager both get all permissions
+    if (normalizedRole === 'manager') {
       permissions = ALL_PERMISSIONS.map((p: any) => p.key)
     } else {
-      const rows = await query<any>('SELECT permission FROM role_permissions WHERE role=? AND allowed=1', [user.role])
+      const rows = await query<any>('SELECT permission FROM role_permissions WHERE role=? AND allowed=1', ['employee'])
       permissions = rows.map((r: any) => r.permission)
     }
-    return c.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, signature_url: user.signature_url || null }, permissions })
+    return c.json({ token, user: { id: user.id, email: user.email, name: user.name, role: normalizedRole, signature_url: user.signature_url || null }, permissions })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 
@@ -112,7 +112,7 @@ app.get('/api/auth/me', authMiddleware, async c => {
   const u = c.get('user')
   const user = await queryOne<any>('SELECT id,email,name,role,signature_url FROM users WHERE id=?', [u.userId])
   if (!user) return c.json({ error: 'Not found' }, 404)
-  return c.json({ user })
+  return c.json({ user: { ...user, role: normalizeUserRole(user.role) } })
 })
 
 // Save signature URL for current user
@@ -122,7 +122,7 @@ app.post('/api/auth/signature', authMiddleware, async c => {
     const { signature_url } = await c.req.json()
     await execute('UPDATE users SET signature_url=? WHERE id=?', [signature_url || null, u.userId])
     const user = await queryOne<any>('SELECT id,email,name,role,signature_url FROM users WHERE id=?', [u.userId])
-    return c.json({ ok: true, user })
+    return c.json({ ok: true, user: user ? { ...user, role: normalizeUserRole(user.role) } : null })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 
@@ -141,13 +141,12 @@ app.post('/api/auth/change-password', authMiddleware, async c => {
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 
-// Reset password for any user (manager can't reset admin)
+// Reset password for any user
 app.post('/api/users/:id/reset-password', authMiddleware, requirePerm('user.manage'), async c => {
   try {
     const u = c.get('user'); const id = c.req.param('id')
     const row = await queryOne<any>('SELECT name,email,role FROM users WHERE id=?', [id])
     if (!row) return c.json({ error: 'User not found' }, 404)
-    if (u.role !== 'admin' && row.role === 'admin') return c.json({ error: '無法重置管理員密碼' }, 403)
     await execute('UPDATE users SET password_hash=? WHERE id=?', [hashPw('admin123'), id])
     await audit(u, 'UPDATE', '使用者', id, `重設密碼: ${row.email}`)
     return c.json({ ok: true })
@@ -1068,42 +1067,40 @@ app.delete('/api/inventory/:id', authMiddleware, requirePerm('stock.adjust'), as
 
 // ── Users ─────────────────────────────────────────────────────────────────────
 app.get('/api/users', authMiddleware, requirePerm('user.manage'), async c => {
-  // manager can see all users except admin accounts
-  const u = c.get('user')
-  if (u.role === 'admin') {
-    return c.json(await query('SELECT id,email,name,role,created_at FROM users ORDER BY created_at DESC'))
-  }
-  return c.json(await query('SELECT id,email,name,role,created_at FROM users WHERE role != "admin" ORDER BY created_at DESC'))
+  return c.json(await query(`
+    SELECT id,email,name,
+           CASE WHEN role IN ('manager','admin') THEN 'manager' ELSE 'employee' END as role,
+           created_at
+    FROM users
+    ORDER BY created_at DESC
+  `))
 })
 app.post('/api/users', authMiddleware, requirePerm('user.manage'), async c => {
   try {
     const u = c.get('user')
     const { email, password, name, role } = await c.req.json()
     if (!email || !password || !name) return c.json({ error: 'Missing fields' }, 400)
-    // manager cannot create admin accounts
-    if (u.role !== 'admin' && role === 'admin') return c.json({ error: '無法建立管理員帳號' }, 403)
+    const safeRole = role === 'manager' ? 'manager' : 'employee'
     const existing = await queryOne('SELECT id FROM users WHERE email=?', [email])
     if (existing) return c.json({ error: 'Email already exists' }, 409)
-    const r = await execute('INSERT INTO users (email,password_hash,name,role) VALUES (?,?,?,?)', [email,hashPw(password),name,role||'employee'])
-    await audit(u, 'CREATE', '使用者', r.insertId, `${email} (${role})`)
-    return c.json({ id: r.insertId, email, name, role }, 201)
+    const r = await execute('INSERT INTO users (email,password_hash,name,role) VALUES (?,?,?,?)', [email,hashPw(password),name,safeRole])
+    await audit(u, 'CREATE', '使用者', r.insertId, `${email} (${safeRole})`)
+    return c.json({ id: r.insertId, email, name, role: safeRole }, 201)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 app.put('/api/users/:id', authMiddleware, requirePerm('user.manage'), async c => {
   try {
     const u = c.get('user'); const id = c.req.param('id')
     const { name, role, password } = await c.req.json()
-    // manager cannot edit admin accounts
     const target = await queryOne<any>('SELECT role FROM users WHERE id=?', [id])
     if (!target) return c.json({ error: 'User not found' }, 404)
-    if (u.role !== 'admin' && target.role === 'admin') return c.json({ error: '無法修改管理員帳號' }, 403)
-    if (u.role !== 'admin' && role === 'admin') return c.json({ error: '無法設定管理員角色' }, 403)
+    const safeRole = role === 'manager' ? 'manager' : 'employee'
     if (password) {
-      await execute('UPDATE users SET name=?,role=?,password_hash=? WHERE id=?', [name,role,hashPw(password),id])
+      await execute('UPDATE users SET name=?,role=?,password_hash=? WHERE id=?', [name,safeRole,hashPw(password),id])
     } else {
-      await execute('UPDATE users SET name=?,role=? WHERE id=?', [name,role,id])
+      await execute('UPDATE users SET name=?,role=? WHERE id=?', [name,safeRole,id])
     }
-    await audit(u, 'UPDATE', '使用者', id, `${name} → ${role}`)
+    await audit(u, 'UPDATE', '使用者', id, `${name} → ${safeRole}`)
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
@@ -1113,8 +1110,6 @@ app.delete('/api/users/:id', authMiddleware, requirePerm('user.manage'), async c
     if (String(u.userId) === id) return c.json({ error: 'Cannot delete yourself' }, 400)
     const target = await queryOne<any>('SELECT email,name,role FROM users WHERE id=?', [id])
     if (!target) return c.json({ error: 'User not found' }, 404)
-    // manager cannot delete admin accounts
-    if (u.role !== 'admin' && target.role === 'admin') return c.json({ error: '無法刪除管理員帳號' }, 403)
     await execute('DELETE FROM users WHERE id=?', [id])
     await audit(u, 'DELETE', '使用者', id, `${target.email} (${target.name})`)
     return c.json({ ok: true })
@@ -1133,8 +1128,8 @@ app.get('/api/role-permissions', authMiddleware, async c => {
 app.put('/api/role-permissions', authMiddleware, requirePerm('user.manage'), async c => {
   try {
     const { role, permission, allowed } = await c.req.json()
-    if (role === 'admin') return c.json({ error: 'Cannot modify admin permissions' }, 400)
-    await execute('INSERT INTO role_permissions (role,permission,allowed) VALUES (?,?,?) ON DUPLICATE KEY UPDATE allowed=?', [role,permission,allowed?1:0,allowed?1:0])
+    if (role !== 'employee') return c.json({ error: 'Only employee role can be modified' }, 400)
+    await execute('INSERT INTO role_permissions (role,permission,allowed) VALUES (?,?,?) ON DUPLICATE KEY UPDATE allowed=?', ['employee',permission,allowed?1:0,allowed?1:0])
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })

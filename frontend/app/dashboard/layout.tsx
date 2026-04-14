@@ -82,7 +82,8 @@ function IconLogout() { return <svg viewBox="0 0 24 24" fill="none" stroke="curr
 function IconMenu() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg> }
 function IconClose() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> }
 const ROLE_DOT: Record<string, string> = {
-  admin: 'bg-red-500', manager: 'bg-violet-500', purchaser: 'bg-blue-500', viewer: 'bg-slate-400'
+  manager: 'bg-violet-500',
+  employee: 'bg-blue-500',
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

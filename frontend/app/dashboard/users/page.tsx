@@ -190,7 +190,7 @@ export default function UsersPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      {me?.id !== u.id && u.role !== 'admin' ? (
+                      {me?.id !== u.id ? (
                         <div className="flex items-center gap-2">
                           <select
                             value={u.role}
@@ -212,16 +212,14 @@ export default function UsersPage() {
                     <td className="px-4 py-3 text-slate-300 text-xs">{u.created_at?.slice(0,10)}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
-                        {u.role !== 'admin' && (
-                          <button onClick={() => setEditing({...u, password:''})} className="btn-ghost">編輯</button>
-                        )}
-                        {me?.id !== u.id && u.role !== 'admin' && (
+                        <button onClick={() => setEditing({...u, password:''})} className="btn-ghost">編輯</button>
+                        {me?.id !== u.id && (
                           <button onClick={() => resetPassword(u.id, u.name)}
                             className="btn-ghost text-amber-600 hover:bg-amber-50">
                             重置密碼
                           </button>
                         )}
-                        {me?.id !== u.id && u.role !== 'admin' && (
+                        {me?.id !== u.id && (
                           <button onClick={() => del(u.id, u.name)} className="btn-danger">刪除</button>
                         )}
                       </div>
