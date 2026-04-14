@@ -106,6 +106,7 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
   supplier_name VARCHAR(255) NOT NULL,
   status VARCHAR(50) DEFAULT 'draft',
   total_amount DECIMAL(15,2) DEFAULT 0,
+  tax_rate DECIMAL(5,2) DEFAULT 8.00,
   currency VARCHAR(20) DEFAULT 'VND',
   created_by INT,
   approved_by INT,

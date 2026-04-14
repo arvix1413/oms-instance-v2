@@ -8,8 +8,8 @@ import { SearchableSelect } from '@/components/SearchableSelect'
 import { can } from '@/lib/usePermissions'
 import { getCompany } from '@/lib/useCompany'
 
-type PoItem = { material_code:string; material_name:string; spec:string; unit:string; quantity:number; unit_price:number; total_price:number; currency:string; remark:string; po_ref:string; thickness:number|string; image_url?:string; bom_id?:number }
-type Po = { id:number; po_number:string; supplier_name:string; status:string; total_amount:number; currency:string; remark:string; created_at:string; approved_at?:string; items?:PoItem[] }
+type PoItem = { material_code:string; material_name:string; spec:string; unit:string; quantity:number; unit_price:number; total_price:number; currency:string; remark:string; po_ref:string; thickness?:number|string; image_url?:string; bom_id?:number }
+type Po = { id:number; po_number:string; supplier_name:string; status:string; total_amount:number; tax_rate?:number; currency:string; remark:string; created_at:string; approved_at?:string; items?:PoItem[] }
 type Supplier = { id: number; name: string; currency: string; supplier_code: string }
 type BOM = { id: number; product_sku: string; product_name: string; spec: string; unit: string; supplier_price: number; company_price: number; currency: string; image_url?: string; material_name?: string; supplier_id?: number }
 
@@ -21,7 +21,7 @@ const STATUS_MAP: Record<string,{label:string;badge:string}> = {
   cancelled: { label:'已取消', badge:'badge-red'    },
 }
 
-const emptyItem = (): PoItem => ({ material_code:'', material_name:'', spec:'', unit:'PCS', quantity:1, unit_price:0, total_price:0, currency:'VND', remark:'', po_ref:'', thickness:'' })
+const emptyItem = (): PoItem => ({ material_code:'', material_name:'', spec:'', unit:'PCS', quantity:1, unit_price:0, total_price:0, currency:'VND', remark:'', po_ref:'' })
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -42,7 +42,7 @@ export default function PoPage() {
   const [loadedItems, setLoadedItems] = useState<Record<number, PoItem[]>>({})
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [form, setForm] = useState({ supplier_id: '', supplier_name:'', currency:'VND', remark:'', items:[emptyItem()] })
+  const [form, setForm] = useState({ supplier_id: '', supplier_name:'', currency:'VND', tax_rate: 8, remark:'', items:[emptyItem()] })
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -176,7 +176,7 @@ export default function PoPage() {
         toast('採購單建立成功')
         setCreating(false)
       }
-      setForm({ supplier_id: '', supplier_name:'', currency:'VND', remark:'', items:[emptyItem()] })
+      setForm({ supplier_id: '', supplier_name:'', currency:'VND', tax_rate: 8, remark:'', items:[emptyItem()] })
       await load()
     } catch (e: any) { toast('錯誤：' + e.message, 'error') }
   }
@@ -192,6 +192,7 @@ export default function PoPage() {
       supplier_id: sup ? String(sup.id) : (rawSupplierId ? String(rawSupplierId) : ''),
       supplier_name: po.supplier_name,
       currency: po.currency,
+      tax_rate: Math.min(25, Math.max(1, Number((data as any).tax_rate ?? (po as any).tax_rate ?? 8))),
       remark: po.remark || '',
       items: (data.items || []).map(i => {
         // Match BOM by product_sku = material_code
@@ -207,7 +208,6 @@ export default function PoPage() {
           currency: i.currency,
           remark: i.remark,
           po_ref: i.po_ref,
-          thickness: i.thickness,
           image_url: i.image_url || matchedBom?.image_url || '',
           bom_id: matchedBom ? matchedBom.id : undefined,
         }
@@ -236,7 +236,9 @@ export default function PoPage() {
       getCompany(),
     ])
     const items = data.items || []
-    const total = items.reduce((s, i) => s + num(i.total_price), 0)
+    const subTotal = items.reduce((s, i) => s + num(i.total_price), 0)
+    const taxRate = Math.min(25, Math.max(1, Number((data as any).tax_rate || 8)))
+    const total = Math.round(subTotal * (1 + taxRate / 100) * 100) / 100
     const currency = txt(items[0]?.currency) || txt(data.currency) || 'VND'
     const signatureUrl = getSignatureUrl()
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://43.133.56.234'
@@ -249,11 +251,11 @@ export default function PoPage() {
         <td style="font-family:monospace;font-size:10px;color:#1a56db">${txt(item.material_code)}</td>
         <td>${txt(item.material_name)}</td>
         <td style="font-size:10px;color:#555">${txt(item.spec)}</td>
-        <td style="text-align:right">${txt(item.thickness)}</td>
         <td style="text-align:center">${txt(item.unit) || 'PCS'}</td>
         <td style="text-align:right;font-weight:600">${fmt(item.quantity)}</td>
         <td style="text-align:right">${fmt(item.unit_price)}</td>
         <td style="text-align:right;font-weight:700">${fmt(item.total_price)}</td>
+        <td style="text-align:center">${taxRate}%</td>
         <td style="text-align:center;font-size:10px">${txt(item.currency) || currency}</td>
         <td style="font-size:10px;color:#666">${txt(item.remark)}</td>
       </tr>`).join('')
@@ -319,10 +321,16 @@ export default function PoPage() {
         <tr>
           <td class="lbl">幣別<br/>Loại tiền</td>
           <td class="val">${currency}</td>
+          <td class="lbl">稅率<br/>Thuế suất</td>
+          <td class="val">${taxRate}%</td>
+        </tr>
+        <tr>
           <td class="lbl">建立日期<br/>Ngày lập</td>
           <td class="val">${data.created_at ? String(data.created_at).slice(0,10) : ''}</td>
           <td class="lbl">狀態<br/>Trạng thái</td>
           <td class="val">${txt(data.status)}</td>
+          <td class="lbl"></td>
+          <td class="val"></td>
         </tr>
         ${txt(data.remark) ? `<tr><td class="lbl">備註<br/>Ghi chú</td><td class="val" colspan="5">${txt(data.remark)}</td></tr>` : ''}
       </table>
@@ -334,19 +342,27 @@ export default function PoPage() {
           <th style="width:90px">物料編號</th>
           <th style="min-width:80px">材料名稱</th>
           <th style="width:80px">規格</th>
-          <th style="width:45px">重量</th>
           <th style="width:38px">單位</th>
           <th style="width:50px">數量</th>
           <th style="width:70px">單價</th>
           <th style="width:80px">小計</th>
+          <th style="width:48px">稅率</th>
           <th style="width:38px">幣別</th>
           <th style="width:60px">備註</th>
         </tr></thead>
         <tbody>${itemRows}</tbody>
         <tfoot>
           <tr class="total-row">
-            <td colspan="9" style="text-align:right">合計 / Tổng cộng</td>
+            <td colspan="8" style="text-align:right">未稅 / Trước thuế</td>
+            <td style="text-align:right;font-size:12px">${fmt(subTotal)}</td>
+            <td style="text-align:center">${taxRate}%</td>
+            <td style="text-align:center">${currency}</td>
+            <td></td>
+          </tr>
+          <tr class="total-row">
+            <td colspan="8" style="text-align:right">含稅合計 / Tổng cộng sau thuế</td>
             <td style="text-align:right;font-size:12px;color:#1a56db">${fmt(total)}</td>
+            <td style="text-align:center">${taxRate}%</td>
             <td style="text-align:center">${currency}</td>
             <td></td>
           </tr>
@@ -398,7 +414,7 @@ export default function PoPage() {
           <h1 className="text-xl font-bold text-slate-800">採購單管理</h1>
           <p className="section-hint">點選採購單列展開檢視料號明細</p>
         </div>
-        {canWrite && <button onClick={() => { setCreating(true); setEditingId(null); setForm({ supplier_id: '', supplier_name:'', currency:'VND', remark:'', items:[emptyItem()] }) }} className="btn-primary">+ 建立採購單</button>}
+        {canWrite && <button onClick={() => { setCreating(true); setEditingId(null); setForm({ supplier_id: '', supplier_name:'', currency:'VND', tax_rate: 8, remark:'', items:[emptyItem()] }) }} className="btn-primary">+ 建立採購單</button>}
       </div>
 
       {(creating || editingId !== null) && canWrite && (
@@ -432,7 +448,7 @@ export default function PoPage() {
           <div className="overflow-x-auto rounded-lg border border-slate-200">
             <table className="w-full text-xs">
               <thead><tr className="border-b border-slate-200">
-                {['圖片','PO訂單編號','物料編號（BOM）','材料名稱','規格','重量','單位','數量','單價','小計','幣別','備註',''].map(h=>(
+                {['圖片','PO訂單編號','物料編號（BOM）','材料名稱','規格','單位','數量','單價','小計','稅率','幣別','備註',''].map(h=>(
                   <th key={h} className="px-2 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">{h}</th>
                 ))}
               </tr></thead>
@@ -465,11 +481,18 @@ export default function PoPage() {
                     </td>
                     <td className="p-1"><input className={inp} value={item.material_name} onChange={e=>updateItem(i,'material_name',e.target.value)} readOnly style={{backgroundColor:'#f8fafc'}} /></td>
                     <td className="p-1"><input className={inp} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} readOnly style={{width:80, backgroundColor:'#f8fafc'}} /></td>
-                    <td className="p-1"><input type="number" className={inp} style={{width:60}} value={item.thickness||""} placeholder="重量" onChange={e=>updateItem(i,'thickness',e.target.value)} /></td>
                     <td className="p-1"><input className={inp} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} readOnly style={{width:45, backgroundColor:'#f8fafc'}} /></td>
                     <td className="p-1"><input type="number" className={inp} style={{width:65}} value={item.quantity || ""} onChange={e=>updateItem(i,'quantity',Number(e.target.value))} /></td>
                     <td className="p-1"><input type="number" className={inp} style={{width:85}} value={item.unit_price || ""} onChange={e=>updateItem(i,'unit_price',Number(e.target.value))} /></td>
                     <td className="p-1 px-2 text-right text-slate-600 font-medium whitespace-nowrap">{Number(item.total_price).toLocaleString()}</td>
+                    <td className="p-1">
+                      <select className={inp} style={{width:64}} value={String(form.tax_rate)}
+                        onChange={e=>setForm(p=>({...p, tax_rate: Math.min(25, Math.max(1, Number(e.target.value) || 8))}))}>
+                        {Array.from({ length: 25 }, (_, idx) => idx + 1).map(v => (
+                          <option key={v} value={v}>{v}%</option>
+                        ))}
+                      </select>
+                    </td>
                     <td className="p-1">
                       <select className={inp} style={{width:55}} value={item.currency} onChange={e=>updateItem(i,'currency',e.target.value)}>
                         <option>VND</option><option>TWD</option><option>CNY</option><option>USD</option>
@@ -482,16 +505,20 @@ export default function PoPage() {
               </tbody>
               <tfoot>
                 <tr className="border-t border-slate-200">
-                  <td colSpan={9} className="px-3 py-2 text-right text-[11px] text-slate-400 font-semibold uppercase">合計</td>
+                  <td colSpan={8} className="px-3 py-2 text-right text-[11px] text-slate-400 font-semibold uppercase">未稅合計</td>
                   <td className="px-2 py-2 text-right text-slate-600 font-bold">{formTotal.toLocaleString()}</td>
-                  <td colSpan={3} className="px-2 py-2 text-slate-400 text-xs">{form.currency}</td>
+                  <td className="px-2 py-2 text-slate-400 text-xs">{form.tax_rate}%</td>
+                  <td className="px-2 py-2 text-slate-400 text-xs">{form.currency}</td>
+                  <td className="px-2 py-2 text-right text-slate-700 font-bold" colSpan={2}>
+                    含稅 {(formTotal * (1 + (form.tax_rate || 8) / 100)).toLocaleString()}
+                  </td>
                 </tr>
               </tfoot>
             </table>
           </div>
           <div className="flex gap-2 mt-4">
             <button onClick={save} className="btn-primary">{editingId ? '儲存修改' : '建立採購單'}</button>
-            <button onClick={() => { setCreating(false); setEditingId(null); setForm({ supplier_id: '', supplier_name:'', currency:'VND', remark:'', items:[emptyItem()] }) }} className="btn-ghost border border-slate-200">取消</button>
+            <button onClick={() => { setCreating(false); setEditingId(null); setForm({ supplier_id: '', supplier_name:'', currency:'VND', tax_rate: 8, remark:'', items:[emptyItem()] }) }} className="btn-ghost border border-slate-200">取消</button>
           </div>
         </div>
       )}
@@ -578,10 +605,10 @@ export default function PoPage() {
                                         {['PO訂單編號','料號','材料名稱','規格'].map(h=>(
                                           <th key={h} className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
                                         ))}
-                                        {['重量','數量','單價','小計'].map(h=>(
+                                        {['數量','單價','小計'].map(h=>(
                                           <th key={h} className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
                                         ))}
-                                        {['單位','幣別','備註'].map(h=>(
+                                        {['稅率','單位','幣別','備註'].map(h=>(
                                           <th key={h} className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
                                         ))}
                                       </tr>
@@ -593,10 +620,10 @@ export default function PoPage() {
                                           <td className="px-3 py-2 font-mono text-blue-600 whitespace-nowrap">{item.material_code}</td>
                                           <td className="px-3 py-2 text-slate-600 whitespace-nowrap max-w-[160px] truncate" title={item.material_name}>{item.material_name}</td>
                                           <td className="px-3 py-2 text-slate-400 whitespace-nowrap max-w-[120px] truncate" title={item.spec}>{item.spec}</td>
-                                          <td className="px-3 py-2 text-right text-slate-500 whitespace-nowrap">{item.thickness ?? '—'}</td>
                                           <td className="px-3 py-2 text-right text-slate-600 font-medium whitespace-nowrap">{Number(item.quantity).toLocaleString()}</td>
                                           <td className="px-3 py-2 text-right text-slate-600 whitespace-nowrap">{Number(item.unit_price).toLocaleString()}</td>
                                           <td className="px-3 py-2 text-right text-slate-800 font-semibold whitespace-nowrap">{Number(item.total_price).toLocaleString()}</td>
+                                          <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{Number((p as any).tax_rate || 8)}%</td>
                                           <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.unit}</td>
                                           <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.currency}</td>
                                           <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.remark}</td>
@@ -605,9 +632,10 @@ export default function PoPage() {
                                     </tbody>
                                     <tfoot>
                                       <tr className="border-t border-slate-200">
-                                        <td colSpan={8} className="px-3 py-2 text-right text-[10px] text-slate-300 font-semibold uppercase">合計</td>
+                                        <td colSpan={7} className="px-3 py-2 text-right text-[10px] text-slate-300 font-semibold uppercase">未稅合計</td>
                                         <td className="px-3 py-2 text-right text-slate-600 font-bold">{items.reduce((s,i)=>s+Number(i.total_price),0).toLocaleString()}</td>
-                                        <td colSpan={2} className="px-3 py-2 text-slate-400 text-xs">{items[0]?.currency}</td>
+                                        <td className="px-3 py-2 text-slate-400 text-xs">{Number((p as any).tax_rate || 8)}%</td>
+                                        <td colSpan={3} className="px-3 py-2 text-slate-400 text-xs">{items[0]?.currency}</td>
                                       </tr>
                                     </tfoot>
                                   </table>

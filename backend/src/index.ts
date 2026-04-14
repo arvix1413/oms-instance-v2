@@ -399,9 +399,11 @@ app.post('/api/po', authMiddleware, requirePerm('po.create'), async c => {
     const b = await c.req.json()
     const u = c.get('user')
     const poNum = `PO${Date.now()}`
-    const total = (b.items||[]).reduce((s: number, i: any) => s + (i.total_price||0), 0)
-    const r = await execute('INSERT INTO purchase_orders (po_number,supplier_id,supplier_name,status,total_amount,currency,created_by,remark,created_at) VALUES (?,?,?,?,?,?,?,?,?)',
-      [poNum,b.supplier_id||null,b.supplier_name,'draft',total,b.currency||'VND',u.userId,b.remark||'',now8()])
+    const subTotal = (b.items||[]).reduce((s: number, i: any) => s + (i.total_price||0), 0)
+    const taxRate = Math.min(25, Math.max(1, Number(b.tax_rate) || 8))
+    const total = Math.round(subTotal * (1 + taxRate / 100) * 100) / 100
+    const r = await execute('INSERT INTO purchase_orders (po_number,supplier_id,supplier_name,status,total_amount,tax_rate,currency,created_by,remark,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)',
+      [poNum,b.supplier_id||null,b.supplier_name,'draft',total,taxRate,b.currency||'VND',u.userId,b.remark||'',now8()])
     const poId = r.insertId
     if (b.items?.length) {
       for (const item of b.items) {
@@ -420,9 +422,11 @@ app.put('/api/po/:id', authMiddleware, requirePerm('po.create'), async c => {
     const po = await queryOne<any>('SELECT status FROM purchase_orders WHERE id=?', [id])
     if (!po) return c.json({ error: 'Not found' }, 404)
     if (po.status !== 'draft') return c.json({ error: '只能編輯草稿狀態的採購單' }, 400)
-    const total = (b.items||[]).reduce((s: number, i: any) => s + (i.total_price||0), 0)
-    await execute('UPDATE purchase_orders SET supplier_id=?,supplier_name=?,total_amount=?,currency=?,remark=? WHERE id=?',
-      [b.supplier_id||null, b.supplier_name, total, b.currency||'VND', b.remark||'', id])
+    const subTotal = (b.items||[]).reduce((s: number, i: any) => s + (i.total_price||0), 0)
+    const taxRate = Math.min(25, Math.max(1, Number(b.tax_rate) || 8))
+    const total = Math.round(subTotal * (1 + taxRate / 100) * 100) / 100
+    await execute('UPDATE purchase_orders SET supplier_id=?,supplier_name=?,total_amount=?,tax_rate=?,currency=?,remark=? WHERE id=?',
+      [b.supplier_id||null, b.supplier_name, total, taxRate, b.currency||'VND', b.remark||'', id])
     await execute('DELETE FROM po_items WHERE po_id=?', [id])
     if (b.items?.length) {
       for (const item of b.items) {
