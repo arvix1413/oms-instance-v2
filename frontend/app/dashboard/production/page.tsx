@@ -496,7 +496,6 @@ export default function ProductionPage() {
                               })()}
                               {/* Action bar */}
                               <div className="px-4 py-2.5 border-t border-slate-100 flex items-center gap-2 bg-slate-50/80">
-                                <button onClick={() => printProd(p)} className="btn-ghost text-xs">🖨 列印</button>
                                 {canWrite && ['draft','confirmed','shortage'].includes(p.status) && (
                                   <button onClick={() => startEditProd(p)} className="btn-ghost text-blue-600 text-xs">✏ 編輯</button>
                                 )}
