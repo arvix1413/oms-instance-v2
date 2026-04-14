@@ -78,6 +78,8 @@ function IconFactory() { return <svg viewBox="0 0 24 24" fill="none" stroke="cur
 function IconAdjust() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> }
 function IconChevron({ open }: { open: boolean }) { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`w-3 h-3 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}><polyline points="9 18 15 12 9 6"/></svg> }
 function IconLogout() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> }
+function IconMenu() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg> }
+function IconClose() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> }
 const ROLE_DOT: Record<string, string> = {
   admin: 'bg-red-500', manager: 'bg-violet-500', purchaser: 'bg-blue-500', viewer: 'bg-slate-400'
 }
@@ -87,6 +89,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(['業務流程']))
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     if (!getToken()) { router.replace('/login'); return }
@@ -102,6 +105,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (hasActive) setOpenGroups(prev => new Set([...Array.from(prev), n.label]))
       }
     })
+    setSidebarOpen(false)
   }, [pathname])
 
   const logout = () => {
@@ -130,9 +134,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }`
 
   return (
-    <div className="flex h-screen bg-slate-50 text-slate-800">
+    <div className="relative flex h-screen bg-slate-50 text-slate-800">
+      {sidebarOpen && (
+        <button
+          aria-label="close sidebar backdrop"
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 z-30 bg-black/25 md:hidden"
+        />
+      )}
       {/* Sidebar */}
-      <aside className="w-[220px] flex flex-col border-r border-slate-200 bg-white">
+      <aside className={`fixed inset-y-0 left-0 z-40 w-[220px] flex-col border-r border-slate-200 bg-white transition-transform duration-200 md:relative md:z-0 md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:flex`}>
         {/* Logo */}
         <div className="px-5 py-4 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
@@ -246,7 +257,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main */}
       <main className="flex-1 overflow-auto bg-slate-50">
-        <div className="p-7">{children}</div>
+        <div className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-2.5 md:hidden">
+          <button onClick={() => setSidebarOpen(v => !v)} className="btn-ghost px-2.5 py-1.5">
+            {sidebarOpen ? <IconClose /> : <IconMenu />}
+            {sidebarOpen ? '關閉選單' : '選單'}
+          </button>
+          <div className="text-[11px] font-semibold tracking-wide text-slate-500">FAN YONG OMS</div>
+        </div>
+        <div className="p-4 md:p-7">{children}</div>
       </main>
     </div>
   )
