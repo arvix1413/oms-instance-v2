@@ -66,6 +66,6 @@ test('print audit: customer order / po / delivery note / quotation', async ({ pa
   await page.waitForTimeout(1600)
   const qtPrintBtn = page.locator('button[title="列印"]').first()
   if (await qtPrintBtn.count()) {
-    await capturePopup(page, async () => { await qtPrintBtn.click() }, 'print-qt.png', ['.title-row', '.items', '.sign-row'])
+    await capturePopup(page, async () => { await qtPrintBtn.click() }, 'print-qt.png', ['.header', '.items', '.sign-row'])
   }
 })
