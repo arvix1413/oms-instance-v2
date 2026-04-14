@@ -264,7 +264,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
           <div className="text-[11px] font-semibold tracking-wide text-slate-500">FAN YONG OMS</div>
         </div>
-        <div className="p-4 md:p-7">{children}</div>
+        <div className="p-5 md:p-6 xl:p-7">{children}</div>
       </main>
     </div>
   )

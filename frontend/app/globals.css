@@ -14,9 +14,9 @@ input[type="number"] { -moz-appearance: textfield; }
 /* Table */
 .oms-table { @apply w-full text-sm; }
 .oms-table thead tr { @apply border-b border-slate-200; }
-.oms-table thead th { @apply px-4 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider bg-slate-50; }
+.oms-table thead th { @apply px-4 py-2.5 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider bg-slate-50; }
 .oms-table tbody tr { @apply border-b border-slate-100 hover:bg-blue-50/40 transition-colors; }
-.oms-table tbody td { @apply px-4 py-3 text-sm text-slate-700; }
+.oms-table tbody td { @apply px-4 py-2.5 text-sm text-slate-700; }
 
 /* Card */
 .oms-card { @apply bg-white border border-slate-200 rounded-2xl shadow-sm shadow-slate-200/50; }
@@ -26,16 +26,25 @@ input[type="number"] { -moz-appearance: textfield; }
 
 /* Badge */
 .badge-green  { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200; }
-.badge-gray   { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-500 border border-slate-200; }
+.badge-gray   { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-500 border border-slate-200; }
 .badge-blue   { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200; }
-.badge-yellow { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200; }
-.badge-red    { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-red-50 text-red-700 border border-red-200; }
+.badge-yellow { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-300; }
+.badge-red    { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-red-100 text-red-800 border border-red-300; }
 .badge-purple { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-violet-50 text-violet-700 border border-violet-200; }
 
 /* Btn */
 .btn-primary { @apply inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold rounded-xl transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed; }
 .btn-ghost   { @apply inline-flex items-center gap-1.5 px-3.5 py-2 border border-slate-300 text-slate-600 hover:text-slate-900 hover:border-slate-400 hover:bg-slate-50 text-sm font-medium rounded-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed; }
 .btn-danger  { @apply inline-flex items-center gap-1.5 px-3.5 py-2 border border-red-200 text-red-600 hover:text-red-700 hover:border-red-300 hover:bg-red-50 text-sm font-medium rounded-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed; }
+
+/* Desktop-only compact action density in table operation cells */
+@media (min-width: 1024px) {
+  table tbody td .btn-ghost,
+  table tbody td .btn-danger,
+  table tbody td .btn-primary {
+    @apply px-2.5 py-1.5 text-xs rounded-lg;
+  }
+}
 
 @keyframes slide-up {
   from { opacity: 0; transform: translateY(12px) scale(0.97); }
