@@ -190,7 +190,13 @@ export default function DeliveryNotesPage() {
       items: dn.items || []
     }, getSignatureUrl() || undefined, company)
     const w = window.open('', '_blank', 'width=800,height=1000')
-    if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500) }
+    if (!w) {
+      toast('瀏覽器已封鎖彈出視窗，請允許後再列印', 'error')
+      return
+    }
+    w.document.write(html)
+    w.document.close()
+    setTimeout(() => w.print(), 500)
   }
 
   const filtered = dns.filter(d => !search ||

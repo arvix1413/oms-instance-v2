@@ -32,7 +32,7 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
   parts.push('<title>出貨單 ' + data.dn_number + '</title>')
   parts.push('<style>')
   parts.push('*{margin:0;padding:0;box-sizing:border-box}')
-  parts.push('body{font-family:"Microsoft YaHei","PingFang TC",Arial,sans-serif;font-size:11px;font-weight:400;color:#000;padding:12mm 15mm;background:#fff;line-height:1.4}')
+  parts.push('body{font-family:"Microsoft JhengHei","PingFang TC",Arial,sans-serif;font-size:11px;font-weight:400;color:#000;padding:12mm 15mm;background:#fff;line-height:1.4}')
   parts.push('.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:5mm;margin-bottom:5mm}')
   parts.push('.company{font-size:18px;font-weight:700;letter-spacing:1px;text-transform:uppercase}')
   parts.push('.subtitle{font-size:10px;color:#666;margin-top:3px}')
@@ -60,15 +60,15 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
   // Header
   parts.push('<div class="header">')
   parts.push('<div>' + (logoUrl ? `<img src="${logoUrl}" style="max-height:40px;max-width:160px;object-fit:contain;margin-bottom:4px" onerror="this.style.display='none'"/><br/>` : '') + '<div class="company">' + co.company_name + '</div><div class="subtitle">' + co.company_name_local + '</div></div>')
-  parts.push('<div><div class="doc-title">送貨單</div><div class="doc-sub">DELIVERY NOTE / PHIẾU GIAO HÀNG</div><div class="doc-no">No. ' + data.dn_number + '</div></div>')
+  parts.push('<div><div class="doc-title">出貨單</div><div class="doc-sub">DELIVERY NOTE / PHIẾU GIAO HÀNG</div><div class="doc-no">No. ' + data.dn_number + '</div></div>')
   parts.push('</div>')
 
   // Info table
   parts.push('<table class="info-table">')
-  parts.push('<tr><td class="lbl">客戶<br/>Khách hàng</td><td style="font-weight:600;font-size:12px" colspan="3">' + (data.customer_name || '—') + '</td><td class="lbl">送貨單號<br/>Số phiếu</td><td style="font-family:monospace;font-weight:600">' + data.dn_number + '</td></tr>')
-  parts.push('<tr><td class="lbl">送貨日期<br/>Ngày giao</td><td>' + (data.delivery_date || '—') + '</td><td class="lbl">訂單號<br/>Mã đơn</td><td colspan="3">' + (data.po_ref || '—') + '</td></tr>')
+  parts.push('<tr><td class="lbl">客戶<br/>Khách hàng</td><td style="font-weight:600;font-size:12px" colspan="3">' + (data.customer_name || '—') + '</td><td class="lbl">出貨單號<br/>Số phiếu</td><td style="font-family:monospace;font-weight:600">' + data.dn_number + '</td></tr>')
+  parts.push('<tr><td class="lbl">出貨日期<br/>Ngày giao</td><td>' + (data.delivery_date || '—') + '</td><td class="lbl">訂單號<br/>Mã đơn</td><td colspan="3">' + (data.po_ref || '—') + '</td></tr>')
   if (data.address) {
-    parts.push('<tr><td class="lbl">送貨地址<br/>Địa chỉ</td><td colspan="5">' + data.address + '</td></tr>')
+    parts.push('<tr><td class="lbl">出貨地址<br/>Địa chỉ</td><td colspan="5">' + data.address + '</td></tr>')
   }
   parts.push('</table>')
 
