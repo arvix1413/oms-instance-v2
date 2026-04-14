@@ -9,15 +9,12 @@ import { useRouter } from 'next/navigation'
 type PermDef = { key: string; label: string }
 type PermMap = Record<string, Record<string, boolean>>
 
-// Only these two roles are configurable (admin is fixed)
-const EDITABLE_ROLES = ['manager', 'employee']
+const EDITABLE_ROLES = ['employee']
 const ROLE_LABELS: Record<string, string> = {
-  admin: '系統管理員',
   manager: '主管',
   employee: '員工',
 }
 const ROLE_COLORS: Record<string, string> = {
-  admin: 'bg-red-100 text-red-700',
   manager: 'bg-violet-100 text-violet-700',
   employee: 'bg-blue-100 text-blue-700',
 }
@@ -52,7 +49,7 @@ const PERM_GROUPS = [
     perms: ['stock.adjust'],
   },
   {
-    label: '系統管理（僅管理員）',
+    label: '系統管理（主管固定）',
     perms: ['company.manage', 'user.manage', 'audit.view'],
     adminOnly: true,
   },
@@ -121,20 +118,19 @@ export default function RolesPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-xl font-bold text-slate-800">角色權限管理</h1>
-        <p className="text-xs text-slate-400 mt-0.5">設定各角色的操作權限，點擊方格即時生效</p>
+        <p className="text-xs text-slate-400 mt-0.5">主管固定為全部權限；此頁僅需設定員工權限</p>
       </div>
 
       {/* Role cards */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        {['admin', 'manager', 'employee'].map(role => (
-          <div key={role} className={`oms-card p-4 border-l-4 ${role === 'admin' ? 'border-red-400' : role === 'manager' ? 'border-violet-400' : 'border-blue-400'}`}>
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        {['manager', 'employee'].map(role => (
+          <div key={role} className={`oms-card p-4 border-l-4 ${role === 'manager' ? 'border-violet-400' : 'border-blue-400'}`}>
             <div className="flex items-center gap-2 mb-2">
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ROLE_COLORS[role]}`}>{ROLE_LABELS[role]}</span>
-              {role === 'admin' && <span className="text-[10px] text-slate-400">不可修改</span>}
+              {role === 'manager' && <span className="text-[10px] text-slate-400">固定全權限</span>}
             </div>
             <div className="text-xs text-slate-400">
-              {role === 'admin' && '擁有全部權限，包含用戶管理'}
-              {role === 'manager' && '可設定：新增/刪除/核准等操作'}
+              {role === 'manager' && '主管預設擁有全部權限，無需額外賦權'}
               {role === 'employee' && '可設定：基本新增/查看操作'}
             </div>
           </div>
@@ -150,7 +146,7 @@ export default function RolesPage() {
             <thead>
               <tr className="border-b border-slate-200">
                 <th className="px-5 py-4 text-left font-semibold text-slate-600 w-52">功能權限</th>
-                {['admin', 'manager', 'employee'].map(role => (
+                {['manager', 'employee'].map(role => (
                   <th key={role} className="px-4 py-4 text-center min-w-[120px]">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ROLE_COLORS[role]}`}>
                       {ROLE_LABELS[role]}
@@ -163,7 +159,7 @@ export default function RolesPage() {
               {PERM_GROUPS.map(group => (
                 <>
                   <tr key={group.label} className="bg-slate-50 border-y border-slate-200">
-                    <td colSpan={4} className="px-5 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    <td colSpan={3} className="px-5 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
                       {group.label}
                     </td>
                   </tr>
@@ -172,17 +168,17 @@ export default function RolesPage() {
                     return (
                       <tr key={permKey} className="border-b border-slate-100 hover:bg-slate-50">
                         <td className="px-5 py-3 text-slate-600 text-sm">{label}</td>
-                        {/* Admin: always checked, not editable */}
+                        {/* Manager: always checked, not editable */}
                         <td className="px-4 py-3">
                           <CheckBox checked={true} isSaving={false} onClick={() => {}} disabled={true} />
                         </td>
-                        {/* Manager and Employee: editable */}
+                        {/* Employee: editable */}
                         {EDITABLE_ROLES.map(role => {
                           if ((group as any).adminOnly) {
                             return (
                               <td key={role} className="px-4 py-3">
-                                <div className="flex justify-center">
-                                  <div className="w-5 h-5 rounded border-2 border-slate-200 bg-slate-50" title="系統管理權限僅限管理員" />
+                                  <div className="flex justify-center">
+                                  <div className="w-5 h-5 rounded border-2 border-slate-200 bg-slate-50" title="系統管理權限由主管固定擁有" />
                                 </div>
                               </td>
                             )
@@ -205,7 +201,7 @@ export default function RolesPage() {
           <div className="px-5 py-3 border-t border-slate-100 text-xs text-slate-400 flex items-center gap-4">
             <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded bg-blue-500" /><span>已授權</span></div>
             <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded border-2 border-slate-300" /><span>未授權</span></div>
-            <span className="ml-auto">點擊方格即時切換，立即生效</span>
+            <span className="ml-auto">員工權限可即時切換，主管固定全權限</span>
           </div>
         </div>
       )}
