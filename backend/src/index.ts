@@ -933,6 +933,90 @@ app.delete('/api/delivery-notes/:id', authMiddleware, requirePerm('delivery.dele
   return c.json({ ok: true })
 })
 
+// ── Delivery Sheets (送貨單) ────────────────────────────────────────────────
+app.get('/api/delivery-sheets', authMiddleware, async c => c.json(await query(`
+  SELECT ds.*, c.customer_name, c.customer_code,
+         co.po_number as order_po_number
+  FROM delivery_sheets ds
+  LEFT JOIN customers c ON ds.customer_id = c.id
+  LEFT JOIN customer_orders co ON ds.customer_order_id = co.id
+  ORDER BY ds.created_at DESC
+`)))
+app.get('/api/delivery-sheets/:id', authMiddleware, async c => {
+  const ds = await queryOne<any>(`
+    SELECT ds.*, c.customer_name, c.customer_code, c.address,
+           co.po_number as po_ref
+    FROM delivery_sheets ds
+    LEFT JOIN customers c ON ds.customer_id = c.id
+    LEFT JOIN customer_orders co ON ds.customer_order_id = co.id
+    WHERE ds.id=?`, [c.req.param('id')])
+  if (!ds) return c.json({ error: 'Not found' }, 404)
+  const items = await query(`
+    SELECT dsi.*,
+           COALESCE(NULLIF(dsi.spec,''), b.spec) as spec,
+           COALESCE(NULLIF(dsi.unit,''), b.unit, 'PCS') as unit
+    FROM delivery_sheet_items dsi
+    LEFT JOIN (
+      SELECT bom.id, bom.product_sku, bom.product_name,
+             COALESCE(bom.spec, GROUP_CONCAT(DISTINCT bi.spec SEPARATOR ', ')) as spec,
+             COALESCE(bom.unit, MAX(bi.unit)) as unit
+      FROM bom
+      LEFT JOIN bom_items bi ON bom.id = bi.bom_id
+      GROUP BY bom.id, bom.product_sku, bom.product_name
+    ) b ON dsi.material_code = b.product_sku
+    WHERE dsi.ds_id=?`, [c.req.param('id')])
+  return c.json({ ...ds, items })
+})
+app.post('/api/delivery-sheets', authMiddleware, requirePerm('delivery.create'), async c => {
+  try {
+    const b = await c.req.json(); const u = c.get('user')
+    let customerName = b.customer_name || ''
+    if (!customerName && b.customer_id) {
+      const cust = await queryOne<any>('SELECT customer_name FROM customers WHERE id=?', [b.customer_id])
+      customerName = cust?.customer_name || ''
+    }
+    const dsNum = `DS${Date.now()}`
+    const r = await execute('INSERT INTO delivery_sheets (ds_number,customer_id,customer_name,customer_order_id,delivery_date,status,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?)',
+      [dsNum, b.customer_id||null, customerName, b.customer_order_id||null, b.delivery_date||null, 'draft', b.remark||'', u.userId, now8()])
+    const dsId = r.insertId
+    if (b.items?.length) {
+      for (const item of b.items) {
+        await execute('INSERT INTO delivery_sheet_items (ds_id,item_name,material_code,spec,unit,qty,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?)',
+          [dsId, item.item_name||'', item.material_code||'', item.spec||'', item.unit||'PCS', item.qty||0, item.remark||'', item.po_ref||'', item.thickness||null])
+      }
+    }
+    await audit(u, 'CREATE', '送貨單', dsId, `${dsNum} / ${customerName}`)
+    return c.json({ id: dsId, ds_number: dsNum }, 201)
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+app.put('/api/delivery-sheets/:id', authMiddleware, requirePerm('delivery.create'), async c => {
+  try {
+    const id = c.req.param('id'); const b = await c.req.json(); const u = c.get('user')
+    const existing = await queryOne<any>('SELECT status FROM delivery_sheets WHERE id=?', [id])
+    if (!existing) return c.json({ error: 'Not found' }, 404)
+    if (existing.status !== 'draft') return c.json({ error: '只能編輯草稿狀態的送貨單' }, 400)
+    await execute('UPDATE delivery_sheets SET delivery_date=?,remark=? WHERE id=?',
+      [b.delivery_date||null, b.remark||'', id])
+    await execute('DELETE FROM delivery_sheet_items WHERE ds_id=?', [id])
+    if (b.items?.length) {
+      for (const item of b.items) {
+        await execute('INSERT INTO delivery_sheet_items (ds_id,item_name,material_code,spec,unit,qty,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?)',
+          [id, item.item_name||'', item.material_code||'', item.spec||'', item.unit||'PCS', item.qty||0, item.remark||'', item.po_ref||'', item.thickness||null])
+      }
+    }
+    await audit(u, 'UPDATE', '送貨單', id, `id=${id}`)
+    return c.json({ ok: true })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+app.delete('/api/delivery-sheets/:id', authMiddleware, requirePerm('delivery.delete'), async c => {
+  const id = c.req.param('id')
+  const row = await queryOne<any>('SELECT ds_number,customer_name FROM delivery_sheets WHERE id=?', [id])
+  await execute('DELETE FROM delivery_sheet_items WHERE ds_id=?', [id])
+  await execute('DELETE FROM delivery_sheets WHERE id=?', [id])
+  await audit(c.get('user'), 'DELETE', '送貨單', id, `${row?.ds_number} / ${row?.customer_name}`)
+  return c.json({ ok: true })
+})
+
 // ── Inventory ─────────────────────────────────────────────────────────────────
 // Real-time inventory from bom.current_stock
 app.get('/api/inventory', authMiddleware, async c => c.json(await query(`

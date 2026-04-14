@@ -87,7 +87,7 @@ export default function ProfilePage() {
             </svg>
             <h2 className="text-sm font-semibold text-slate-800">電子簽名</h2>
           </div>
-          <p className="text-xs text-slate-400 mb-5">列印採購單、出貨單時自動顯示在簽名欄</p>
+          <p className="text-xs text-slate-400 mb-5">列印採購單、出貨單、送貨單時自動顯示在簽名欄</p>
           {fullSignUrl ? (
             <div className="space-y-4">
               <div className="rounded-xl border-2 border-slate-100 bg-slate-50 flex items-center justify-center p-6" style={{ minHeight: 100 }}>

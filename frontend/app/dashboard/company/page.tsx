@@ -69,7 +69,7 @@ export default function CompanyPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-xl font-bold text-slate-800">公司設定</h1>
-        <p className="text-xs text-slate-400 mt-0.5">修改後將套用到所有列印表單（採購單、出貨單、報價單、客戶訂單）</p>
+        <p className="text-xs text-slate-400 mt-0.5">修改後將套用到所有列印表單（採購單、出貨單、送貨單、報價單、客戶訂單）</p>
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(360px,1fr)] gap-6 items-start">
         <div className="oms-card p-6 space-y-5">

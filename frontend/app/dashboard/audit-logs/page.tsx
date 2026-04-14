@@ -29,7 +29,7 @@ const ACTION_LABEL: Record<string, string> = {
   STATUS_CHANGE: '狀態變更',
 }
 
-const RESOURCES = ['', '供應商', '客戶', '料號', 'BOM', '採購單', '客戶訂單', '報價單', '出貨單', '庫存', '使用者']
+const RESOURCES = ['', '供應商', '客戶', '料號', 'BOM', '採購單', '客戶訂單', '報價單', '出貨單', '送貨單', '庫存', '使用者']
 
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState<Log[]>([])

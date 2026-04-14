@@ -23,6 +23,7 @@ const NAV: NavEntry[] = [
       { href: '/dashboard/po', label: '採購單', icon: <IconCart /> },
       { href: '/dashboard/production', label: '生產單', icon: <IconFactory /> },
       { href: '/dashboard/delivery-notes', label: '出貨單', icon: <IconTruck /> },
+      { href: '/dashboard/delivery-sheets', label: '送貨單', icon: <IconTruck /> },
     ],
     defaultOpen: true
   },
