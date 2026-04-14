@@ -42,7 +42,10 @@ export default function QuotationsPage() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [form, setForm] = useState({ customer_id: '', customer_name:'', currency:'VND', valid_until:'', remark:'', items:[emptyItem()] })
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
   const [search, setSearch] = useState('')
+
+  useEffect(() => { setMounted(true) }, [])
 
   const load = () => apiFetch<Q[]>('/api/quotations').then(setItems).finally(()=>setLoading(false))
   useEffect(()=>{
@@ -351,7 +354,7 @@ export default function QuotationsPage() {
         <button onClick={startCreate} className="btn-primary">+ 新增報價單</button>
       </div>
 
-      {creating && (
+      {mounted && creating && (
         <div className="oms-card p-6 mb-5">
           <h2 className="text-sm font-semibold text-slate-800 mb-4">新增報價單</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
@@ -481,7 +484,7 @@ export default function QuotationsPage() {
                         <tr key={`${q.id}-items`} className="border-b border-slate-100">
                           <td colSpan={8} className="px-0 py-0">
                             <div className="bg-slate-50/50 border-t border-slate-100">
-                              {editingId === q.id ? (
+                              {mounted && editingId === q.id ? (
                                 /* Inline edit form */
                                 <div className="p-4">
                                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
