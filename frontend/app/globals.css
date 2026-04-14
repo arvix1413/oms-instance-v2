@@ -14,7 +14,7 @@ input[type="number"] { -moz-appearance: textfield; }
 /* Table */
 .oms-table { @apply w-full text-sm; }
 .oms-table thead tr { @apply border-b border-slate-200; }
-.oms-table thead th { @apply px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-50; }
+.oms-table thead th { @apply px-4 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider bg-slate-50; }
 .oms-table tbody tr { @apply border-b border-slate-100 hover:bg-blue-50/40 transition-colors; }
 .oms-table tbody td { @apply px-4 py-3 text-sm text-slate-700; }
 
@@ -33,9 +33,9 @@ input[type="number"] { -moz-appearance: textfield; }
 .badge-purple { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-violet-50 text-violet-700 border border-violet-200; }
 
 /* Btn */
-.btn-primary { @apply inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-semibold rounded-xl transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed; }
-.btn-ghost   { @apply inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-300 text-slate-600 hover:text-slate-900 hover:border-slate-400 hover:bg-slate-50 text-xs font-medium rounded-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed; }
-.btn-danger  { @apply inline-flex items-center gap-1.5 px-3 py-1.5 border border-red-200 text-red-600 hover:text-red-700 hover:border-red-300 hover:bg-red-50 text-xs font-medium rounded-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed; }
+.btn-primary { @apply inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold rounded-xl transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed; }
+.btn-ghost   { @apply inline-flex items-center gap-1.5 px-3.5 py-2 border border-slate-300 text-slate-600 hover:text-slate-900 hover:border-slate-400 hover:bg-slate-50 text-sm font-medium rounded-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed; }
+.btn-danger  { @apply inline-flex items-center gap-1.5 px-3.5 py-2 border border-red-200 text-red-600 hover:text-red-700 hover:border-red-300 hover:bg-red-50 text-sm font-medium rounded-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed; }
 
 @keyframes slide-up {
   from { opacity: 0; transform: translateY(12px) scale(0.97); }
