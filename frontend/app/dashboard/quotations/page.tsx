@@ -1,4 +1,5 @@
 'use client'
+import React from 'react'
 import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch, getSignatureUrl } from '@/lib/api'
@@ -399,14 +400,14 @@ export default function QuotationsPage() {
                     <td className="p-1"><input className={inp} style={{width:70}} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} /></td>
                     <td className="p-1"><input className={inp} style={{width:40}} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} /></td>
                     {item.moq_tiers.map((tier, t) => (
-                      <>
-                        <td key={`moq-${t}`} className="p-1">
+                      <React.Fragment key={t}>
+                        <td className="p-1">
                           <input type="number" className={inp} style={{width:60}} value={tier.moq||''} placeholder="MOQ" onChange={e=>updateTier(i,t,'moq',Number(e.target.value))} />
                         </td>
-                        <td key={`price-${t}`} className="p-1">
+                        <td className="p-1">
                           <input type="number" className={inp} style={{width:70}} value={tier.price||''} placeholder="單價" onChange={e=>updateTier(i,t,'price',Number(e.target.value))} />
                         </td>
-                      </>
+                      </React.Fragment>
                     ))}
                     <td className="p-1"><input className={inp} value={item.remark} onChange={e=>updateItem(i,'remark',e.target.value)} /></td>
                     <td className="p-1 text-center"><button onClick={()=>removeItem(i)} className="text-slate-300 hover:text-red-600 transition-colors">✕</button></td>
@@ -529,14 +530,14 @@ export default function QuotationsPage() {
                                             <td className="p-1"><input className={inp} style={{width:70}} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} /></td>
                                             <td className="p-1"><input className={inp} style={{width:40}} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} /></td>
                                             {item.moq_tiers.map((tier, t) => (
-                                              <>
-                                                <td key={`moq-${t}`} className="p-1">
+                                              <React.Fragment key={t}>
+                                                <td className="p-1">
                                                   <input type="number" className={inp} style={{width:55}} value={tier.moq||''} placeholder="MOQ" onChange={e=>updateTier(i,t,'moq',Number(e.target.value))} />
                                                 </td>
-                                                <td key={`price-${t}`} className="p-1">
+                                                <td className="p-1">
                                                   <input type="number" className={inp} style={{width:65}} value={tier.price||''} placeholder="單價" onChange={e=>updateTier(i,t,'price',Number(e.target.value))} />
                                                 </td>
-                                              </>
+                                              </React.Fragment>
                                             ))}
                                             <td className="p-1"><input className={inp} value={item.remark} onChange={e=>updateItem(i,'remark',e.target.value)} /></td>
                                             <td className="p-1 text-center"><button onClick={()=>removeItem(i)} className="text-slate-300 hover:text-red-600">✕</button></td>
