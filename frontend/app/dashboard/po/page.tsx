@@ -396,7 +396,7 @@ export default function PoPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-slate-800">採購單管理</h1>
-          <p className="text-xs text-slate-400 mt-0.5">點選採購單列展開檢視料號明細</p>
+          <p className="section-hint">點選採購單列展開檢視料號明細</p>
         </div>
         {canWrite && <button onClick={() => { setCreating(true); setEditingId(null); setForm({ supplier_id: '', supplier_name:'', currency:'VND', remark:'', items:[emptyItem()] }) }} className="btn-primary">+ 建立採購單</button>}
       </div>
@@ -498,8 +498,8 @@ export default function PoPage() {
 
       {!creating && editingId === null && (
         <>
-          <div className="mb-4 flex gap-3">
-            <input className="oms-input w-64" placeholder="搜尋採購單號或供應商..." value={search} onChange={e=>setSearch(e.target.value)} />
+          <div className="list-controls">
+            <input className="list-search" placeholder="搜尋採購單號或供應商..." value={search} onChange={e=>setSearch(e.target.value)} />
             <div className="flex gap-1">
               {[['', '全部'], ['draft', '草稿'], ['approved', '已核准'], ['sent', '已送出'], ['received', '已收貨']].map(([val, label]) => (
                 <button key={val} onClick={() => setStatusFilter(val)}
@@ -565,9 +565,11 @@ export default function PoPage() {
                       {isOpen && (
                         <tr key={`${p.id}-items`} className="border-b border-slate-100">
                           <td colSpan={8} className="px-0 py-0">
-                            <div className="bg-slate-50/50 border-t border-slate-100">
+                            <div className="expand-row-wrap">
                               {items.length === 0 ? (
-                                <div className="px-8 py-4 text-xs text-slate-400">載入中...</div>
+                                <div className="expand-row-loading">
+                                  <div className="w-3 h-3 border border-slate-300 border-t-slate-500 rounded-full animate-spin"/>載入中...
+                                </div>
                               ) : (
                                 <div className="overflow-x-auto">
                                   <table className="w-full text-xs" style={{minWidth:700}}>
@@ -612,7 +614,7 @@ export default function PoPage() {
                                 </div>
                               )}
                               {/* Edit/Delete actions in expanded row - always show */}
-                              <div className="px-4 py-2.5 border-t border-slate-100 flex items-center gap-2 bg-slate-50/80">
+                              <div className="expand-row-actions">
                                 {canWrite && p.status === 'draft' && (
                                   <button onClick={e => startEdit(p, e)} className="btn-ghost text-blue-600 text-xs">✏ 編輯採購單</button>
                                 )}

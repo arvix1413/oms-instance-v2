@@ -46,6 +46,15 @@ input[type="number"] { -moz-appearance: textfield; }
   }
 }
 
+/* Reusable list/page blocks */
+.section-hint { @apply text-xs text-slate-500 mt-0.5; }
+.list-controls { @apply mb-4 flex flex-wrap items-center gap-3; }
+.list-search { @apply oms-input w-72 max-w-full; }
+.expand-row-wrap { @apply bg-slate-50/60 border-t border-slate-100; }
+.expand-row-loading { @apply px-8 py-4 text-xs text-slate-400 flex items-center gap-2; }
+.expand-row-empty { @apply px-8 py-4 text-xs text-slate-400; }
+.expand-row-actions { @apply px-4 py-2.5 border-t border-slate-100 flex items-center gap-2 bg-slate-50/80; }
+
 @keyframes slide-up {
   from { opacity: 0; transform: translateY(12px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }

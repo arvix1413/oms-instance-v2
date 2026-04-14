@@ -352,7 +352,7 @@ export default function QuotationsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-slate-800">報價單</h1>
-          <p className="text-xs text-slate-400 mt-0.5">點選報價單列展開檢視品項明細</p>
+          <p className="section-hint">點選報價單列展開檢視品項明細</p>
         </div>
         <button onClick={startCreate} className="btn-primary">+ 新增報價單</button>
       </div>
@@ -486,7 +486,7 @@ export default function QuotationsPage() {
                       {isOpen && (
                         <tr key={`${q.id}-items`} className="border-b border-slate-100">
                           <td colSpan={8} className="px-0 py-0">
-                            <div className="bg-slate-50/50 border-t border-slate-100">
+                            <div className="expand-row-wrap">
                               {mounted && editingId === q.id ? (
                                 /* Inline edit form */
                                 <div className="p-4">
@@ -571,7 +571,9 @@ export default function QuotationsPage() {
                                   </div>
                                 </div>
                               ) : qItems.length === 0 ? (
-                                <div className="px-8 py-4 text-xs text-slate-400">載入中...</div>
+                                <div className="expand-row-loading">
+                                  <div className="w-3 h-3 border border-slate-300 border-t-slate-500 rounded-full animate-spin"/>載入中...
+                                </div>
                               ) : (
                                 <div className="overflow-x-auto">
                                   <table className="w-full text-xs" style={{minWidth:600}}>
@@ -620,7 +622,7 @@ export default function QuotationsPage() {
                               )}
                               {/* Action bar */}
                               {editingId !== q.id && (
-                                <div className="px-4 py-2.5 border-t border-slate-100 flex items-center gap-2 bg-slate-50/80">
+                                <div className="expand-row-actions">
                                   {q.status==='draft' && <button onClick={e=>startEdit(q,e)} className="btn-ghost text-blue-600 text-xs">✏ 編輯</button>}
                                   {q.status==='draft' && <button onClick={e=>changeStatus(q.id,'sent',e)} className="btn-ghost text-xs">送出</button>}
                                   {q.status==='sent' && <>

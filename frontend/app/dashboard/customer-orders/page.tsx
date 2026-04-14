@@ -217,7 +217,7 @@ export default function CustomerOrdersPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-slate-800">客戶訂單明細</h1>
-          <p className="text-xs text-slate-400 mt-0.5">點選訂單列展開檢視品項明細</p>
+          <p className="section-hint">點選訂單列展開檢視品項明細</p>
         </div>
         {canWrite && <button onClick={()=>{ setCreating(true); setEditingId(null); setForm({ po_date:'', po_number:'', customer_id:'', remark:'', tax_rate:8, currency:'VND', delivery_date:'', delivery_address:'', person_in_charge:'', payment_terms:'', items:[emptyItem()] }) }} className="btn-primary">+ 新增訂單</button>}
       </div>
@@ -373,8 +373,8 @@ export default function CustomerOrdersPage() {
 
       {!creating && editingId === null && (
         <>
-          <div className="mb-4 flex gap-3">
-            <input className="oms-input w-64" placeholder="搜尋採購單號或客戶..." value={search} onChange={e=>setSearch(e.target.value)} />
+          <div className="list-controls">
+            <input className="list-search" placeholder="搜尋採購單號或客戶..." value={search} onChange={e=>setSearch(e.target.value)} />
             <div className="flex gap-1">
               {[['', '全部'], ['pending', '待出貨'], ['partial', '部分'], ['delay', '延遲'], ['completed', '已完成']].map(([val, label]) => (
                 <button key={val} onClick={() => setStatusFilter(val)}
@@ -430,13 +430,13 @@ export default function CustomerOrdersPage() {
                       {isOpen && (
                         <tr key={`${o.id}-items`} className="border-b border-slate-100">
                           <td colSpan={8} className="px-0 py-0">
-                            <div className="bg-slate-50/50 border-t border-slate-100">
+                            <div className="expand-row-wrap">
                               {items === undefined ? (
-                                <div className="px-8 py-4 text-xs text-slate-400 flex items-center gap-2">
+                                <div className="expand-row-loading">
                                   <div className="w-3 h-3 border border-slate-300 border-t-slate-500 rounded-full animate-spin"/>載入中...
                                 </div>
                               ) : items.length === 0 ? (
-                                <div className="px-8 py-4 text-xs text-slate-400">尚無品項</div>
+                                <div className="expand-row-empty">尚無品項</div>
                               ) : (
                                 <table className="w-full text-xs">
                                   <thead><tr className="border-b border-slate-100">
@@ -468,7 +468,7 @@ export default function CustomerOrdersPage() {
                                 </table>
                               )}
                               {/* Edit/Delete in expanded row */}
-                              <div className="px-4 py-2.5 border-t border-slate-100 flex items-center gap-2 bg-slate-50/80">
+                              <div className="expand-row-actions">
                                 {canWrite && o.status !== 'completed' && (
                                   <button onClick={e=>{e.stopPropagation();startEdit(o)}} className="btn-ghost text-blue-600 text-xs">✏ 編輯訂單</button>
                                 )}

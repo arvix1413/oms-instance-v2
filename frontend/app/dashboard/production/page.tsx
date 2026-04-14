@@ -224,7 +224,7 @@ export default function ProductionPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-slate-800">生產單管理</h1>
-          <p className="text-xs text-slate-400 mt-0.5">選擇成品 BOM → 自動展開材料 → 庫存檢查 → 建立生產單</p>
+          <p className="section-hint">選擇成品 BOM → 自動展開材料 → 庫存檢查 → 建立生產單</p>
         </div>
         {canWrite && <button onClick={() => { setCreating(true); setStep(1) }} className="btn-primary">+ 建立生產單</button>}
       </div>
@@ -391,8 +391,8 @@ export default function ProductionPage() {
         </div>
       )}
 
-      <div className="mb-4 flex gap-3">
-        <input className="oms-input w-64" placeholder="搜尋生產單號或產品名稱..." value={search} onChange={e => setSearch(e.target.value)} />
+      <div className="list-controls">
+        <input className="list-search" placeholder="搜尋生產單號或產品名稱..." value={search} onChange={e => setSearch(e.target.value)} />
         <div className="flex gap-1">
           {[['', '全部'], ['draft', '待確認'], ['confirmed', '已建立'], ['shortage', '缺料'], ['ready', '材料齊'], ['in_progress', '生產中'], ['completed', '完工']].map(([val, label]) => (
             <button key={val} onClick={() => setStatusFilter(val)}
@@ -460,7 +460,7 @@ export default function ProductionPage() {
                       {isOpen && (
                         <tr key={`${p.id}-detail`} className="border-b border-slate-100">
                           <td colSpan={8} className="px-0 py-0">
-                            <div className="bg-slate-50/50 border-t border-slate-100">
+                            <div className="expand-row-wrap">
                               {/* Materials table */}
                               {(() => {
                                 const detail = loadedProds[p.id]
@@ -495,7 +495,7 @@ export default function ProductionPage() {
                               )
                               })()}
                               {/* Action bar */}
-                              <div className="px-4 py-2.5 border-t border-slate-100 flex items-center gap-2 bg-slate-50/80">
+                              <div className="expand-row-actions">
                                 {canWrite && ['draft','confirmed','shortage'].includes(p.status) && (
                                   <button onClick={() => startEditProd(p)} className="btn-ghost text-blue-600 text-xs">✏ 編輯</button>
                                 )}

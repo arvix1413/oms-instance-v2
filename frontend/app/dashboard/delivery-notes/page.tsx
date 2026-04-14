@@ -409,9 +409,9 @@ export default function DeliveryNotesPage() {
                       {isOpen && (
                         <tr key={`${dn.id}-items`} className="border-b border-slate-100">
                           <td colSpan={8} className="px-0 py-0">
-                            <div className="bg-slate-50/50 border-t border-slate-100">
+                            <div className="expand-row-wrap">
                               {items.length === 0 ? (
-                                <div className="px-8 py-4 text-xs text-slate-400 flex items-center gap-2">
+                                <div className="expand-row-loading">
                                   <div className="w-3 h-3 border border-slate-300 border-t-slate-500 rounded-full animate-spin"/>載入中...
                                 </div>
                               ) : (
@@ -438,7 +438,7 @@ export default function DeliveryNotesPage() {
                                 </div>
                               )}
                               {/* Action bar */}
-                              <div className="px-4 py-2.5 border-t border-slate-100 flex items-center gap-2 bg-slate-50/80">
+                              <div className="expand-row-actions">
                                 {canWrite && dn.status === 'draft' && <button onClick={() => startEditDN(dn)} className="btn-ghost text-blue-600 text-xs">✏ 編輯</button>}
                                 {canDel && <button onClick={() => del(dn.id)} className="btn-danger text-xs">刪除</button>}
                               </div>
