@@ -213,107 +213,98 @@ export default function QuotationsPage() {
     <title>報價單 ${q.quotation_number}</title>
     <style>
       *{box-sizing:border-box;margin:0;padding:0}
-      body{font-family:"Microsoft YaHei","PingFang TC",Arial,sans-serif;font-size:11px;color:#000;background:#fff;line-height:1.5}
-      .page{padding:10mm 12mm;max-width:210mm;margin:0 auto}
-      /* Title */
-      .title-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4mm}
-      .title-text{font-size:20px;font-weight:700;letter-spacing:1px}
-      .logo-box{border:2px solid #000;padding:4px 10px;font-size:14px;font-weight:900;letter-spacing:2px;text-transform:uppercase}
-      /* Info sections */
-      .info-section{border:1px solid #000;margin-bottom:3mm}
-      .info-section-title{background:#000;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;letter-spacing:1px}
-      .info-grid{display:grid;grid-template-columns:80px 1fr 80px 1fr;gap:0}
-      .info-cell{padding:3px 6px;font-size:10px;border-right:1px solid #ccc;border-bottom:1px solid #ccc}
-      .info-cell:nth-child(4n){border-right:none}
-      .info-label{font-weight:600;color:#333}
-      /* Items table */
-      table.items{width:100%;border-collapse:collapse;margin-bottom:3mm}
-      table.items th{border:1px solid #000;background:#e0e0e0;padding:4px 5px;text-align:center;font-size:10px;font-weight:700;color:#000;white-space:nowrap}
-      table.items td{border:1px solid #555;padding:4px 5px;font-size:11px;color:#000;vertical-align:middle}
-      table.items tbody tr:nth-child(even){background:#f9f9f9}
-      /* Remarks */
-      .remarks-box{border:1px solid #000;padding:5px 8px;margin-bottom:3mm;font-size:10px;line-height:1.7}
-      .remarks-title{font-weight:700;margin-bottom:2px;font-size:10px}
-      /* Signature */
-      .sign-row{display:flex;gap:8mm;margin-top:5mm}
-      .sign-box{flex:1;border:1px solid #000;padding:6px 8px;text-align:center}
-      .sign-label{font-weight:700;font-size:10px;border-bottom:1px solid #ccc;padding-bottom:3px;margin-bottom:3px}
-      .sign-area{min-height:45px;display:flex;align-items:center;justify-content:center}
-      .sign-name{border-top:1px solid #555;padding-top:3px;font-size:10px;margin-top:3px}
+      body{font-family:"Microsoft YaHei","PingFang TC",Arial,sans-serif;font-size:11px;font-weight:400;color:#000;background:#fff}
+      .page{padding:12mm 15mm;max-width:210mm;margin:0 auto}
+      .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:5mm;margin-bottom:5mm}
+      .company{font-size:18px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+      .subtitle{font-size:10px;color:#666;margin-top:3px}
+      .doc-title{font-size:22px;font-weight:700;color:#1a56db;text-align:right}
+      .doc-sub{font-size:10px;color:#666;text-align:right;margin-top:2px}
+      .doc-no{font-size:12px;font-weight:600;text-align:right;margin-top:3px}
+      .info-table{width:100%;border-collapse:collapse;margin-bottom:5mm}
+      .info-table td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;vertical-align:middle}
+      .info-table .lbl{font-weight:600;background:#f5f5f5;white-space:nowrap;width:120px;color:#333}
+      table.items{width:100%;border-collapse:collapse;margin-bottom:5mm}
+      table.items th{border:1px solid #555;background:#e8e8e8;padding:6px 8px;text-align:center;font-size:10px;font-weight:600;color:#000}
+      table.items td{border:1px solid #bbb;padding:5px 6px;font-size:11px;font-weight:400;color:#000;vertical-align:middle}
+      table.items tbody tr:nth-child(even){background:#fafafa}
+      .note-box{border:1px solid #bbb;padding:6px 10px;margin-bottom:5mm;font-size:10px;line-height:1.6}
+      .note-title{font-weight:600;margin-bottom:4px}
+      .sign-row{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:8mm}
+      .sign-box{border:1px solid #bbb;padding:8px 10px;text-align:center;display:flex;flex-direction:column}
+      .sign-label{font-weight:600;font-size:10px;color:#333;padding-bottom:4px;border-bottom:1px solid #eee}
+      .sign-area{flex:1;min-height:50px;display:flex;align-items:center;justify-content:center}
+      .sign-line{border-top:1px solid #555;padding-top:4px;font-size:10px;font-weight:400;color:#333;margin-top:4px}
       @media print{body{-webkit-print-color-adjust:exact}@page{size:A4;margin:0}}
     </style></head><body>
     <div class="page">
-
-      <!-- Title -->
-      <div class="title-row">
-        <div class="title-text">報價單+樣品費 Quotation</div>
-        <div>${logoUrl ? `<img src="${logoUrl}" style="max-height:40px;max-width:120px;object-fit:contain" onerror="this.style.display='none'"/>` : `<div class="logo-box">${company.company_name.split(' ')[0]}</div>`}</div>
-      </div>
-
-      <!-- Our company info -->
-      <div class="info-section">
-        <div class="info-section-title">公司名稱 Company Name：${company.company_name_local || company.company_name}</div>
-        <div style="padding:3px 6px;font-size:10px;border-bottom:1px solid #ccc">
-          地址 Address: ${company.address || '—'}
+      <div class="header">
+        <div>
+          ${logoUrl ? `<img src="${logoUrl}" style="max-height:40px;max-width:160px;object-fit:contain;margin-bottom:4px" onerror="this.style.display='none'"/><br/>` : ''}
+          <div class="company">${company.company_name}</div>
+          <div class="subtitle">${company.company_name_local || ''}</div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;padding:3px 6px;font-size:10px;border-bottom:1px solid #ccc">
-          <span>電話 Tel: ${company.phone || '—'}</span>
-          <span>報價日期 Date Issue: ${String(q.created_at||'').slice(0,10)}</span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;padding:3px 6px;font-size:10px">
-          <span>聯繫人 Contact per: ${company.contact_person || '—'}</span>
-          <span>報價期限 Date Expire: ${q.valid_until ? String(q.valid_until).slice(0,10) : '1個月/1Month'}</span>
+        <div>
+          <div class="doc-title">報價單</div>
+          <div class="doc-sub">QUOTATION / BẢNG BÁO GIÁ</div>
+          <div class="doc-no">No. ${q.quotation_number || '—'}</div>
         </div>
       </div>
 
-      <!-- Customer info -->
-      <div class="info-section">
-        <div class="info-section-title">客戶工廠名稱 Company Name：${q.customer_name||'—'}</div>
-        <div style="padding:3px 6px;font-size:10px;border-bottom:1px solid #ccc">
-          地址 Address: —
-        </div>
-        <div style="padding:3px 6px;font-size:10px">
-          聯繫人 Contact per: —
-        </div>
-      </div>
+      <table class="info-table">
+        <tr>
+          <td class="lbl">客戶<br/>Khách hàng</td>
+          <td style="font-weight:600;font-size:12px" colspan="3">${q.customer_name || '—'}</td>
+          <td class="lbl">報價日<br/>Date issue</td>
+          <td>${String(q.created_at || '').slice(0,10) || '—'}</td>
+        </tr>
+        <tr>
+          <td class="lbl">聯絡人<br/>Contact</td>
+          <td>${company.contact_person || '—'}</td>
+          <td class="lbl">有效期<br/>Valid until</td>
+          <td>${q.valid_until ? String(q.valid_until).slice(0,10) : '—'}</td>
+          <td class="lbl">幣別<br/>Currency</td>
+          <td>${q.currency || 'VND'}</td>
+        </tr>
+        <tr>
+          <td class="lbl">地址<br/>Address</td>
+          <td colspan="5">${company.address || '—'}</td>
+        </tr>
+      </table>
 
-      <!-- Items table -->
       <table class="items">
         <thead><tr>
-          <th style="width:28px">項目<br/>Item</th>
-          <th>品名<br/>Products</th>
-          <th style="width:90px">規格<br/>Specifications</th>
-          <th style="width:42px">單位<br/>Unit</th>
-          <th style="width:55px">MOQ</th>
-          <th style="width:80px">單價<br/>Vnd</th>
-          <th style="width:65px">圖片<br/>Image</th>
-          <th style="width:80px">備註<br/>Remarks</th>
+          <th style="width:30px">ST</th>
+          <th>品名 / Products</th>
+          <th style="width:90px">規格</th>
+          <th style="width:45px">單位</th>
+          <th style="width:80px">MOQ</th>
+          <th style="width:90px">單價</th>
+          <th style="width:70px">圖片</th>
+          <th style="width:90px">備註</th>
         </tr></thead>
         <tbody>${itemRows}</tbody>
       </table>
 
-      <!-- Remarks -->
-      <div class="remarks-box">
-        <div class="remarks-title">備注 Mark:</div>
-        <div style="white-space:pre-line">${q.remark || '1.交易方式：現金轉款\n2.樣品日期：8-10天\n3.以上單價不包含8%VAT\n4.交貨方式：越南當地門到門\n5.如有問題根據樣品報價單\n6.三天內確認打樣費用，請簽回並確認3天\n7.收到量產打單出貨後，打樣費將會在8天內退還\n8.樣品數量20片一次，如需增加數量一次開機費用為250萬越盾，一次開機數量最少20片'}</div>
+      <div class="note-box">
+        <div class="note-title">備註 / Ghi chú：</div>
+        <div style="white-space:pre-line">${q.remark || '1. 交易方式：現金轉款\n2. 樣品日期：8-10天\n3. 以上單價不包含8%VAT\n4. 交貨方式：越南當地門到門\n5. 如有問題根據樣品報價單\n6. 三天內確認打樣費用，請簽回並確認\n7. 收到量產訂單出貨後，打樣費將在8天內退還'}</div>
       </div>
 
-      <!-- Signature -->
       <div class="sign-row">
         <div class="sign-box">
-          <div class="sign-label">${company.company_name}</div>
+          <div class="sign-label">FAN YONG 確認 / Xác nhận</div>
           <div class="sign-area">
             ${signUrl ? `<img src="${signUrl}" style="max-height:44px;max-width:150px;object-fit:contain"/>` : ''}
           </div>
-          <div class="sign-name">${company.company_name}</div>
+          <div class="sign-line">${company.company_name}</div>
         </div>
         <div class="sign-box">
           <div class="sign-label">客戶確認 / Khách hàng xác nhận</div>
           <div class="sign-area"></div>
-          <div class="sign-name">${q.customer_name||''}</div>
+          <div class="sign-line">${q.customer_name || ''}</div>
         </div>
       </div>
-
     </div>
     </body></html>`
     const w = window.open('','_blank','width=900,height=1200')
