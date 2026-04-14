@@ -51,7 +51,17 @@ export default function QuotationsPage() {
     apiFetch<BOM[]>('/api/bom').then(setBoms).catch(()=>{})
   },[])
 
-  const resetForm = () => { setForm({customer_id:'', customer_name:'',currency:'VND',valid_until:'',remark:'',items:[emptyItem()]}); setCreating(false); setEditingId(null) }
+  const resetForm = (opts: { keepCreating?: boolean } = {}) => {
+    setForm({ customer_id:'', customer_name:'', currency:'VND', valid_until:'', remark:'', items:[emptyItem()] })
+    if (!opts.keepCreating) setCreating(false)
+    setEditingId(null)
+  }
+
+  const startCreate = () => {
+    resetForm({ keepCreating: true })
+    setEditingId(null)
+    setCreating(true)
+  }
 
   const toggleExpand = async (id: number) => {
     const next = new Set(expanded)
@@ -109,9 +119,12 @@ export default function QuotationsPage() {
   const startEdit = async (q: Q, e: React.MouseEvent) => {
     e.stopPropagation()
     const data = await apiFetch<Q>(`/api/quotations/${q.id}`)
-    const cust = customers.find(c => c.customer_name === q.customer_name)
+    const rawCustomerId = q.customer_id ?? (data as any).customer_id
+    const cust = rawCustomerId
+      ? customers.find(c => String(c.id) === String(rawCustomerId))
+      : customers.find(c => c.customer_name === q.customer_name)
     setForm({
-      customer_id: cust ? String(cust.id) : '',
+      customer_id: cust ? String(cust.id) : (rawCustomerId ? String(rawCustomerId) : ''),
       customer_name: q.customer_name,
       currency: q.currency,
       valid_until: q.valid_until ? String(q.valid_until).slice(0,10) : '',
@@ -335,7 +348,7 @@ export default function QuotationsPage() {
           <h1 className="text-xl font-bold text-slate-800">報價單</h1>
           <p className="text-xs text-slate-400 mt-0.5">點擊報價單列展開查看品項明細</p>
         </div>
-        <button onClick={()=>{ setCreating(true); setEditingId(null); resetForm() }} className="btn-primary">+ 新增報價單</button>
+        <button onClick={startCreate} className="btn-primary">+ 新增報價單</button>
       </div>
 
       {creating && (
@@ -418,7 +431,7 @@ export default function QuotationsPage() {
           </div>
           <div className="flex gap-2 mt-4">
             <button onClick={save} className="btn-primary">建立報價單</button>
-            <button onClick={resetForm} className="btn-ghost border border-slate-200">取消</button>
+            <button onClick={() => resetForm()} className="btn-ghost border border-slate-200">取消</button>
           </div>
         </div>
       )}
@@ -548,7 +561,7 @@ export default function QuotationsPage() {
                                   </div>
                                   <div className="flex gap-2">
                                     <button onClick={save} className="btn-primary text-xs">儲存修改</button>
-                                    <button onClick={resetForm} className="btn-ghost border border-slate-200 text-xs">取消</button>
+                                    <button onClick={() => resetForm()} className="btn-ghost border border-slate-200 text-xs">取消</button>
                                   </div>
                                 </div>
                               ) : qItems.length === 0 ? (

@@ -120,12 +120,22 @@ export default function CustomerOrdersPage() {
       delivery_address: (order as any).delivery_address || '',
       person_in_charge: order.person_in_charge || '',
       payment_terms: order.payment_terms || '',
-      items: (data.items || []).map(i => ({
-        bom_id: i.bom_id, qty: Number(i.qty), unit_price: Number(i.unit_price),
-        rta_date: i.rta_date ? String(i.rta_date).slice(0,10) : '',
-        spec: i.spec || '', unit: i.unit || 'PCS',
-        product_sku: i.product_sku, product_name: i.product_name, image_url: i.image_url,
-      }))
+      items: (data.items || []).map(i => {
+        const matchedBom =
+          (i.bom_id ? boms.find(b => b.id === i.bom_id) : undefined) ||
+          (i.product_sku ? boms.find(b => b.product_sku === i.product_sku) : undefined)
+        return {
+          bom_id: i.bom_id ?? matchedBom?.id ?? null,
+          qty: Number(i.qty),
+          unit_price: Number(i.unit_price) || Number(matchedBom?.company_price) || 0,
+          rta_date: i.rta_date ? String(i.rta_date).slice(0,10) : '',
+          spec: i.spec || matchedBom?.spec || '',
+          unit: i.unit || matchedBom?.unit || 'PCS',
+          product_sku: i.product_sku || matchedBom?.product_sku,
+          product_name: i.product_name || matchedBom?.product_name,
+          image_url: i.image_url || matchedBom?.image_url,
+        }
+      })
     })
     setEditingId(order.id)
     setCreating(false)

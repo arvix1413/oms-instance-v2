@@ -184,9 +184,12 @@ export default function PoPage() {
   const startEdit = async (po: Po, e: React.MouseEvent) => {
     e.stopPropagation()
     const data = await apiFetch<Po>(`/api/po/${po.id}`)
-    const sup = suppliers.find(s => s.name === po.supplier_name)
+    const rawSupplierId = (po as any).supplier_id ?? (data as any).supplier_id
+    const sup = rawSupplierId
+      ? suppliers.find(s => String(s.id) === String(rawSupplierId))
+      : suppliers.find(s => s.name === po.supplier_name)
     setForm({
-      supplier_id: sup ? String(sup.id) : '',
+      supplier_id: sup ? String(sup.id) : (rawSupplierId ? String(rawSupplierId) : ''),
       supplier_name: po.supplier_name,
       currency: po.currency,
       remark: po.remark || '',

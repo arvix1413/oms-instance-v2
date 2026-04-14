@@ -135,10 +135,13 @@ export default function ProductionPage() {
   const viewProd = async (id: number) => { const d = await apiFetch<Prod>(`/api/production/${id}`); setViewing(d) }
 
   const startEditProd = async (prod: Prod) => {
+    const matchedBom =
+      (prod.bom_id ? boms.find(b => b.id === prod.bom_id) : undefined) ||
+      (prod.product_sku ? boms.find(b => b.product_sku === prod.product_sku) : undefined)
     setEditForm({
-      bom_id: prod.bom_id ? String(prod.bom_id) : '',
-      product_sku: prod.product_sku || '',
-      product_name: prod.product_name,
+      bom_id: prod.bom_id ? String(prod.bom_id) : (matchedBom ? String(matchedBom.id) : ''),
+      product_sku: prod.product_sku || matchedBom?.product_sku || '',
+      product_name: prod.product_name || matchedBom?.product_name || '',
       planned_qty: prod.planned_qty,
       planned_start: prod.planned_start ? String(prod.planned_start).slice(0,10) : '',
       planned_end: prod.planned_end ? String(prod.planned_end).slice(0,10) : '',
