@@ -5,6 +5,7 @@ import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, PROD_STEPS, getProdActions } from '@/components/StatusFlow'
 import { can } from '@/lib/usePermissions'
+import { getCompany } from '@/lib/useCompany'
 
 type ProdMat = {
   material_code: string; material_name: string; spec: string; unit: string
@@ -36,13 +37,14 @@ export default function ProductionPage() {
   const [prods, setProds] = useState<Prod[]>([])
   const [boms, setBoms] = useState<BOM[]>([])
   const [orders, setOrders] = useState<CustomerOrder[]>([])
-  const [viewing, setViewing] = useState<Prod | null>(null)
   const [editing, setEditing] = useState<Prod | null>(null)
   const [editForm, setEditForm] = useState({ bom_id: '', product_sku: '', product_name: '', planned_qty: 1, planned_start: '', planned_end: '', remark: '', customer_order_id: '' })
   const [creating, setCreating] = useState(false)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [expanded, setExpanded] = useState<Set<number>>(new Set())
+  const [loadedProds, setLoadedProds] = useState<Record<number, Prod>>({})
   const canWrite = can('production.create')
   const canDel = can('production.delete')
 
@@ -121,7 +123,6 @@ export default function ProductionPage() {
       await apiFetch(`/api/production/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, produced_qty: producedQty }) })
       toast('狀態已更新')
       await load()
-      if (viewing?.id === id) { const d = await apiFetch<Prod>(`/api/production/${id}`); setViewing(d) }
     } catch (e: any) { toast(e.message, 'error') }
   }
 
@@ -132,7 +133,43 @@ export default function ProductionPage() {
     catch (e: any) { toast(e.message, 'error') }
   }
 
-  const viewProd = async (id: number) => { const d = await apiFetch<Prod>(`/api/production/${id}`); setViewing(d) }
+  const printProd = async (prod: Prod) => {
+    const detail = loadedProds[prod.id] || await apiFetch<Prod>(`/api/production/${prod.id}`)
+    const company = await getCompany()
+    const mats = detail.materials || []
+    const rows = mats.map((m, i) => `
+      <tr>
+        <td style="border:1px solid #bbb;padding:6px;text-align:center">${i + 1}</td>
+        <td style="border:1px solid #bbb;padding:6px;font-family:monospace">${m.material_code || '—'}</td>
+        <td style="border:1px solid #bbb;padding:6px">${m.material_name || '—'}</td>
+        <td style="border:1px solid #bbb;padding:6px">${m.spec || '—'}</td>
+        <td style="border:1px solid #bbb;padding:6px;text-align:center">${m.unit || 'PCS'}</td>
+        <td style="border:1px solid #bbb;padding:6px;text-align:right">${Number(m.planned_qty || 0).toLocaleString()}</td>
+        <td style="border:1px solid #bbb;padding:6px;text-align:right">${Number(m.issued_qty || 0).toLocaleString()}</td>
+      </tr>
+    `).join('')
+    const html = `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="utf-8"/>
+    <title>生產單 ${prod.prod_number}</title>
+    <style>
+      *{box-sizing:border-box} body{font-family:"Microsoft JhengHei","PingFang TC",Arial,sans-serif;font-size:12px;padding:12mm;color:#111}
+      h1{font-size:24px;margin:0 0 4px} .sub{font-size:12px;color:#666;margin-bottom:10px}
+      table{width:100%;border-collapse:collapse} th{border:1px solid #555;background:#eee;padding:6px;font-size:11px}
+      @media print{@page{size:A4;margin:10mm} body{padding:0}}
+    </style></head><body>
+    <h1>${company.company_name || 'FAN YONG CO., LTD'}</h1>
+    <div class="sub">${company.company_name_local || ''}</div>
+    <h2 style="font-size:20px;margin:8px 0 10px">生產單</h2>
+    <div style="margin-bottom:10px">單號：<b>${prod.prod_number}</b>　產品：<b>${prod.product_name || '—'}</b>　狀態：<b>${STATUS_MAP[prod.status]?.label || prod.status}</b></div>
+    <div style="margin-bottom:10px">計畫數量：${Number(prod.planned_qty || 0).toLocaleString()}　已完成：${Number(prod.produced_qty || 0).toLocaleString()}　期間：${prod.planned_start ? String(prod.planned_start).slice(0,10) : '—'} ~ ${prod.planned_end ? String(prod.planned_end).slice(0,10) : '—'}</div>
+    <table>
+      <thead><tr><th style="width:40px">序</th><th>料號</th><th>材料名稱</th><th>規格</th><th style="width:60px">單位</th><th style="width:90px">計劃用量</th><th style="width:90px">實際領料</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="7" style="border:1px solid #bbb;padding:8px;text-align:center;color:#666">無材料明細</td></tr>'}</tbody>
+    </table>
+    </body></html>`
+    const w = window.open('', '_blank', 'width=860,height=1000')
+    if (!w) { toast('瀏覽器已封鎖彈出視窗，請允許後再列印', 'error'); return }
+    w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500)
+  }
 
   const startEditProd = async (prod: Prod) => {
     const matchedBom =
@@ -298,53 +335,6 @@ export default function ProductionPage() {
         </div>
       )}
 
-      {/* Detail modal */}
-      {viewing && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-3xl w-full max-h-[85vh] overflow-auto">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h2 className="text-base font-bold">{viewing.prod_number}</h2>
-                <div className="text-xs text-slate-500">{viewing.product_name} | 計劃：{viewing.planned_qty} | 已產：{viewing.produced_qty}</div>
-              </div>
-              <div className="flex gap-2 items-center flex-wrap">
-                <span className={STATUS_MAP[viewing.status]?.badge}>{STATUS_MAP[viewing.status]?.label}</span>
-                {viewing.status === 'draft' && <button onClick={() => changeStatus(viewing.id, 'confirmed')} className="btn-primary">✓ 確認</button>}
-                {viewing.status === 'confirmed' && <>
-                  <button onClick={() => changeStatus(viewing.id, 'shortage')} className="btn-ghost text-red-600">⚠ 缺料</button>
-                  <button onClick={() => changeStatus(viewing.id, 'ready')} className="btn-primary">✓ 材料齊</button>
-                </>}
-                {viewing.status === 'shortage' && <button onClick={() => changeStatus(viewing.id, 'ready')} className="btn-primary">✓ 已補齊</button>}
-                {viewing.status === 'ready' && <button onClick={() => changeStatus(viewing.id, 'in_progress')} className="btn-primary">▶ 開始生產</button>}
-                {viewing.status === 'in_progress' && <button onClick={() => changeStatus(viewing.id, 'completed', viewing.planned_qty)} className="btn-primary">✓ 完工</button>}
-                {!['completed', 'cancelled'].includes(viewing.status) && <button onClick={() => changeStatus(viewing.id, 'cancelled')} className="btn-danger">✕ 作廢</button>}
-                <button onClick={() => setViewing(null)} className="text-slate-400 hover:text-slate-600 text-xl ml-2">✕</button>
-              </div>
-            </div>
-            <table className="w-full text-sm border-collapse">
-              <thead><tr className="border-b border-slate-200">
-                {['料號','材料名稱','規格','單位','計劃用量','實際領料','批次號'].map(h => (
-                  <th key={h} className="border border-slate-200 px-3 py-2 text-left text-xs font-medium text-slate-400">{h}</th>
-                ))}
-              </tr></thead>
-              <tbody>
-                {(viewing.materials || []).map((mat, i) => (
-                  <tr key={i} className="hover:bg-slate-50">
-                    <td className="border border-slate-200 px-3 py-2 font-mono text-xs text-blue-600">{mat.material_code}</td>
-                    <td className="border border-slate-200 px-3 py-2">{mat.material_name}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-slate-500">{mat.spec}</td>
-                    <td className="border border-slate-200 px-3 py-2">{mat.unit}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-right">{mat.planned_qty}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-right font-semibold text-emerald-600">{mat.issued_qty}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-slate-400">{mat.batch_no}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
       {/* Edit Production Modal */}
       {editing && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
@@ -404,31 +394,112 @@ export default function ProductionPage() {
       <div className="oms-card overflow-hidden">
         {loading ? <div className="flex justify-center py-16"><div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" /></div> : (
           <>
-            <table className="oms-table">
-              <thead><tr>
-                <th>生產單號</th><th>產品名稱</th><th>計劃數量</th><th>已完成</th><th>計劃日期</th><th>狀態</th><th>操作</th>
-              </tr></thead>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200">
+                  <th className="w-8" />
+                  {['生產單號','產品名稱','計劃數量','已完成','計劃日期','狀態','操作'].map(h => (
+                    <th key={h} className="px-3 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
               <tbody>
-                {paged.map(p => (
-                  <tr key={p.id}>
-                    <td className="font-mono text-xs text-blue-600">{p.prod_number}</td>
-                    <td className="font-medium">{p.product_name}</td>
-                    <td className="text-right">{p.planned_qty}</td>
-                    <td className="text-right text-emerald-600">{p.produced_qty}</td>
-                    <td className="text-slate-400 text-xs">{p.planned_start ? String(p.planned_start).slice(0,10) : '—'}{p.planned_end ? ` ~ ${String(p.planned_end).slice(0,10)}` : ''}</td>
-                    <td>
-                      <div className="flex gap-1 flex-wrap items-center">
-                        <StatusFlow compact steps={PROD_STEPS} current={p.status}
-                          actions={getProdActions(p.status)}
-                          onAction={(toStatus) => changeStatus(p.id, toStatus, toStatus === 'completed' ? p.planned_qty : undefined)} />
-                        <button onClick={() => viewProd(p.id)} className="btn-ghost ml-1">詳情</button>
-                        {canWrite && ['draft','confirmed','shortage'].includes(p.status) && <button onClick={() => startEditProd(p)} className="btn-ghost text-blue-600">編輯</button>}
-                        {p.status === 'draft' && canDel && <button onClick={() => del(p.id)} className="btn-danger">刪除</button>}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {paged.length === 0 && <tr><td colSpan={7} className="text-center py-12 text-slate-400">尚無生產單</td></tr>}
+                {paged.map(p => {
+                  const isOpen = expanded.has(p.id)
+                  return (
+                    <>
+                      <tr key={p.id}
+                        className={`border-b border-slate-100 cursor-pointer transition-colors ${isOpen ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
+                        onClick={() => {
+                          const n = new Set(expanded)
+                          if (n.has(p.id)) { n.delete(p.id) }
+                          else {
+                            n.add(p.id)
+                            if (!loadedProds[p.id]) {
+                              apiFetch<Prod>(`/api/production/${p.id}`).then(d => setLoadedProds(prev => ({ ...prev, [p.id]: d })))
+                            }
+                          }
+                          setExpanded(n)
+                        }}>
+                        <td className="pl-3 py-2.5">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                            className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}>
+                            <polyline points="9 18 15 12 9 6" />
+                          </svg>
+                        </td>
+                        <td className="px-3 py-2.5 font-mono text-xs text-blue-600 whitespace-nowrap">{p.prod_number}</td>
+                        <td className="px-3 py-2.5 font-medium max-w-[200px] truncate" title={p.product_name}>{p.product_name}</td>
+                        <td className="px-3 py-2.5 text-right text-slate-600">{Number(p.planned_qty).toLocaleString()}</td>
+                        <td className="px-3 py-2.5 text-right text-emerald-600">{Number(p.produced_qty||0).toLocaleString()}</td>
+                        <td className="px-3 py-2.5 text-slate-400 text-xs whitespace-nowrap">
+                          {p.planned_start ? String(p.planned_start).slice(0,10) : '—'}
+                          {p.planned_end ? ` ~ ${String(p.planned_end).slice(0,10)}` : ''}
+                        </td>
+                        <td className="px-3 py-2.5"><span className={STATUS_MAP[p.status]?.badge}>{STATUS_MAP[p.status]?.label}</span></td>
+                        <td className="px-3 py-2.5" onClick={e => e.stopPropagation()}>
+                          <div className="flex gap-1 items-center">
+                            <StatusFlow compact steps={PROD_STEPS} current={p.status}
+                              actions={getProdActions(p.status)}
+                              onAction={(toStatus) => changeStatus(p.id, toStatus, toStatus === 'completed' ? p.planned_qty : undefined)} />
+                            <button onClick={e => { e.stopPropagation(); printProd(p) }} className="btn-ghost" title="列印">🖨</button>
+                          </div>
+                        </td>
+                      </tr>
+                      {isOpen && (
+                        <tr key={`${p.id}-detail`} className="border-b border-slate-100">
+                          <td colSpan={8} className="px-0 py-0">
+                            <div className="bg-slate-50/50 border-t border-slate-100">
+                              {/* Materials table */}
+                              {(() => {
+                                const detail = loadedProds[p.id]
+                                if (!detail) return <div className="px-4 py-3 text-xs text-slate-400 flex items-center gap-2"><div className="w-3 h-3 border border-slate-300 border-t-slate-500 rounded-full animate-spin"/>載入中...</div>
+                                const mats = detail.materials || []
+                                return mats.length > 0 ? (
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-xs" style={{minWidth:500}}>
+                                    <thead><tr className="border-b border-slate-100">
+                                      {['料號','材料名稱','規格','單位','計劃用量','實際領料'].map(h => (
+                                        <th key={h} className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
+                                      ))}
+                                    </tr></thead>
+                                    <tbody>
+                                      {mats.map((mat, i) => (
+                                        <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                                          <td className="px-3 py-2 font-mono text-xs text-blue-600">{mat.material_code}</td>
+                                          <td className="px-3 py-2 text-slate-700">{mat.material_name}</td>
+                                          <td className="px-3 py-2 text-slate-400">{mat.spec}</td>
+                                          <td className="px-3 py-2 text-slate-500">{mat.unit}</td>
+                                          <td className="px-3 py-2 text-right">{mat.planned_qty}</td>
+                                          <td className="px-3 py-2 text-right text-emerald-600 font-semibold">{mat.issued_qty}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              ) : (
+                                <div className="px-4 py-3 text-xs text-slate-400">
+                                  {detail.remark ? `備註：${detail.remark}` : '無材料明細'}
+                                </div>
+                              )
+                              })()}
+                              {/* Action bar */}
+                              <div className="px-4 py-2.5 border-t border-slate-100 flex items-center gap-2 bg-slate-50/80">
+                                <button onClick={() => printProd(p)} className="btn-ghost text-xs">🖨 列印</button>
+                                {canWrite && ['draft','confirmed','shortage'].includes(p.status) && (
+                                  <button onClick={() => startEditProd(p)} className="btn-ghost text-blue-600 text-xs">✏ 編輯</button>
+                                )}
+                                {p.status === 'draft' && canDel && (
+                                  <button onClick={() => del(p.id)} className="btn-danger text-xs">刪除</button>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  )
+                })}
+                {paged.length === 0 && <tr><td colSpan={8} className="text-center py-12 text-slate-400">尚無生產單</td></tr>}
               </tbody>
             </table>
             <Pagination page={page} totalPages={totalPages} setPage={setPage} total={total} />

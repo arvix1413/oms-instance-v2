@@ -9,13 +9,14 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://43.133.56.234'
   const logoUrl = co.logo_url ? (co.logo_url.startsWith('http') ? co.logo_url : `${API_BASE}${co.logo_url}`) : null
   const items: any[] = data.items || []
+  const orderRef = data.po_ref || data.order_po_number || ''
   const totalQty = items.reduce((s: number, i: any) => s + (Number(i.qty)||0), 0)
 
   const itemRows = items.map((item: any, i: number) => {
     return [
       '<tr>',
       '<td style="text-align:center">' + (i+1) + '</td>',
-      '<td style="font-family:monospace;font-size:10px;color:#1a56db">' + (item.po_ref || data.po_ref || '—') + '</td>',
+      '<td style="font-family:monospace;font-size:10px;color:#1a56db">' + (item.po_ref || orderRef || '—') + '</td>',
       '<td style="font-family:monospace;font-size:10px;color:#1a56db">' + (item.material_code || '—') + '</td>',
       '<td>' + (item.item_name || '—') + '</td>',
       '<td style="color:#555;font-size:10px">' + (item.spec || '—') + '</td>',
@@ -66,7 +67,7 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
   // Info table
   parts.push('<table class="info-table">')
   parts.push('<tr><td class="lbl">客戶<br/>Khách hàng</td><td style="font-weight:600;font-size:12px" colspan="3">' + (data.customer_name || '—') + '</td><td class="lbl">出貨單號<br/>Số phiếu</td><td style="font-family:monospace;font-weight:600">' + data.dn_number + '</td></tr>')
-  parts.push('<tr><td class="lbl">出貨日期<br/>Ngày giao</td><td>' + (data.delivery_date || '—') + '</td><td class="lbl">訂單號<br/>Mã đơn</td><td colspan="3">' + (data.po_ref || '—') + '</td></tr>')
+  parts.push('<tr><td class="lbl">出貨日期<br/>Ngày giao</td><td>' + (data.delivery_date || '—') + '</td><td class="lbl">訂單號<br/>Mã đơn</td><td colspan="3">' + (orderRef || '—') + '</td></tr>')
   if (data.address) {
     parts.push('<tr><td class="lbl">出貨地址<br/>Địa chỉ</td><td colspan="5">' + data.address + '</td></tr>')
   }

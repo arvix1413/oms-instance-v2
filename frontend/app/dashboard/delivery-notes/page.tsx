@@ -8,7 +8,7 @@ import { StatusFlow, DN_STEPS, getDNActions } from '@/components/StatusFlow'
 import { can } from '@/lib/usePermissions'
 import { getCompany } from '@/lib/useCompany'
 
-type DNItem = { bom_id?:number|null; item_name:string; material_code:string; qty:number; shipped_qty:number; remark:string }
+type DNItem = { bom_id?:number|null; item_name:string; material_code:string; qty:number; shipped_qty:number; remark:string; po_ref?: string; spec?: string; unit?: string }
 type DN = { id:number; dn_number:string; customer_name:string; delivery_date:string; status:string; remark:string; created_at:string; items?:DNItem[]; order_po_number?:string }
 type Customer = { id:number; customer_name:string; customer_code:string }
 type PendingOrder = { id:number; po_number:string; po_date:string; items_summary:string }
@@ -26,12 +26,13 @@ export default function DeliveryNotesPage() {
   const [dns, setDns] = useState<DN[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [creating, setCreating] = useState(false)
-  const [viewing, setViewing] = useState<DN|null>(null)
   const [editing, setEditing] = useState<DN|null>(null)
   const [editForm, setEditForm] = useState({ delivery_date: '', remark: '', items: [] as DNItem[] })
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [actionLoading, setActionLoading] = useState<number | null>(null)
+  const [expanded, setExpanded] = useState<Set<number>>(new Set())
+  const [loadedItems, setLoadedItems] = useState<Record<number, DNItem[]>>({})
   const canWrite = can('delivery.create')
   const canDel = can('delivery.delete')
 
@@ -128,9 +129,16 @@ export default function DeliveryNotesPage() {
     setDeliveryDate(''); setRemark(''); setPoSearch('')
   }
 
-  const viewDN = async (id: number) => {
-    const d = await apiFetch<DN>(`/api/delivery-notes/${id}`)
-    setViewing(d)
+  const toggleExpand = async (id: number) => {
+    const next = new Set(expanded)
+    if (next.has(id)) { next.delete(id); setExpanded(next) }
+    else {
+      next.add(id); setExpanded(next)
+      if (!loadedItems[id]) {
+        const d = await apiFetch<DN>(`/api/delivery-notes/${id}`)
+        setLoadedItems(p => ({ ...p, [id]: d.items || [] }))
+      }
+    }
   }
 
   const startEditDN = async (dn: DN) => {
@@ -165,7 +173,6 @@ export default function DeliveryNotesPage() {
       await apiFetch(`/api/delivery-notes/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
       toast('狀態已更新')
       await load()
-      if (viewing?.id === id) viewDN(id)
     } catch (e: any) { toast('操作失敗：' + e.message, 'error') }
     finally { setActionLoading(null) }
   }
@@ -179,15 +186,16 @@ export default function DeliveryNotesPage() {
   }
 
   const printDN = async (dn: DN) => {
+    const detail = await apiFetch<DN & { po_ref?: string; address?: string }>(`/api/delivery-notes/${dn.id}`)
     const company = await getCompany()
     const html = generateDeliveryNoteHTML({
       dn_number: dn.dn_number,
       customer_name: dn.customer_name,
       delivery_date: dn.delivery_date,
-      po_ref: (dn as any).po_ref || '',
-      address: (dn as any).address || '',
+      po_ref: detail.po_ref || dn.order_po_number || '',
+      address: detail.address || '',
       remark: dn.remark,
-      items: dn.items || []
+      items: detail.items || dn.items || []
     }, getSignatureUrl() || undefined, company)
     const w = window.open('', '_blank', 'width=800,height=1000')
     if (!w) {
@@ -296,46 +304,6 @@ export default function DeliveryNotesPage() {
         </div>
       )}
 
-      {/* Detail modal */}
-      {viewing && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-2xl w-full max-h-[85vh] overflow-auto">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h2 className="text-base font-bold text-slate-800">{viewing.dn_number}</h2>
-                <div className="text-xs text-slate-500">客戶：{viewing.customer_name} | 出貨日期：{viewing.delivery_date||'—'}</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className={STATUS_MAP[viewing.status]?.badge}>{STATUS_MAP[viewing.status]?.label}</span>
-                <button onClick={() => printDN(viewing)} className="btn-ghost text-xs">🖨 列印</button>
-                <button onClick={() => setViewing(null)} className="text-slate-400 hover:text-slate-600 text-xl ml-2">✕</button>
-              </div>
-            </div>
-            <div className="flex gap-2 mb-4">
-              {viewing.status === 'draft' && <button onClick={() => changeStatus(viewing.id, 'confirmed')} className="btn-primary">✓ 確認</button>}
-              {viewing.status === 'confirmed' && <button onClick={() => changeStatus(viewing.id, 'shipped')} className="btn-primary">🚚 出貨</button>}
-            </div>
-            <table className="w-full text-sm border-collapse">
-              <thead><tr className="border-b border-slate-200">
-                {['品名','物料編號','數量','備註'].map(h => (
-                  <th key={h} className="border border-slate-200 px-3 py-2 text-left text-xs font-medium text-slate-400">{h}</th>
-                ))}
-              </tr></thead>
-              <tbody>
-                {(viewing.items || []).map((item, i) => (
-                  <tr key={i} className="hover:bg-slate-50">
-                    <td className="border border-slate-200 px-3 py-2 text-slate-700">{item.item_name}</td>
-                    <td className="border border-slate-200 px-3 py-2 font-mono text-xs text-blue-600">{item.material_code}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-right font-medium">{item.qty?.toLocaleString()}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-slate-400">{item.remark}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
       {/* Edit DN Modal */}
       {editing && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
@@ -401,35 +369,87 @@ export default function DeliveryNotesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200">
+                  <th className="w-8" />
                   {['出貨單號','客戶名稱','關聯訂單','出貨日期','備註','狀態','操作'].map(h => (
                     <th key={h} className="px-3 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {paged.map(dn => (
-                  <tr key={dn.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="px-3 py-2 font-mono text-xs text-blue-600 whitespace-nowrap">{dn.dn_number}</td>
-                    <td className="px-3 py-2 font-medium whitespace-nowrap max-w-[200px] truncate" title={dn.customer_name}>{dn.customer_name}</td>
-                    <td className="px-3 py-2 text-slate-400 text-xs whitespace-nowrap">{dn.order_po_number || '—'}</td>
-                    <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{dn.delivery_date ? String(dn.delivery_date).slice(0,10) : '—'}</td>
-                    <td className="px-3 py-2 text-slate-400 whitespace-nowrap max-w-[150px] truncate" title={dn.remark}>{dn.remark||'—'}</td>
-                    <td className="px-3 py-2 whitespace-nowrap"><span className={STATUS_MAP[dn.status]?.badge}>{STATUS_MAP[dn.status]?.label}</span></td>
-                    <td className="px-3 py-2 whitespace-nowrap">
-                      <div className="flex gap-1 flex-wrap">
-                        <StatusFlow compact steps={DN_STEPS} current={dn.status}
-                          actions={actionLoading === dn.id ? [] : getDNActions(dn.status)}
-                          onAction={(toStatus) => changeStatus(dn.id, toStatus)} />
-                        {actionLoading === dn.id && <span className="text-xs text-slate-400 px-2">處理中...</span>}
-                        <button onClick={() => viewDN(dn.id)} className="btn-ghost ml-1">詳情</button>
-                        <button onClick={async () => { const d = await apiFetch<DN>(`/api/delivery-notes/${dn.id}`); printDN({...dn, items: d.items}) }} className="btn-ghost" title="列印">🖨</button>
-                        {canWrite && dn.status === 'draft' && <button onClick={() => startEditDN(dn)} className="btn-ghost text-blue-600">編輯</button>}
-                        {canDel && <button onClick={() => del(dn.id)} className="btn-danger">刪除</button>}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {paged.length === 0 && <tr><td colSpan={7} className="px-4 py-12 text-center text-slate-400">尚無出貨單</td></tr>}
+                {paged.map(dn => {
+                  const isOpen = expanded.has(dn.id)
+                  const items = loadedItems[dn.id] || []
+                  return (
+                    <>
+                      <tr key={dn.id}
+                        className={`border-b border-slate-100 cursor-pointer transition-colors ${isOpen ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
+                        onClick={() => toggleExpand(dn.id)}>
+                        <td className="pl-3 py-2.5">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                            className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}>
+                            <polyline points="9 18 15 12 9 6" />
+                          </svg>
+                        </td>
+                        <td className="px-3 py-2.5 font-mono text-xs text-blue-600 whitespace-nowrap">{dn.dn_number}</td>
+                        <td className="px-3 py-2.5 font-medium whitespace-nowrap max-w-[200px] truncate" title={dn.customer_name}>{dn.customer_name}</td>
+                        <td className="px-3 py-2.5 text-slate-400 text-xs whitespace-nowrap">{dn.order_po_number || '—'}</td>
+                        <td className="px-3 py-2.5 text-slate-400 whitespace-nowrap">{dn.delivery_date ? String(dn.delivery_date).slice(0,10) : '—'}</td>
+                        <td className="px-3 py-2.5 text-slate-400 whitespace-nowrap max-w-[120px] truncate" title={dn.remark}>{dn.remark||'—'}</td>
+                        <td className="px-3 py-2.5 whitespace-nowrap"><span className={STATUS_MAP[dn.status]?.badge}>{STATUS_MAP[dn.status]?.label}</span></td>
+                        <td className="px-3 py-2.5 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                          <div className="flex gap-1 items-center">
+                            <StatusFlow compact steps={DN_STEPS} current={dn.status}
+                              actions={actionLoading === dn.id ? [] : getDNActions(dn.status)}
+                              onAction={(toStatus) => changeStatus(dn.id, toStatus)} />
+                            {actionLoading === dn.id && <span className="text-xs text-slate-400 px-1">處理中...</span>}
+                            <button onClick={e => { e.stopPropagation(); printDN(dn) }} className="btn-ghost" title="列印">🖨</button>
+                          </div>
+                        </td>
+                      </tr>
+                      {isOpen && (
+                        <tr key={`${dn.id}-items`} className="border-b border-slate-100">
+                          <td colSpan={8} className="px-0 py-0">
+                            <div className="bg-slate-50/50 border-t border-slate-100">
+                              {items.length === 0 ? (
+                                <div className="px-8 py-4 text-xs text-slate-400 flex items-center gap-2">
+                                  <div className="w-3 h-3 border border-slate-300 border-t-slate-500 rounded-full animate-spin"/>載入中...
+                                </div>
+                              ) : (
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-xs" style={{minWidth:500}}>
+                                    <thead><tr className="border-b border-slate-100">
+                                      {['品名','物料編號','規格','單位','數量','備註'].map(h => (
+                                        <th key={h} className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
+                                      ))}
+                                    </tr></thead>
+                                    <tbody>
+                                      {items.map((item, i) => (
+                                        <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                                          <td className="px-3 py-2 text-slate-700">{item.item_name}</td>
+                                          <td className="px-3 py-2 font-mono text-xs text-blue-600 whitespace-nowrap">{item.material_code}</td>
+                                          <td className="px-3 py-2 text-slate-400">{(item as any).spec || '—'}</td>
+                                          <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.unit || 'PCS'}</td>
+                                          <td className="px-3 py-2 text-right font-medium">{Number(item.qty).toLocaleString()}</td>
+                                          <td className="px-3 py-2 text-slate-400">{item.remark}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
+                              {/* Action bar */}
+                              <div className="px-4 py-2.5 border-t border-slate-100 flex items-center gap-2 bg-slate-50/80">
+                                {canWrite && dn.status === 'draft' && <button onClick={() => startEditDN(dn)} className="btn-ghost text-blue-600 text-xs">✏ 編輯</button>}
+                                {canDel && <button onClick={() => del(dn.id)} className="btn-danger text-xs">刪除</button>}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  )
+                })}
+                {paged.length === 0 && <tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400">尚無出貨單</td></tr>}
               </tbody>
             </table>
             <Pagination page={page} totalPages={totalPages} setPage={setPage} total={total} />
