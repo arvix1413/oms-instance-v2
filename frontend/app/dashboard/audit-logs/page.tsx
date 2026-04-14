@@ -101,7 +101,7 @@ export default function AuditLogsPage() {
           <option value="">全部操作</option>
           {Object.entries(ACTION_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <input className="oms-input w-52" placeholder="搜尋使用者 Email..." value={filterEmail}
+        <input className="oms-input w-52" placeholder="搜尋使用者電子郵件..." value={filterEmail}
           onChange={e => setFilterEmail(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && load()} />
         <button onClick={load} className="btn-primary">搜尋</button>

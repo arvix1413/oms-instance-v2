@@ -402,7 +402,7 @@ export default function DeliveryNotesPage() {
                               actions={actionLoading === dn.id ? [] : getDNActions(dn.status)}
                               onAction={(toStatus) => changeStatus(dn.id, toStatus)} />
                             {actionLoading === dn.id && <span className="text-xs text-slate-400 px-1">處理中...</span>}
-                            <button onClick={e => { e.stopPropagation(); printDN(dn) }} className="btn-ghost" title="列印">🖨</button>
+                            <button onClick={e => { e.stopPropagation(); printDN(dn) }} className="btn-ghost" title="列印">🖨 列印</button>
                           </div>
                         </td>
                       </tr>

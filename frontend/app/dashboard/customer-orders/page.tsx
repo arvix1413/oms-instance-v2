@@ -392,9 +392,9 @@ export default function CustomerOrdersPage() {
               <thead>
                 <tr className="border-b border-slate-200">
                   <th className="w-8" />
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">PO No.</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">訂單編號</th>
                   <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">客戶</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">PO Date</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">訂單日期</th>
                   <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">交貨日</th>
                   <th className="px-4 py-3 text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider">含稅總計</th>
                   <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">狀態</th>
@@ -423,7 +423,7 @@ export default function CustomerOrdersPage() {
                         </td>
                         <td className="px-4 py-3" onClick={e=>e.stopPropagation()}>
                           <div className="flex gap-1">
-                            <button onClick={e=>{e.stopPropagation();printOrder(o.id)}} className="btn-ghost" title="列印">🖨</button>
+                            <button onClick={e=>{e.stopPropagation();printOrder(o.id)}} className="btn-ghost" title="列印">🖨 列印</button>
                           </div>
                         </td>
                       </tr>
@@ -440,7 +440,7 @@ export default function CustomerOrdersPage() {
                               ) : (
                                 <table className="w-full text-xs">
                                   <thead><tr className="border-b border-slate-100">
-                                    <th className="px-4 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">BOM SKU</th>
+                                    <th className="px-4 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">料號</th>
                                     <th className="px-4 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">品名</th>
                                     <th className="px-4 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">數量</th>
                                     <th className="px-4 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">單價</th>

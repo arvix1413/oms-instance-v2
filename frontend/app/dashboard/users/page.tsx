@@ -35,7 +35,7 @@ export default function UsersPage() {
   const save = async () => {
     if (!editing) return
     const err = validate(editing, [
-      { field: 'email', label: 'Email', required: true, email: true },
+      { field: 'email', label: '電子郵件', required: true, email: true },
       { field: 'name', label: '姓名', required: true },
       ...(!editing.id ? [{ field: 'password', label: '密碼', required: true, minLen: 6 }] : []),
     ])
@@ -120,10 +120,10 @@ export default function UsersPage() {
           <h2 className="font-semibold mb-4 text-lg">{editing.id ? '編輯使用者資料' : '新增使用者'}</h2>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium mb-1 text-gray-700">Email *</label>
+              <label className="block text-xs font-medium mb-1 text-gray-700">電子郵件 *</label>
               <input type="email" className={inp} value={editing.email||''} onChange={e=>setEditing(p=>({...p,email:e.target.value}))}
                 disabled={!!editing.id} placeholder="user@company.com" />
-              {editing.id && <p className="text-xs text-slate-300 mt-1">Email 不可修改</p>}
+              {editing.id && <p className="text-xs text-slate-300 mt-1">電子郵件不可修改</p>}
             </div>
             <div>
               <label className="block text-xs font-medium mb-1 text-gray-700">姓名 *</label>
@@ -158,7 +158,7 @@ export default function UsersPage() {
         <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
           <span className="text-sm font-semibold text-slate-600">共 {users.length} 位使用者</span>
           <div className="flex items-center gap-3">
-            <input className="oms-input w-48" placeholder="搜尋姓名或Email..." value={search} onChange={e=>setSearch(e.target.value)} />
+            <input className="oms-input w-48" placeholder="搜尋姓名或電子郵件..." value={search} onChange={e=>setSearch(e.target.value)} />
             <span className="text-xs text-slate-300">點選角色標籤可快速修改</span>
           </div>
         </div>

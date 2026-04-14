@@ -558,7 +558,7 @@ export default function PoPage() {
                                 else if (toStatus === 'received') await confirmReceipt(p, { stopPropagation: ()=>{} } as any)
                                 else await changeStatus(p.id, toStatus, { stopPropagation: ()=>{} } as any)
                               }} />
-                            <button onClick={e => { e.stopPropagation(); printPo(p.id, p.po_number, p.supplier_name) }} className="btn-ghost ml-1" title="列印">🖨</button>
+                            <button onClick={e => { e.stopPropagation(); printPo(p.id, p.po_number, p.supplier_name) }} className="btn-ghost ml-1" title="列印">🖨 列印</button>
                           </div>
                         </td>
                       </tr>

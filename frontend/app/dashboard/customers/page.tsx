@@ -49,7 +49,7 @@ export default function CustomersPage() {
     const err = validate(editing, [
       { field: 'customer_code', label: '客戶編號', required: true },
       { field: 'customer_name', label: '客戶名稱', required: true },
-      { field: 'email', label: 'Email', email: true },
+      { field: 'email', label: '電子郵件', email: true },
       { field: 'phone', label: '電話', phone: true },
     ])
     if (err) { toast(err, 'error'); return }
@@ -91,7 +91,7 @@ export default function CustomersPage() {
           <DR label="稅號" value={detail.tax_id} />
           <DR label="聯絡人" value={detail.contact} />
           <DR label="電話" value={detail.phone} />
-          <DR label="Email" value={detail.email} />
+          <DR label="電子郵件" value={detail.email} />
           <DR label="地址" value={detail.address} />
           <DR label="主要產品" value={detail.main_products} />
           <DR label="付款方式" value={detail.payment_terms} />
@@ -102,7 +102,7 @@ export default function CustomersPage() {
       {editing && (
         <Modal title={editing.id?'編輯客戶':'新增客戶'} onClose={()=>setEditing(null)}>
           <div className="grid grid-cols-2 gap-3">
-            {[['客戶編號 *','customer_code'],['客戶名稱 *','customer_name'],['稅號','tax_id'],['聯絡人','contact'],['電話','phone'],['Email','email'],['付款方式','payment_terms'],['主要產品','main_products']].map(([label,key])=>(
+            {[['客戶編號 *','customer_code'],['客戶名稱 *','customer_name'],['稅號','tax_id'],['聯絡人','contact'],['電話','phone'],['電子郵件','email'],['付款方式','payment_terms'],['主要產品','main_products']].map(([label,key])=>(
               <div key={key} className={key==='customer_name'?'col-span-2':''}>
                 <label className="block text-[11px] text-slate-500 mb-1.5">{label}</label>
                 <input className="oms-input" value={(editing as any)[key]||''} onChange={e=>setEditing(p=>({...p,[key]:e.target.value}))} />

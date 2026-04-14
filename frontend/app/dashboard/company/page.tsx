@@ -107,7 +107,7 @@ export default function CompanyPage() {
               { key: 'address', label: '地址', placeholder: '152 Hà Huy Tập, P. Tân Hưng, TP. HCM', wide: true },
               { key: 'phone', label: '電話 / 聯絡方式', placeholder: '0909883372 Danny Lin / 0909042239 Mỹ Linh', wide: true },
               { key: 'contact_person', label: '聯絡人', placeholder: 'Danny Lin / Mỹ Linh Ellachen' },
-              { key: 'email', label: 'Email', placeholder: 'info@fanyong.com' },
+              { key: 'email', label: '電子郵件', placeholder: 'info@fanyong.com' },
               { key: 'tax_id', label: '統一編號 / 稅號', placeholder: '' },
             ].map(({ key, label, placeholder, wide }) => (
               <div key={key} className={wide ? 'lg:col-span-2' : ''}>

@@ -48,7 +48,7 @@ export default function SuppliersPage() {
     if (!editing) return
     const err = validate(editing, [
       { field: 'name', label: '供應商名稱', required: true },
-      { field: 'email', label: 'Email', email: true },
+      { field: 'email', label: '電子郵件', email: true },
       { field: 'phone', label: '電話', phone: true },
     ])
     if (err) { toast(err, 'error'); return }
@@ -92,7 +92,7 @@ export default function SuppliersPage() {
           <DetailRow label="稅號" value={detail.tax_id} />
           <DetailRow label="聯絡人" value={detail.contact} />
           <DetailRow label="電話" value={detail.phone} />
-          <DetailRow label="Email" value={detail.email} />
+          <DetailRow label="電子郵件" value={detail.email} />
           <DetailRow label="地址" value={detail.address} />
           <DetailRow label="主要品項" value={detail.main_items} />
           <DetailRow label="付款方式" value={detail.payment_terms} />
@@ -108,7 +108,7 @@ export default function SuppliersPage() {
           <div className="grid grid-cols-2 gap-3">
             {[
               ['供應商編號','supplier_code'],['供應商名稱 *','name'],['稅號','tax_id'],
-              ['聯絡人','contact'],['電話','phone'],['Email','email'],
+              ['聯絡人','contact'],['電話','phone'],['電子郵件','email'],
               ['主要品項','main_items'],['付款方式','payment_terms'],
             ].map(([label, key]) => (
               <div key={key} className={key === 'name' ? 'col-span-2' : ''}>

@@ -453,7 +453,7 @@ export default function ProductionPage() {
                             <StatusFlow compact steps={PROD_STEPS} current={p.status}
                               actions={getProdActions(p.status)}
                               onAction={(toStatus) => changeStatus(p.id, toStatus, toStatus === 'completed' ? p.planned_qty : undefined)} />
-                            <button onClick={e => { e.stopPropagation(); printProd(p) }} className="btn-ghost" title="列印">🖨</button>
+                            <button onClick={e => { e.stopPropagation(); printProd(p) }} className="btn-ghost" title="列印">🖨 列印</button>
                           </div>
                         </td>
                       </tr>
