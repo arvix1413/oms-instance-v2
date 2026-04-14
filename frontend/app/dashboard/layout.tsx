@@ -130,7 +130,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const linkClass = (active: boolean) =>
     `flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 ${
-      active ? 'bg-blue-50 text-blue-700' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+      active ? 'bg-blue-50 text-blue-700 border border-blue-100 shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
     }`
 
   return (
@@ -143,7 +143,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         />
       )}
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-40 w-[220px] flex-col border-r border-slate-200 bg-white transition-transform duration-200 md:relative md:z-0 md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:flex`}>
+      <aside className={`fixed inset-y-0 left-0 z-40 w-[236px] flex-col border-r border-slate-200 bg-white transition-transform duration-200 md:relative md:z-0 md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:flex`}>
         {/* Logo */}
         <div className="px-5 py-4 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
@@ -156,7 +156,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
           {NAV.map(n => {
             if (isGroup(n)) {
               const open = openGroups.has(n.label)
@@ -173,7 +173,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <span className={hasActive ? 'text-blue-400' : 'text-slate-300'}><IconChevron open={open} /></span>
                   </button>
                   {open && (
-                    <div className="ml-3 pl-3 border-l border-slate-100 mt-0.5 space-y-0.5">
+                    <div className="ml-3 pl-3 border-l border-slate-200 mt-1 space-y-0.5">
                       {n.children.map(c => (
                         <Link key={c.href} href={c.href} className={linkClass(isActive(c.href))}>
                           <span className={isActive(c.href) ? 'text-blue-600' : 'text-slate-400'}>{c.icon}</span>
@@ -212,7 +212,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <span className={hasActive ? 'text-blue-400' : 'text-slate-300'}><IconChevron open={open} /></span>
                       </button>
                       {open && (
-                        <div className="ml-3 pl-3 border-l border-slate-100 mt-0.5 space-y-0.5">
+                        <div className="ml-3 pl-3 border-l border-slate-200 mt-1 space-y-0.5">
                           {n.children.map(c => (
                             <Link key={c.href} href={c.href} className={linkClass(isActive(c.href))}>
                               <span className={isActive(c.href) ? 'text-blue-600' : 'text-slate-400'}>{c.icon}</span>
@@ -237,7 +237,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </nav>
 
         {/* User */}
-        <div className="px-3 py-3 border-t border-slate-100">
+        <div className="px-3 py-3 border-t border-slate-100 bg-slate-50/50">
           <Link href="/dashboard/profile" className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-slate-50 transition-colors group mb-1">
             <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-700 flex-shrink-0">
               {user?.name?.charAt(0) || 'U'}
