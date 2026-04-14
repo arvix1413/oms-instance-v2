@@ -10,6 +10,7 @@ import { validate } from '@/lib/validate'
 
 type User = { id: number; email: string; name: string; role: Role; created_at: string }
 const empty = (): Partial<User> & { password?: string } => ({ email:'', name:'', role:'employee', password:'' })
+const DISPLAY_ROLES: Role[] = ['manager', 'employee']
 
 export default function UsersPage() {
   const router = useRouter()
@@ -98,14 +99,12 @@ export default function UsersPage() {
 
       {/* Role cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        {(Object.entries(ROLE_LABELS) as [Role, string][]).map(([role, label]) => (
+        {DISPLAY_ROLES.map((role) => (
           <div key={role} className={`rounded-xl border border-slate-200 bg-slate-50 p-4 ${ROLE_COLORS[role].replace('text-', 'border-').split(' ')[0]}`}>
-            <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium mb-2 ${ROLE_COLORS[role]}`}>{label}</span>
+            <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium mb-2 ${ROLE_COLORS[role]}`}>{ROLE_LABELS[role]}</span>
             <div className="text-xs text-slate-400 leading-relaxed">
-              {role === 'admin' && '全部權限 + 使用者管理'}
               {role === 'manager' && '審批採購單、刪除資料'}
-              {role === 'purchaser' && '建立/編輯料號、BOM、採購單'}
-              {role === 'viewer' && '僅可檢視，不能修改'}
+              {role === 'employee' && '僅執行日常操作'}
             </div>
             <div className="text-xs font-semibold mt-2" style={{color: 'inherit'}}>
               {users.filter(u => u.role === role).length} 人
@@ -181,7 +180,7 @@ export default function UsersPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"
-                          style={{ backgroundColor: u.role === 'admin' ? '#DC2626' : u.role === 'manager' ? '#7C3AED' : u.role === 'purchaser' ? '#2563EB' : '#6B7280' }}>
+                          style={{ backgroundColor: u.role === 'manager' ? '#7C3AED' : '#2563EB' }}>
                           {u.name.charAt(0)}
                         </div>
                         <div>
