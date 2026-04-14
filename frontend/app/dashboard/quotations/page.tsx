@@ -342,6 +342,11 @@ export default function QuotationsPage() {
       })
     }))
   }
+  const parseNum = (raw: string) => {
+    if (raw.trim() === '') return 0
+    const n = Number(raw)
+    return Number.isFinite(n) ? n : 0
+  }
   const filtered = items.filter(q => !search || q.quotation_number.toLowerCase().includes(search.toLowerCase()) || q.customer_name.toLowerCase().includes(search.toLowerCase()))
   const { page, setPage, totalPages, paged, total: filteredTotal } = usePagination(filtered, 20)
   const inp = 'oms-input text-xs py-1.5'
@@ -391,16 +396,16 @@ export default function QuotationsPage() {
             <button onClick={addItem} className="btn-ghost text-blue-600">+ 新增品項</button>
           </div>
           <div className="overflow-x-auto rounded-lg border border-slate-200">
-            <table className="w-full text-xs">
+            <table className="w-full text-xs" style={{ minWidth: 1900 }}>
               <thead><tr className="border-b border-slate-200">
-                {['選擇BOM','品名','規格','單位','MOQ 1','單價 1','MOQ 2','單價 2','MOQ 3','單價 3','MOQ 4','單價 4','MOQ 5','單價 5','備註',''].map(h=>(
+                {['選擇BOM','品名','規格','單位','MOQ 1','單價 1','MOQ 2','單價 2','MOQ 3','單價 3','MOQ 4','單價 4','MOQ 5','單價 5','Remark',''].map(h=>(
                   <th key={h} className="px-1.5 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
                 ))}
               </tr></thead>
               <tbody>
                 {form.items.map((item,i)=>(
                   <tr key={i} className="border-b border-slate-100">
-                    <td className="p-1 min-w-[160px]">
+                    <td className="p-1 min-w-[260px]">
                       <select className={inp} value={item.material_code} onChange={e => {
                         const bom = boms.find(b => b.product_sku === e.target.value)
                         if (bom) {
@@ -415,20 +420,20 @@ export default function QuotationsPage() {
                         {boms.map(b => <option key={b.id} value={b.product_sku}>{b.product_sku} — {b.product_name}</option>)}
                       </select>
                     </td>
-                    <td className="p-1"><input className={inp} value={item.item_name} onChange={e=>updateItem(i,'item_name',e.target.value)} /></td>
-                    <td className="p-1"><input className={inp} style={{width:70}} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} /></td>
+                    <td className="p-1"><input className={inp} style={{width:180}} value={item.item_name} onChange={e=>updateItem(i,'item_name',e.target.value)} /></td>
+                    <td className="p-1"><input className={inp} style={{width:120}} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} /></td>
                     <td className="p-1"><input className={inp} style={{width:40}} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} /></td>
                     {item.moq_tiers.map((tier, t) => (
                       <React.Fragment key={t}>
                         <td className="p-1">
-                          <input type="number" className={inp} style={{width:60}} value={tier.moq||''} placeholder="MOQ" onChange={e=>updateTier(i,t,'moq',Number(e.target.value))} />
+                          <input type="number" className={inp} style={{width:86}} value={tier.moq||''} placeholder="MOQ" onChange={e=>updateTier(i,t,'moq',parseNum(e.target.value))} />
                         </td>
                         <td className="p-1">
-                          <input type="number" className={inp} style={{width:70}} value={tier.price||''} placeholder="單價" onChange={e=>updateTier(i,t,'price',Number(e.target.value))} />
+                          <input type="number" className={inp} style={{width:90}} value={tier.price||''} placeholder="單價" onChange={e=>updateTier(i,t,'price',parseNum(e.target.value))} />
                         </td>
                       </React.Fragment>
                     ))}
-                    <td className="p-1"><input className={inp} value={item.remark} onChange={e=>updateItem(i,'remark',e.target.value)} /></td>
+                    <td className="p-1"><input className={inp} style={{width:180}} value={item.remark} onChange={e=>updateItem(i,'remark',e.target.value)} /></td>
                     <td className="p-1 text-center"><button onClick={()=>removeItem(i)} className="text-slate-300 hover:text-red-600 transition-colors">✕</button></td>
                   </tr>
                 ))}
@@ -521,16 +526,16 @@ export default function QuotationsPage() {
                                     <button onClick={addItem} className="btn-ghost text-blue-600 text-xs">+ 新增品項</button>
                                   </div>
                                   <div className="overflow-x-auto rounded-lg border border-slate-200 mb-3">
-                                    <table className="w-full text-xs">
+                                    <table className="w-full text-xs" style={{ minWidth: 1900 }}>
                                       <thead><tr className="border-b border-slate-200 bg-slate-50">
-                                        {['選擇BOM','品名','規格','單位','MOQ 1','單價 1','MOQ 2','單價 2','MOQ 3','單價 3','MOQ 4','單價 4','MOQ 5','單價 5','備註',''].map(h=>(
+                                        {['選擇BOM','品名','規格','單位','MOQ 1','單價 1','MOQ 2','單價 2','MOQ 3','單價 3','MOQ 4','單價 4','MOQ 5','單價 5','Remark',''].map(h=>(
                                           <th key={h} className="px-1.5 py-1.5 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
                                         ))}
                                       </tr></thead>
                                       <tbody>
                                         {form.items.map((item,i)=>(
                                           <tr key={i} className="border-b border-slate-100">
-                                            <td className="p-1 min-w-[150px]">
+                                            <td className="p-1 min-w-[260px]">
                                               <select className={inp} value={item.material_code} onChange={e => {
                                                 const bom = boms.find(b => b.product_sku === e.target.value)
                                                 if (bom) {
@@ -545,20 +550,20 @@ export default function QuotationsPage() {
                                                 {boms.map(b => <option key={b.id} value={b.product_sku}>{b.product_sku} — {b.product_name}</option>)}
                                               </select>
                                             </td>
-                                            <td className="p-1"><input className={inp} value={item.item_name} onChange={e=>updateItem(i,'item_name',e.target.value)} /></td>
-                                            <td className="p-1"><input className={inp} style={{width:70}} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} /></td>
+                                            <td className="p-1"><input className={inp} style={{width:180}} value={item.item_name} onChange={e=>updateItem(i,'item_name',e.target.value)} /></td>
+                                            <td className="p-1"><input className={inp} style={{width:120}} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} /></td>
                                             <td className="p-1"><input className={inp} style={{width:40}} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} /></td>
                                             {item.moq_tiers.map((tier, t) => (
                                               <React.Fragment key={t}>
                                                 <td className="p-1">
-                                                  <input type="number" className={inp} style={{width:55}} value={tier.moq||''} placeholder="MOQ" onChange={e=>updateTier(i,t,'moq',Number(e.target.value))} />
+                                                  <input type="number" className={inp} style={{width:86}} value={tier.moq||''} placeholder="MOQ" onChange={e=>updateTier(i,t,'moq',parseNum(e.target.value))} />
                                                 </td>
                                                 <td className="p-1">
-                                                  <input type="number" className={inp} style={{width:65}} value={tier.price||''} placeholder="單價" onChange={e=>updateTier(i,t,'price',Number(e.target.value))} />
+                                                  <input type="number" className={inp} style={{width:90}} value={tier.price||''} placeholder="單價" onChange={e=>updateTier(i,t,'price',parseNum(e.target.value))} />
                                                 </td>
                                               </React.Fragment>
                                             ))}
-                                            <td className="p-1"><input className={inp} value={item.remark} onChange={e=>updateItem(i,'remark',e.target.value)} /></td>
+                                            <td className="p-1"><input className={inp} style={{width:180}} value={item.remark} onChange={e=>updateItem(i,'remark',e.target.value)} /></td>
                                             <td className="p-1 text-center"><button onClick={()=>removeItem(i)} className="text-slate-300 hover:text-red-600">✕</button></td>
                                           </tr>
                                         ))}
