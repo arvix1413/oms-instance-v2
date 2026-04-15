@@ -1,5 +1,6 @@
 'use client'
 import { useDialog } from '@/components/Dialog'
+import FieldLockHint from '@/components/FieldLockHint'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
@@ -104,8 +105,17 @@ export default function CustomersPage() {
           <div className="grid grid-cols-2 gap-3">
             {[['客戶編號 *','customer_code'],['客戶名稱 *','customer_name'],['稅號','tax_id'],['聯絡人','contact'],['電話','phone'],['電子郵件','email'],['付款方式','payment_terms'],['主要產品','main_products']].map(([label,key])=>(
               <div key={key} className={key==='customer_name'?'col-span-2':''}>
-                <label className="block text-[11px] text-slate-500 mb-1.5">{label}</label>
-                <input className="oms-input" value={(editing as any)[key]||''} onChange={e=>setEditing(p=>({...p,[key]:e.target.value}))} />
+                <label className="flex items-center gap-1.5 text-[11px] text-slate-500 mb-1.5">
+                  {label}
+                  {key === 'customer_code' && !!editing.id && <FieldLockHint />}
+                </label>
+                <input
+                  className="oms-input"
+                  value={(editing as any)[key]||''}
+                  onChange={e=>setEditing(p=>({...p,[key]:e.target.value}))}
+                  disabled={key === 'customer_code' && !!editing.id}
+                />
+                {key === 'customer_code' && !!editing.id && <p className="text-[10px] text-slate-400 mt-1">客戶編號建立後不可修改</p>}
               </div>
             ))}
             <div className="col-span-2">

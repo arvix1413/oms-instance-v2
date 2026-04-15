@@ -9,6 +9,7 @@ import { SearchableSelect } from '@/components/SearchableSelect'
 import { getUser } from '@/lib/permissions'
 import { can } from '@/lib/usePermissions'
 import { getCompany } from '@/lib/useCompany'
+import FieldLockHint from '@/components/FieldLockHint'
 
 // Customer order actions based on current status
 function getCOActions(status: string) {
@@ -240,8 +241,17 @@ export default function CustomerOrdersPage() {
               <input type="date" className={inp} value={form.po_date} onChange={e=>setForm(p=>({...p,po_date:e.target.value}))} />
             </div>
             <div>
-              <label className="block text-[11px] text-slate-500 mb-1.5">採購單號 *</label>
-              <input className={inp} value={form.po_number} onChange={e=>setForm(p=>({...p,po_number:e.target.value}))} />
+              <label className="flex items-center gap-1.5 text-[11px] text-slate-500 mb-1.5">
+                採購單號 *
+                {editingId !== null && <FieldLockHint />}
+              </label>
+              <input
+                className={inp}
+                value={form.po_number}
+                onChange={e=>setForm(p=>({...p,po_number:e.target.value}))}
+                disabled={editingId !== null}
+              />
+              {editingId !== null && <p className="text-[10px] text-slate-400 mt-1">訂單編號建立後不可修改</p>}
             </div>
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">客戶 *</label>

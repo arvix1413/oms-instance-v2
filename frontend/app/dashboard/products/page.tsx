@@ -1,5 +1,6 @@
 'use client'
 import { useDialog } from '@/components/Dialog'
+import FieldLockHint from '@/components/FieldLockHint'
 import { useEffect, useState } from 'react'
 import { apiFetch, API, getToken } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
@@ -65,7 +66,19 @@ export default function ProductsPage() {
         <div className="oms-card p-6 mb-5">
           <h2 className="font-semibold mb-4">{editing.id ? '編輯商品' : '新增商品'}</h2>
           <div className="grid md:grid-cols-2 gap-4">
-            <div><label className="block text-xs font-medium mb-1">SKU *</label><input className={inp} value={editing.sku||''} onChange={e=>setEditing(p=>({...p,sku:e.target.value}))} /></div>
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-medium mb-1">
+                SKU *
+                {!!editing.id && <FieldLockHint />}
+              </label>
+              <input
+                className={inp}
+                value={editing.sku||''}
+                onChange={e=>setEditing(p=>({...p,sku:e.target.value}))}
+                disabled={!!editing.id}
+              />
+              {!!editing.id && <p className="text-[10px] text-slate-400 mt-1">SKU 建立後不可修改</p>}
+            </div>
             <div><label className="block text-xs font-medium mb-1">商品名稱 *</label><input className={inp} value={editing.name||''} onChange={e=>setEditing(p=>({...p,name:e.target.value}))} /></div>
             <div><label className="block text-xs font-medium mb-1">分類</label><input className={inp} value={editing.category||''} onChange={e=>setEditing(p=>({...p,category:e.target.value}))} /></div>
             <div><label className="block text-xs font-medium mb-1">單位</label><input className={inp} value={editing.unit||'PCS'} onChange={e=>setEditing(p=>({...p,unit:e.target.value}))} /></div>

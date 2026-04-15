@@ -1,5 +1,6 @@
 'use client'
 import { useDialog } from '@/components/Dialog'
+import FieldLockHint from '@/components/FieldLockHint'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
@@ -112,8 +113,17 @@ export default function SuppliersPage() {
               ['主要品項','main_items'],['付款方式','payment_terms'],
             ].map(([label, key]) => (
               <div key={key} className={key === 'name' ? 'col-span-2' : ''}>
-                <label className="block text-[11px] text-slate-500 mb-1.5">{label}</label>
-                <input className="oms-input" value={(editing as any)[key]||''} onChange={e=>setEditing(p=>({...p,[key]:e.target.value}))} />
+                <label className="flex items-center gap-1.5 text-[11px] text-slate-500 mb-1.5">
+                  {label}
+                  {key === 'supplier_code' && !!editing.id && <FieldLockHint />}
+                </label>
+                <input
+                  className="oms-input"
+                  value={(editing as any)[key]||''}
+                  onChange={e=>setEditing(p=>({...p,[key]:e.target.value}))}
+                  disabled={key === 'supplier_code' && !!editing.id}
+                />
+                {key === 'supplier_code' && !!editing.id && <p className="text-[10px] text-slate-400 mt-1">供應商編號建立後不可修改</p>}
               </div>
             ))}
             <div>

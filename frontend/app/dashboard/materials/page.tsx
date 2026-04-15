@@ -1,5 +1,6 @@
 'use client'
 import { useDialog } from '@/components/Dialog'
+import FieldLockHint from '@/components/FieldLockHint'
 import { useEffect, useState, useRef } from 'react'
 import { apiFetch, API, getToken } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
@@ -222,7 +223,19 @@ export default function MaterialsPage() {
         <div className="oms-card p-6 mb-5">
           <h2 className="font-semibold mb-4">{editing.id ? '編輯料號' : '新增料號'}</h2>
           <div className="grid md:grid-cols-3 gap-4">
-            <div><label className="block text-[11px] text-slate-500 mb-1.5">料號 *</label><input className={inp} value={editing.material_code||''} onChange={e=>setEditing(p=>({...p,material_code:e.target.value}))} /></div>
+            <div>
+              <label className="flex items-center gap-1.5 text-[11px] text-slate-500 mb-1.5">
+                料號 *
+                {!!editing.id && <FieldLockHint />}
+              </label>
+              <input
+                className={inp}
+                value={editing.material_code||''}
+                onChange={e=>setEditing(p=>({...p,material_code:e.target.value}))}
+                disabled={!!editing.id}
+              />
+              {!!editing.id && <p className="text-[10px] text-slate-400 mt-1">料號建立後不可修改</p>}
+            </div>
             <div><label className="block text-[11px] text-slate-500 mb-1.5">材料名稱 *</label><input className={inp} value={editing.material_name||''} onChange={e=>setEditing(p=>({...p,material_name:e.target.value}))} /></div>
             <div><label className="block text-[11px] text-slate-500 mb-1.5">規格</label><input className={inp} value={editing.spec||''} onChange={e=>setEditing(p=>({...p,spec:e.target.value}))} /></div>
             <div><label className="block text-[11px] text-slate-500 mb-1.5">單位</label><input className={inp} value={editing.unit||'PCS'} onChange={e=>setEditing(p=>({...p,unit:e.target.value}))} /></div>
@@ -327,4 +340,3 @@ export default function MaterialsPage() {
     </div>
   )
 }
-
