@@ -238,7 +238,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="mx-3 my-2 border-t border-slate-100" />
               <Link href="/dashboard/profit-tracking" className={linkClass(isActive('/dashboard/profit-tracking'))}>
                 <span className={isActive('/dashboard/profit-tracking') ? 'text-blue-600' : 'text-slate-400'}><IconChart /></span>
-                Profit Tracking
+                利潤追蹤
               </Link>
             </>
           )}

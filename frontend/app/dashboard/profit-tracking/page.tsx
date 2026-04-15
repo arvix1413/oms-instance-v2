@@ -216,7 +216,7 @@ export default function ProfitTrackingPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-800">Profit Tracking</h1>
+          <h1 className="text-xl font-bold text-slate-800">利潤追蹤</h1>
           <p className="section-hint">僅主管可見，追蹤每筆訂單收入、成本、稅金與淨利</p>
         </div>
         <button className="btn-ghost" onClick={() => loadOrders()}>↻ 重新整理</button>
