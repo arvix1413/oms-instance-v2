@@ -7,11 +7,12 @@ import { StatusFlow, PO_STEPS, getPOActions } from '@/components/StatusFlow'
 import { SearchableSelect } from '@/components/SearchableSelect'
 import { can } from '@/lib/usePermissions'
 import { getCompany } from '@/lib/useCompany'
+import { resolveTierPrice, type MoqTier } from '@/lib/moqPricing'
 
 type PoItem = { material_code:string; material_name:string; spec:string; unit:string; quantity:number; unit_price:number; total_price:number; currency:string; remark:string; po_ref:string; thickness?:number|string; image_url?:string; bom_id?:number }
 type Po = { id:number; po_number:string; supplier_name:string; status:string; total_amount:number; tax_rate?:number; currency:string; remark:string; created_at:string; approved_at?:string; items?:PoItem[] }
 type Supplier = { id: number; name: string; currency: string; supplier_code: string }
-type BOM = { id: number; product_sku: string; product_name: string; spec: string; unit: string; supplier_price: number; company_price: number; currency: string; image_url?: string; material_name?: string; supplier_id?: number }
+type BOM = { id: number; product_sku: string; product_name: string; spec: string; unit: string; supplier_price: number; company_price: number; currency: string; image_url?: string; material_name?: string; supplier_id?: number; moq_tiers?: MoqTier[] }
 
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
   draft:     { label:'草稿',   badge:'badge-gray'   },
@@ -91,16 +92,17 @@ export default function PoPage() {
     setForm(p => ({
       ...p,
       items: p.items.map((item, idx) => idx !== i ? item : {
+        ...(item || {}),
         ...item,
         bom_id: Number(bomId),
         material_code: bom.product_sku,
         material_name: bom.product_name,
         spec: bom.spec || '',
         unit: bom.unit || 'PCS',
-        unit_price: bom.supplier_price || 0,
+        unit_price: resolveTierPrice(bom.moq_tiers, item.quantity || 0, bom.supplier_price || 0),
         currency: bom.currency || form.currency,
         image_url: bom.image_url || '',
-        total_price: (item.quantity || 0) * (bom.supplier_price || 0),
+        total_price: (item.quantity || 0) * resolveTierPrice(bom.moq_tiers, item.quantity || 0, bom.supplier_price || 0),
       })
     }))
   }
@@ -174,7 +176,11 @@ export default function PoPage() {
       items: p.items.map((item, idx) => {
         if (idx !== i) return item
         const u = { ...item, [field]: val }
-        if (field === 'quantity' || field === 'unit_price') u.total_price = u.quantity * u.unit_price
+        if (field === 'quantity' && u.bom_id) {
+          const bom = boms.find((b) => b.id === u.bom_id)
+          if (bom) u.unit_price = resolveTierPrice(bom.moq_tiers, Number(u.quantity) || 0, bom.supplier_price || 0)
+        }
+        if (field === 'quantity' || field === 'unit_price') u.total_price = (Number(u.quantity) || 0) * (Number(u.unit_price) || 0)
         return u
       })
     }))
@@ -464,8 +470,8 @@ export default function PoPage() {
             <span className="text-xs font-semibold text-slate-600">採購明細</span>
             <button onClick={addItem} className="btn-ghost text-blue-600">+ 新增料號</button>
           </div>
-          <div className="overflow-x-auto rounded-lg border border-slate-200">
-            <table className="w-full text-xs">
+          <div className="overflow-x-auto overscroll-x-contain rounded-lg border border-slate-200">
+            <table className="w-full text-xs" style={{ minWidth: 1760 }}>
               <thead><tr className="border-b border-slate-200">
                 {['圖片','PO訂單編號','物料編號（BOM）','材料名稱','規格','單位','數量','單價','小計','稅率','幣別','備註',''].map(h=>(
                   <th key={h} className="px-2 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">{h}</th>
@@ -481,8 +487,8 @@ export default function PoPage() {
                         <div className="w-10 h-10 bg-slate-100 rounded flex items-center justify-center text-slate-300 text-xs">無</div>
                       )}
                     </td>
-                    <td className="p-1"><input className={inp} style={{width:100}} value={item.po_ref} placeholder="PO編號" onChange={e=>updateItem(i,'po_ref',e.target.value)} /></td>
-                    <td className="p-1 min-w-[220px]">
+                    <td className="p-1"><input className={inp} style={{width:130}} value={item.po_ref} placeholder="PO編號" onChange={e=>updateItem(i,'po_ref',e.target.value)} /></td>
+                    <td className="p-1 min-w-[280px]">
                       <SearchableSelect
                         options={getFilteredBoms()}
                         value={item.bom_id ? String(item.bom_id) : ''}
@@ -499,13 +505,13 @@ export default function PoPage() {
                       />
                     </td>
                     <td className="p-1"><input className={lockedInp} value={item.material_name} onChange={e=>updateItem(i,'material_name',e.target.value)} readOnly /></td>
-                    <td className="p-1"><input className={lockedInp} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} readOnly style={{width:80}} /></td>
-                    <td className="p-1"><input className={lockedInp} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} readOnly style={{width:45}} /></td>
-                    <td className="p-1"><input type="number" className={inp} style={{width:65}} value={item.quantity || ""} onChange={e=>updateItem(i,'quantity',Number(e.target.value))} /></td>
-                    <td className="p-1"><input type="number" className={inp} style={{width:85}} value={item.unit_price || ""} onChange={e=>updateItem(i,'unit_price',Number(e.target.value))} /></td>
+                    <td className="p-1"><input className={lockedInp} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} readOnly style={{width:120}} /></td>
+                    <td className="p-1"><input className={lockedInp} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} readOnly style={{width:70}} /></td>
+                    <td className="p-1"><input type="number" className={inp} style={{width:90}} value={item.quantity || ""} onChange={e=>updateItem(i,'quantity',Number(e.target.value))} /></td>
+                    <td className="p-1"><input type="number" className={inp} style={{width:110}} value={item.unit_price || ""} onChange={e=>updateItem(i,'unit_price',Number(e.target.value))} /></td>
                     <td className="p-1 px-2 text-right text-slate-600 font-medium whitespace-nowrap">{Number(item.total_price).toLocaleString()}</td>
                     <td className="p-1">
-                      <select className={inp} style={{width:64}} value={String(form.tax_rate)}
+                      <select className={inp} style={{width:80}} value={String(form.tax_rate)}
                         onChange={e=>setForm(p=>({...p, tax_rate: Math.min(25, Math.max(1, Number(e.target.value) || 8))}))}>
                         {Array.from({ length: 25 }, (_, idx) => idx + 1).map(v => (
                           <option key={v} value={v}>{v}%</option>
@@ -513,11 +519,11 @@ export default function PoPage() {
                       </select>
                     </td>
                     <td className="p-1">
-                      <select className={inp} style={{width:55}} value={item.currency} onChange={e=>updateItem(i,'currency',e.target.value)}>
+                      <select className={inp} style={{width:72}} value={item.currency} onChange={e=>updateItem(i,'currency',e.target.value)}>
                         <option>VND</option><option>TWD</option><option>CNY</option><option>USD</option>
                       </select>
                     </td>
-                    <td className="p-1"><input className={inp} value={item.remark} onChange={e=>updateItem(i,'remark',e.target.value)} /></td>
+                    <td className="p-1"><input className={inp} style={{width:180}} value={item.remark} onChange={e=>updateItem(i,'remark',e.target.value)} /></td>
                     <td className="p-1 text-center"><button onClick={() => removeItem(i)} className="text-slate-300 hover:text-red-600 transition-colors">✕</button></td>
                   </tr>
                 ))}

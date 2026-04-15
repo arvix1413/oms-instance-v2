@@ -51,6 +51,98 @@ function requirePerm(permKey: string) {
 // Convenience wrappers — kept for any remaining legacy usage
 const canWrite = requirePerm('po.create')
 const canApprove = requirePerm('po.approve')
+const requireManager = async (c: any, next: () => Promise<void>) => {
+  const user = c.get('user')
+  if (!user) return c.json({ error: 'Unauthorized' }, 401)
+  if (normalizeUserRole(user.role) !== 'manager') return c.json({ error: 'Forbidden' }, 403)
+  await next()
+}
+
+const PROFIT_ENTRY_CATEGORIES = [
+  'operating_cost',
+  'logistics',
+  'platform_fee',
+  'other_cost',
+  'sales_tax',
+  'income_tax',
+  'manual_adjustment',
+] as const
+
+const toAmount = (value: any): number => {
+  const num = Number(value)
+  if (!Number.isFinite(num)) return 0
+  return Math.round(num * 100) / 100
+}
+
+const calcMargin = (netProfit: number, revenue: number): number => {
+  if (revenue <= 0) return 0
+  return Math.round((netProfit / revenue) * 10000) / 100
+}
+
+type MoqTier = { moq: number; price: number }
+const normalizeMoqTiers = (raw: any): MoqTier[] => {
+  const src = Array.isArray(raw) ? raw : []
+  return src
+    .map((row: any) => ({
+      moq: Math.max(0, Number(row?.moq) || 0),
+      price: Math.max(0, Number(row?.price) || 0),
+    }))
+    .filter((row: MoqTier) => row.moq > 0 || row.price > 0)
+    .sort((a: MoqTier, b: MoqTier) => a.moq - b.moq)
+}
+const parseMoqTiersFromDb = (raw: any): MoqTier[] => {
+  if (!raw) return []
+  try {
+    return normalizeMoqTiers(JSON.parse(String(raw)))
+  } catch {
+    return []
+  }
+}
+
+let ensureProfitTrackingTablePromise: Promise<void> | null = null
+const ensureProfitTrackingTable = async () => {
+  if (!ensureProfitTrackingTablePromise) {
+    ensureProfitTrackingTablePromise = (async () => {
+      await execute(`
+        CREATE TABLE IF NOT EXISTS order_profit_entries (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          order_id INT NOT NULL,
+          category VARCHAR(50) NOT NULL,
+          description VARCHAR(255) DEFAULT '',
+          amount DECIMAL(15,2) NOT NULL DEFAULT 0,
+          remark TEXT,
+          created_by INT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_order_profit_entries_order_id (order_id),
+          CONSTRAINT fk_order_profit_entries_order FOREIGN KEY (order_id) REFERENCES customer_orders(id) ON DELETE CASCADE
+        )
+      `)
+    })().catch((e) => {
+      ensureProfitTrackingTablePromise = null
+      throw e
+    })
+  }
+  await ensureProfitTrackingTablePromise
+}
+
+let ensureBomMoqTiersPromise: Promise<void> | null = null
+const ensureBomMoqTiersColumn = async () => {
+  if (!ensureBomMoqTiersPromise) {
+    ensureBomMoqTiersPromise = (async () => {
+      try {
+        await execute('ALTER TABLE bom ADD COLUMN moq_tiers TEXT NULL')
+      } catch (e: any) {
+        const msg = String(e?.message || '').toLowerCase()
+        if (!msg.includes('duplicate column')) throw e
+      }
+    })().catch((e) => {
+      ensureBomMoqTiersPromise = null
+      throw e
+    })
+  }
+  await ensureBomMoqTiersPromise
+}
 
 // ── Audit ────────────────────────────────────────────────────────────────────
 async function audit(user: any, action: string, resource: string, resourceId: any, detail?: string) {
@@ -172,8 +264,10 @@ app.put('/api/suppliers/:id', authMiddleware, requirePerm('supplier.manage'), as
   try {
     const id = c.req.param('id')
     const b = await c.req.json()
+    const existing = await queryOne<any>('SELECT supplier_code FROM suppliers WHERE id=?', [id])
+    if (!existing) return c.json({ error: 'Not found' }, 404)
     await execute('UPDATE suppliers SET name=?,supplier_code=?,tax_id=?,contact=?,phone=?,email=?,address=?,main_items=?,payment_terms=?,currency=?,status=? WHERE id=?',
-      [b.name,b.supplier_code||'',b.tax_id||'',b.contact||'',b.phone||'',b.email||'',b.address||'',b.main_items||'',b.payment_terms||'',b.currency||'VND',b.status||'active',id])
+      [b.name,existing.supplier_code||'',b.tax_id||'',b.contact||'',b.phone||'',b.email||'',b.address||'',b.main_items||'',b.payment_terms||'',b.currency||'VND',b.status||'active',id])
     await audit(c.get('user'), 'UPDATE', '供應商', id, b.name)
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
@@ -203,10 +297,13 @@ app.post('/api/customers', authMiddleware, requirePerm('customer.manage'), async
 })
 app.put('/api/customers/:id', authMiddleware, requirePerm('customer.manage'), async c => {
   try {
+    const id = c.req.param('id')
     const b = await c.req.json()
+    const existing = await queryOne<any>('SELECT customer_code FROM customers WHERE id=?', [id])
+    if (!existing) return c.json({ error: 'Not found' }, 404)
     await execute('UPDATE customers SET customer_code=?,customer_name=?,tax_id=?,contact=?,phone=?,email=?,address=?,main_products=?,payment_terms=?,status=? WHERE id=?',
-      [b.customer_code,b.customer_name,b.tax_id||'',b.contact||'',b.phone||'',b.email||'',b.address||'',b.main_products||'',b.payment_terms||'',b.status||'active',c.req.param('id')])
-    await audit(c.get('user'), 'UPDATE', '客戶', c.req.param('id'), b.customer_name)
+      [existing.customer_code,b.customer_name,b.tax_id||'',b.contact||'',b.phone||'',b.email||'',b.address||'',b.main_products||'',b.payment_terms||'',b.status||'active',id])
+    await audit(c.get('user'), 'UPDATE', '客戶', id, b.customer_name)
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
@@ -251,9 +348,12 @@ app.post('/api/materials', authMiddleware, requirePerm('bom.create'), async c =>
 })
 app.put('/api/materials/:id', authMiddleware, requirePerm('bom.edit'), async c => {
   try {
+    const id = c.req.param('id')
     const b = await c.req.json()
+    const existing = await queryOne<any>('SELECT material_code FROM materials WHERE id=?', [id])
+    if (!existing) return c.json({ error: 'Not found' }, 404)
     await execute('UPDATE materials SET material_code=?,material_name=?,spec=?,unit=?,category=?,product_category=?,supplier_id=?,supplier_price=?,company_price=?,currency=?,stock=?,image_url=? WHERE id=?',
-      [b.material_code,b.material_name,b.spec||'',b.unit||'PCS',b.category||'',b.product_category||'',b.supplier_id||null,b.supplier_price||0,b.company_price||0,b.currency||'VND',b.stock||0,b.image_url||'',c.req.param('id')])
+      [existing.material_code,b.material_name,b.spec||'',b.unit||'PCS',b.category||'',b.product_category||'',b.supplier_id||null,b.supplier_price||0,b.company_price||0,b.currency||'VND',b.stock||0,b.image_url||'',id])
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
@@ -293,12 +393,17 @@ app.post('/api/materials/bulk', authMiddleware, requirePerm('bom.create'), async
 })
 
 // ── BOM ──────────────────────────────────────────────────────────────────────
-app.get('/api/bom', authMiddleware, async c => c.json(await query(`
-  SELECT b.*, s.name as supplier_display_name
-  FROM bom b LEFT JOIN suppliers s ON b.supplier_id = s.id
-  ORDER BY b.category, b.created_at DESC
-`)))
+app.get('/api/bom', authMiddleware, async c => {
+  await ensureBomMoqTiersColumn()
+  const rows = await query<any>(`
+    SELECT b.*, s.name as supplier_display_name
+    FROM bom b LEFT JOIN suppliers s ON b.supplier_id = s.id
+    ORDER BY b.category, b.created_at DESC
+  `)
+  return c.json(rows.map((row: any) => ({ ...row, moq_tiers: parseMoqTiersFromDb(row.moq_tiers) })))
+})
 app.get('/api/bom/:id', authMiddleware, async c => {
+  await ensureBomMoqTiersColumn()
   const bom = await queryOne<any>(`
     SELECT b.*, s.name as supplier_display_name
     FROM bom b LEFT JOIN suppliers s ON b.supplier_id = s.id
@@ -308,19 +413,23 @@ app.get('/api/bom/:id', authMiddleware, async c => {
     SELECT bi.*, bi.material_name as mat_name, bi.spec as mat_spec, bi.unit as mat_unit
     FROM bom_items bi
     WHERE bi.bom_id=?`, [c.req.param('id')])
-  return c.json({ ...bom, items })
+  return c.json({ ...bom, moq_tiers: parseMoqTiersFromDb(bom.moq_tiers), items })
 })
 app.post('/api/bom', authMiddleware, requirePerm('bom.create'), async c => {
   try {
+    await ensureBomMoqTiersColumn()
     const b = await c.req.json()
     if (!b.product_sku || !b.product_name) return c.json({ error: 'product_sku and product_name required' }, 400)
     const existing = await queryOne<any>('SELECT id FROM bom WHERE product_sku=?', [b.product_sku])
     if (existing) return c.json({ error: `SKU「${b.product_sku}」已存在，請使用不同的 SKU` }, 409)
     const u = c.get('user')
-    const r = await execute(`INSERT INTO bom (product_sku,product_name,material_name,spec,unit,supplier_id,supplier_name,supplier_price,company_price,currency,category,cert_code,brand,image_url,version,status,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    const moqTiers = normalizeMoqTiers(b.moq_tiers)
+    const r = await execute(`INSERT INTO bom (product_sku,product_name,material_name,spec,unit,supplier_id,supplier_name,supplier_price,company_price,currency,category,cert_code,brand,image_url,version,moq_tiers,status,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [b.product_sku, b.product_name, b.material_name||'', b.spec||'', b.unit||'PCS',
        b.supplier_id||null, b.supplier_name||'', b.supplier_price||0, b.company_price||0,
-       b.currency||'VND', b.category||'', b.cert_code||'', b.brand||'', b.image_url||'', b.version||'V1', 'active', u.userId, now8()])
+       b.currency||'VND', b.category||'', b.cert_code||'', b.brand||'', b.image_url||'', b.version||'V1',
+       moqTiers.length ? JSON.stringify(moqTiers) : null,
+       'active', u.userId, now8()])
     const bomId = r.insertId
     if (b.items?.length) {
       for (const item of b.items) {
@@ -334,11 +443,17 @@ app.post('/api/bom', authMiddleware, requirePerm('bom.create'), async c => {
 })
 app.put('/api/bom/:id', authMiddleware, requirePerm('bom.edit'), async c => {
   try {
+    await ensureBomMoqTiersColumn()
     const id = c.req.param('id'); const b = await c.req.json(); const u = c.get('user')
-    await execute(`UPDATE bom SET product_sku=?,product_name=?,material_name=?,spec=?,unit=?,supplier_id=?,supplier_name=?,supplier_price=?,company_price=?,currency=?,category=?,cert_code=?,brand=?,image_url=?,version=? WHERE id=?`,
-      [b.product_sku, b.product_name, b.material_name||'', b.spec||'', b.unit||'PCS',
+    const existing = await queryOne<any>('SELECT product_sku FROM bom WHERE id=?', [id])
+    if (!existing) return c.json({ error: 'Not found' }, 404)
+    const moqTiers = normalizeMoqTiers(b.moq_tiers)
+    await execute(`UPDATE bom SET product_sku=?,product_name=?,material_name=?,spec=?,unit=?,supplier_id=?,supplier_name=?,supplier_price=?,company_price=?,currency=?,category=?,cert_code=?,brand=?,image_url=?,version=?,moq_tiers=? WHERE id=?`,
+      [existing.product_sku, b.product_name, b.material_name||'', b.spec||'', b.unit||'PCS',
        b.supplier_id||null, b.supplier_name||'', b.supplier_price||0, b.company_price||0,
-       b.currency||'VND', b.category||'', b.cert_code||'', b.brand||'', b.image_url||'', b.version||'V1', id])
+       b.currency||'VND', b.category||'', b.cert_code||'', b.brand||'', b.image_url||'', b.version||'V1',
+       moqTiers.length ? JSON.stringify(moqTiers) : null,
+       id])
     await execute('DELETE FROM bom_items WHERE bom_id=?', [id])
     if (b.items?.length) {
       for (const item of b.items) {
@@ -346,7 +461,7 @@ app.put('/api/bom/:id', authMiddleware, requirePerm('bom.edit'), async c => {
           [id,item.material_code,item.material_name,item.spec||'',item.unit||'PCS',item.quantity||null,item.supplier_name||'',item.supplier_price||0,item.company_price||0,item.currency||'VND',item.remark||'',item.color||'',item.lt||'',item.moq||null])
       }
     }
-    await audit(u, 'UPDATE', 'BOM', id, `${b.product_sku} ${b.product_name}`)
+    await audit(u, 'UPDATE', 'BOM', id, `${existing.product_sku} ${b.product_name}`)
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
@@ -595,6 +710,8 @@ app.post('/api/customer-orders', authMiddleware, requirePerm('customer_order.cre
   try {
     const b = await c.req.json()
     if (!b.po_number || !b.customer_id) return c.json({ error: 'po_number and customer_id required' }, 400)
+    const duplicated = await queryOne<any>('SELECT id FROM customer_orders WHERE po_number=?', [b.po_number])
+    if (duplicated) return c.json({ error: `訂單編號「${b.po_number}」已存在，請使用不同編號` }, 409)
     const cust = await queryOne<any>('SELECT customer_name, payment_terms FROM customers WHERE id=?', [b.customer_id])
     // No tax for customer orders
     const subtotal = (b.items||[]).reduce((s: number, i: any) => s + (i.qty||0) * (i.unit_price||0), 0)
@@ -654,7 +771,7 @@ app.patch('/api/customer-orders/:id/status', authMiddleware, requirePerm('custom
 app.put('/api/customer-orders/:id', authMiddleware, requirePerm('customer_order.create'), async c => {
   try {
     const id = c.req.param('id'); const b = await c.req.json(); const u = c.get('user')
-    const existing = await queryOne<any>('SELECT status FROM customer_orders WHERE id=?', [id])
+    const existing = await queryOne<any>('SELECT status, po_number FROM customer_orders WHERE id=?', [id])
     if (!existing) return c.json({ error: 'Not found' }, 404)
     if (existing.status === 'completed') return c.json({ error: '已完成的訂單不能修改' }, 400)
     const subtotal = (b.items||[]).reduce((s: number, i: any) => s + (i.qty||0) * (i.unit_price||0), 0)
@@ -662,7 +779,7 @@ app.put('/api/customer-orders/:id', authMiddleware, requirePerm('customer_order.
     const taxAmount = 0
     const totalAmount = subtotal
     await execute('UPDATE customer_orders SET po_date=?,po_number=?,customer_id=?,remark=?,tax_rate=?,tax_amount=?,total_amount=?,currency=?,delivery_date=?,delivery_address=?,person_in_charge=?,payment_terms=? WHERE id=?',
-      [b.po_date||null, b.po_number, b.customer_id, b.remark||'', taxRate, taxAmount, totalAmount, b.currency||'VND', b.delivery_date||null, b.delivery_address||'', b.person_in_charge||'', b.payment_terms||'', id])
+      [b.po_date||null, existing.po_number, b.customer_id, b.remark||'', taxRate, taxAmount, totalAmount, b.currency||'VND', b.delivery_date||null, b.delivery_address||'', b.person_in_charge||'', b.payment_terms||'', id])
     // Replace items
     await execute('DELETE FROM customer_order_items WHERE order_id=?', [id])
     if (b.items?.length) {
@@ -672,7 +789,7 @@ app.put('/api/customer-orders/:id', authMiddleware, requirePerm('customer_order.
           [id, item.bom_id, item.qty||0, item.unit_price||0, null, item.remark||'', 0, item.qty||0, 'pending'])
       }
     }
-    await audit(u, 'UPDATE', '客戶訂單', id, b.po_number)
+    await audit(u, 'UPDATE', '客戶訂單', id, existing.po_number)
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
@@ -695,6 +812,231 @@ app.delete('/api/customer-orders/:id', authMiddleware, requirePerm('customer_ord
     await execute('DELETE FROM customer_order_items WHERE order_id=?', [id])
     await execute('DELETE FROM customer_orders WHERE id=?', [id])
     await audit(c.get('user'), 'DELETE', '客戶訂單', id, `${row?.po_number} / ${row?.customer_name}`)
+    return c.json({ ok: true })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+
+// ── Profit Tracking (Manager only) ───────────────────────────────────────────
+app.get('/api/profit-tracking/orders', authMiddleware, requireManager, async c => {
+  try {
+    await ensureProfitTrackingTable()
+    const url = new URL(c.req.url)
+    const search = (url.searchParams.get('search') || '').trim()
+    const status = (url.searchParams.get('status') || '').trim()
+    const where: string[] = []
+    const params: any[] = []
+    if (status) { where.push('co.status=?'); params.push(status) }
+    if (search) {
+      where.push('(co.po_number LIKE ? OR c.customer_name LIKE ? OR c.customer_code LIKE ?)')
+      const term = `%${search}%`
+      params.push(term, term, term)
+    }
+    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : ''
+
+    const orders = await query<any>(`
+      SELECT co.id, co.po_number, co.po_date, co.status, co.created_at, co.currency,
+             c.customer_name, c.customer_code
+      FROM customer_orders co
+      LEFT JOIN customers c ON co.customer_id = c.id
+      ${whereClause}
+      ORDER BY co.created_at DESC
+      LIMIT 500
+    `, params.length ? params : undefined)
+
+    if (!orders.length) return c.json({ orders: [] })
+
+    const orderIds = orders.map((o: any) => Number(o.id))
+    const idPlaceholders = orderIds.map(() => '?').join(',')
+    const itemSums = await query<any>(`
+      SELECT ci.order_id,
+             COALESCE(SUM(ci.qty * ci.unit_price), 0) as revenue,
+             COALESCE(SUM(ci.qty * COALESCE(b.company_price, b.supplier_price, 0)), 0) as cogs
+      FROM customer_order_items ci
+      LEFT JOIN bom b ON b.id = ci.bom_id
+      WHERE ci.order_id IN (${idPlaceholders})
+      GROUP BY ci.order_id
+    `, orderIds)
+    const entrySums = await query<any>(`
+      SELECT ope.order_id,
+             COALESCE(SUM(CASE WHEN ope.category IN ('operating_cost','logistics','platform_fee','other_cost') THEN ope.amount ELSE 0 END), 0) as operating_cost,
+             COALESCE(SUM(CASE WHEN ope.category='sales_tax' THEN ope.amount ELSE 0 END), 0) as sales_tax,
+             COALESCE(SUM(CASE WHEN ope.category='income_tax' THEN ope.amount ELSE 0 END), 0) as income_tax,
+             COALESCE(SUM(CASE WHEN ope.category='manual_adjustment' THEN ope.amount ELSE 0 END), 0) as manual_adjustment
+      FROM order_profit_entries ope
+      WHERE ope.order_id IN (${idPlaceholders})
+      GROUP BY ope.order_id
+    `, orderIds)
+
+    const itemMap = new Map<number, any>()
+    const entryMap = new Map<number, any>()
+    itemSums.forEach((row: any) => itemMap.set(Number(row.order_id), row))
+    entrySums.forEach((row: any) => entryMap.set(Number(row.order_id), row))
+
+    const result = orders.map((o: any) => {
+      const item = itemMap.get(Number(o.id)) || {}
+      const entry = entryMap.get(Number(o.id)) || {}
+      const revenue = toAmount(item.revenue)
+      const cogs = toAmount(item.cogs)
+      const operating_cost = toAmount(entry.operating_cost)
+      const sales_tax = toAmount(entry.sales_tax)
+      const income_tax = toAmount(entry.income_tax)
+      const manual_adjustment = toAmount(entry.manual_adjustment)
+      const gross_profit = toAmount(revenue - cogs)
+      const net_profit = toAmount(gross_profit - operating_cost - sales_tax - income_tax + manual_adjustment)
+      const net_margin = calcMargin(net_profit, revenue)
+      return {
+        ...o,
+        revenue,
+        cogs,
+        gross_profit,
+        operating_cost,
+        sales_tax,
+        income_tax,
+        manual_adjustment,
+        net_profit,
+        net_margin,
+      }
+    })
+    return c.json({ orders: result })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+
+app.get('/api/profit-tracking/orders/:id', authMiddleware, requireManager, async c => {
+  try {
+    await ensureProfitTrackingTable()
+    const orderId = Number(c.req.param('id'))
+    if (!Number.isFinite(orderId)) return c.json({ error: 'Invalid order id' }, 400)
+    const order = await queryOne<any>(`
+      SELECT co.id, co.po_number, co.po_date, co.status, co.remark, co.currency,
+             co.delivery_date, co.delivery_address, co.person_in_charge, co.payment_terms,
+             c.customer_name, c.customer_code
+      FROM customer_orders co
+      LEFT JOIN customers c ON c.id = co.customer_id
+      WHERE co.id=?
+    `, [orderId])
+    if (!order) return c.json({ error: 'Not found' }, 404)
+
+    const items = await query<any>(`
+      SELECT ci.id, ci.bom_id, ci.qty, ci.unit_price, ci.remark,
+             b.product_sku, b.product_name, b.spec, b.unit,
+             COALESCE(b.company_price, b.supplier_price, 0) as standard_cost
+      FROM customer_order_items ci
+      LEFT JOIN bom b ON b.id = ci.bom_id
+      WHERE ci.order_id=?
+      ORDER BY ci.id ASC
+    `, [orderId])
+
+    const entries = await query<any>(`
+      SELECT id, order_id, category, description, amount, remark, created_by, created_at, updated_at
+      FROM order_profit_entries
+      WHERE order_id=?
+      ORDER BY created_at DESC, id DESC
+    `, [orderId])
+
+    let revenue = 0
+    let cogs = 0
+    const itemRows = items.map((item: any) => {
+      const qty = toAmount(item.qty)
+      const unit_price = toAmount(item.unit_price)
+      const standard_cost = toAmount(item.standard_cost)
+      const line_revenue = toAmount(qty * unit_price)
+      const line_cost = toAmount(qty * standard_cost)
+      revenue += line_revenue
+      cogs += line_cost
+      return { ...item, qty, unit_price, standard_cost, line_revenue, line_cost, line_gross: toAmount(line_revenue - line_cost) }
+    })
+    revenue = toAmount(revenue)
+    cogs = toAmount(cogs)
+    const gross_profit = toAmount(revenue - cogs)
+
+    const entryTotals = { operating_cost: 0, sales_tax: 0, income_tax: 0, manual_adjustment: 0 }
+    const normalizedEntries = entries.map((entry: any) => {
+      const amount = toAmount(entry.amount)
+      if (['operating_cost', 'logistics', 'platform_fee', 'other_cost'].includes(entry.category)) {
+        entryTotals.operating_cost += amount
+      } else if (entry.category === 'sales_tax') {
+        entryTotals.sales_tax += amount
+      } else if (entry.category === 'income_tax') {
+        entryTotals.income_tax += amount
+      } else if (entry.category === 'manual_adjustment') {
+        entryTotals.manual_adjustment += amount
+      }
+      return { ...entry, amount }
+    })
+
+    entryTotals.operating_cost = toAmount(entryTotals.operating_cost)
+    entryTotals.sales_tax = toAmount(entryTotals.sales_tax)
+    entryTotals.income_tax = toAmount(entryTotals.income_tax)
+    entryTotals.manual_adjustment = toAmount(entryTotals.manual_adjustment)
+
+    const net_profit = toAmount(
+      gross_profit
+      - entryTotals.operating_cost
+      - entryTotals.sales_tax
+      - entryTotals.income_tax
+      + entryTotals.manual_adjustment
+    )
+
+    return c.json({
+      order,
+      items: itemRows,
+      entries: normalizedEntries,
+      summary: {
+        revenue,
+        cogs,
+        gross_profit,
+        operating_cost: entryTotals.operating_cost,
+        sales_tax: entryTotals.sales_tax,
+        income_tax: entryTotals.income_tax,
+        manual_adjustment: entryTotals.manual_adjustment,
+        net_profit,
+        net_margin: calcMargin(net_profit, revenue),
+      },
+    })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+
+app.post('/api/profit-tracking/orders/:id/entries', authMiddleware, requireManager, async c => {
+  try {
+    await ensureProfitTrackingTable()
+    const orderId = Number(c.req.param('id'))
+    if (!Number.isFinite(orderId)) return c.json({ error: 'Invalid order id' }, 400)
+    const order = await queryOne<any>('SELECT id, po_number FROM customer_orders WHERE id=?', [orderId])
+    if (!order) return c.json({ error: 'Order not found' }, 404)
+
+    const b = await c.req.json()
+    const category = String(b.category || '')
+    if (!PROFIT_ENTRY_CATEGORIES.includes(category as any)) return c.json({ error: 'Invalid category' }, 400)
+    const description = String(b.description || '').trim()
+    if (!description) return c.json({ error: 'description required' }, 400)
+    const amount = toAmount(b.amount)
+    if (category !== 'manual_adjustment' && amount < 0) return c.json({ error: 'amount must be >= 0' }, 400)
+    if (amount === 0) return c.json({ error: 'amount must not be 0' }, 400)
+
+    const u = c.get('user')
+    const r = await execute(
+      'INSERT INTO order_profit_entries (order_id,category,description,amount,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?)',
+      [orderId, category, description, amount, String(b.remark || ''), u.userId, now8()]
+    )
+    await audit(u, 'CREATE', '利潤追蹤', r.insertId, `${order.po_number} / ${category} / ${amount}`)
+    return c.json({ ok: true, id: r.insertId }, 201)
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+
+app.delete('/api/profit-tracking/entries/:entryId', authMiddleware, requireManager, async c => {
+  try {
+    await ensureProfitTrackingTable()
+    const entryId = Number(c.req.param('entryId'))
+    if (!Number.isFinite(entryId)) return c.json({ error: 'Invalid entry id' }, 400)
+    const row = await queryOne<any>(`
+      SELECT ope.id, ope.order_id, ope.category, ope.amount, co.po_number
+      FROM order_profit_entries ope
+      LEFT JOIN customer_orders co ON co.id = ope.order_id
+      WHERE ope.id=?
+    `, [entryId])
+    if (!row) return c.json({ error: 'Not found' }, 404)
+    await execute('DELETE FROM order_profit_entries WHERE id=?', [entryId])
+    await audit(c.get('user'), 'DELETE', '利潤追蹤', entryId, `${row.po_number || row.order_id} / ${row.category} / ${row.amount}`)
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })

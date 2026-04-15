@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS bom (
   category VARCHAR(100),
   cert_code VARCHAR(100),
   brand VARCHAR(100),
+  moq_tiers TEXT COMMENT 'MOQ阶梯价格(JSON)',
   image_url TEXT COMMENT '产品图片',
   material_name VARCHAR(255)
 );
@@ -172,6 +173,20 @@ CREATE TABLE IF NOT EXISTS customer_order_items (
   balance DECIMAL(15,4),
   status VARCHAR(50) DEFAULT 'pending',
   FOREIGN KEY (order_id) REFERENCES customer_orders(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS order_profit_entries (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id INT NOT NULL,
+  category VARCHAR(50) NOT NULL,
+  description VARCHAR(255) DEFAULT '',
+  amount DECIMAL(15,2) NOT NULL DEFAULT 0,
+  remark TEXT,
+  created_by INT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_order_profit_entries_order_id (order_id),
+  CONSTRAINT fk_order_profit_entries_order FOREIGN KEY (order_id) REFERENCES customer_orders(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS quotations (

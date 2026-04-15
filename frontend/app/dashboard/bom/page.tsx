@@ -7,17 +7,19 @@ import { usePagination, Pagination } from '@/lib/usePagination'
 import { getUser } from '@/lib/permissions'
 import { can } from '@/lib/usePermissions'
 import { UNIT_OPTIONS, normalizeUnit } from '@/lib/units'
+import { normalizeMoqTiers, type MoqTier } from '@/lib/moqPricing'
 
 type Bom = {
   id:number; product_sku:string; product_name:string; material_name:string; spec:string; unit:string
   supplier_id:number|null; supplier_name:string; supplier_price:number; company_price:number
   currency:string; category:string; version:string; status:string; created_at:string
-  cert_code:string; brand:string; image_url:string
+  cert_code:string; brand:string; image_url:string; moq_tiers?: MoqTier[]
 }
+const emptyTiers = (): MoqTier[] => Array.from({ length: 5 }, () => ({ moq: 0, price: 0 }))
 const empty = (): Partial<Bom> => ({
   product_sku:'', product_name:'', material_name:'', spec:'', unit:'PCS',
   supplier_id:null, supplier_name:'', supplier_price:0, company_price:0,
-  currency:'VND', category:'', version:'V1', cert_code:'', brand:'', image_url:''
+  currency:'VND', category:'', version:'V1', cert_code:'', brand:'', image_url:'', moq_tiers: emptyTiers()
 })
 
 type Supplier = { id:number; name:string; currency:string }
@@ -89,6 +91,13 @@ export default function BomPage() {
   const onSupplierChange = (supplierId:string) => {
     const sup = suppliers.find(s => String(s.id) === supplierId)
     setEditing(p => ({ ...p, supplier_id: supplierId ? Number(supplierId) : null, supplier_name: sup?.name||'', currency: sup?.currency||'VND' }))
+  }
+  const updateTier = (tierIdx:number, field:'moq'|'price', val:number) => {
+    setEditing(p => {
+      const tiers = Array.isArray(p?.moq_tiers) ? [...p.moq_tiers] : emptyTiers()
+      tiers[tierIdx] = { ...(tiers[tierIdx] || { moq: 0, price: 0 }), [field]: Math.max(0, Number(val) || 0) }
+      return { ...p, moq_tiers: tiers }
+    })
   }
 
   const categories = Array.from(new Set(boms.map(b => b.category).filter(Boolean)))
@@ -180,6 +189,31 @@ export default function BomPage() {
                 <label className="block text-[11px] text-slate-500 mb-1.5">公司售價</label>
                 <input type="number" className={inp} value={editing.company_price||''} onChange={e=>setEditing(p=>({...p,company_price:Number(e.target.value)}))} />
               </div>
+              <div className="col-span-2">
+                <label className="block text-[11px] text-slate-500 mb-1.5">MOQ 階梯價格（數量 / 單價）</label>
+                <div className="rounded-xl border border-slate-200 p-3 space-y-1.5 bg-slate-50/50">
+                  {(editing.moq_tiers || emptyTiers()).map((tier, i) => (
+                    <div key={i} className="grid grid-cols-[26px_1fr_1fr] gap-2 items-center">
+                      <span className="text-[10px] text-slate-400 text-center">#{i + 1}</span>
+                      <input
+                        type="number"
+                        className={inp}
+                        placeholder="MOQ"
+                        value={tier.moq || ''}
+                        onChange={e=>updateTier(i, 'moq', Number(e.target.value))}
+                      />
+                      <input
+                        type="number"
+                        className={inp}
+                        placeholder="單價"
+                        value={tier.price || ''}
+                        onChange={e=>updateTier(i, 'price', Number(e.target.value))}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">同一物料編號可在此設定不同 MOQ 對應價格</p>
+              </div>
               <div>
                 <label className="block text-[11px] text-slate-500 mb-1.5">認證機構代碼</label>
                 <input className={inp} value={editing.cert_code||''} onChange={e=>setEditing(p=>({...p,cert_code:e.target.value}))} placeholder="如：CE, RoHS..." />
@@ -253,7 +287,10 @@ export default function BomPage() {
                       <td className="px-3 py-2.5 text-slate-400 whitespace-nowrap">{b.currency}</td>
                       <td className="px-3 py-2.5 whitespace-nowrap">
                         <div className="flex gap-1">
-                          {canEdit && <button onClick={()=>setEditing({ ...b, unit: normalizeUnit(b.unit) })} className="btn-ghost text-blue-600">編輯</button>}
+                          {canEdit && <button onClick={()=>setEditing({ ...b, unit: normalizeUnit(b.unit), moq_tiers: (() => {
+                            const parsed = normalizeMoqTiers((b as any).moq_tiers)
+                            return [...parsed, ...emptyTiers()].slice(0, 5)
+                          })() })} className="btn-ghost text-blue-600">編輯</button>}
                           {canDel && <button onClick={e=>del(b.id,e)} className="btn-danger">刪除</button>}
                         </div>
                       </td>

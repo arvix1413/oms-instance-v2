@@ -5,12 +5,13 @@ import { useEffect, useState } from 'react'
 import { apiFetch, getSignatureUrl } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { getCompany } from '@/lib/useCompany'
+import { normalizeMoqTiers, resolveTierPrice } from '@/lib/moqPricing'
 
 type MoqTier = { moq: number; price: number }
 type QItem = { bom_id?:number|null; item_name:string; material_code:string; spec:string; unit:string; qty:number; unit_price:number; total_price:number; remark:string; moq_tiers:MoqTier[]; image_url?:string }
 type Q = { id:number; quotation_number:string; customer_name:string; customer_id?:number; status:string; total_amount:number; currency:string; valid_until:string; remark:string; created_at:string; items?:QItem[] }
 type Customer = { id:number; customer_name:string; customer_code:string }
-type BOM = { id:number; product_sku:string; product_name:string; spec:string; unit:string; company_price:number; image_url?:string }
+type BOM = { id:number; product_sku:string; product_name:string; spec:string; unit:string; company_price:number; image_url?:string; moq_tiers?: MoqTier[] }
 
 const emptyTiers = (): MoqTier[] => Array.from({length:5}, () => ({ moq: 0, price: 0 }))
 const emptyItem = (): QItem => ({ bom_id:null, item_name:'', material_code:'', spec:'', unit:'', qty:0, unit_price:0, total_price:0, remark:'', moq_tiers:emptyTiers(), image_url:'' })
@@ -107,14 +108,14 @@ export default function QuotationsPage() {
     if (!form.customer_name) { toast('請選擇客戶', 'error'); return }
     const validItems = form.items.filter(item => item.bom_id)
     if (!validItems.length) { toast('請至少選擇一個 BOM 品項', 'error'); return }
-    // Serialize moq_tiers as JSON string for storage, also set unit_price from first tier
+    // Serialize moq_tiers as JSON string and set unit_price from matched MOQ tier
     const itemsToSave = validItems.map(item => {
       const activeTiers = item.moq_tiers.filter(t => t.moq > 0 || t.price > 0)
-      const firstPrice = activeTiers[0]?.price || item.unit_price || 0
+      const matchedPrice = resolveTierPrice(activeTiers, item.qty || 0, item.unit_price || 0)
       return {
         ...item,
-        unit_price: firstPrice,
-        total_price: (item.qty || 0) * firstPrice,
+        unit_price: matchedPrice,
+        total_price: (item.qty || 0) * matchedPrice,
         moq: activeTiers.length > 0 ? JSON.stringify(activeTiers) : null,
       }
     })
@@ -340,7 +341,10 @@ export default function QuotationsPage() {
   const updateItem = (i:number, f:keyof QItem, v:any) => setForm(p=>({...p,items:p.items.map((item,idx)=>{
     if(idx!==i) return item
     const u={...item,[f]:v}
-    if(f==='qty'||f==='unit_price') u.total_price=u.qty*u.unit_price
+    if (f === 'qty') {
+      u.unit_price = resolveTierPrice(u.moq_tiers, Number(u.qty) || 0, Number(u.unit_price) || 0)
+    }
+    if(f==='qty'||f==='unit_price') u.total_price=(Number(u.qty)||0)*(Number(u.unit_price)||0)
     return u
   })}))
 
@@ -364,8 +368,9 @@ export default function QuotationsPage() {
         if (!bom) {
           return { ...item, bom_id: null, material_code: '', item_name: '', spec: '', unit: '', unit_price: 0, image_url: '' }
         }
-        const firstTier = item.moq_tiers[0]
-        const fallbackPrice = firstTier && firstTier.price > 0 ? firstTier.price : (bom.company_price || 0)
+        const bomTiers = normalizeMoqTiers(bom.moq_tiers)
+        const tiers = normalizeTiers(bomTiers.length ? bomTiers : item.moq_tiers)
+        const matchedPrice = resolveTierPrice(tiers, Number(item.qty) || 0, bom.company_price || 0)
         return {
           ...item,
           bom_id: bom.id,
@@ -373,8 +378,9 @@ export default function QuotationsPage() {
           item_name: bom.product_name,
           spec: bom.spec || '',
           unit: bom.unit || '',
-          unit_price: fallbackPrice,
-          total_price: (item.qty || 0) * fallbackPrice,
+          unit_price: matchedPrice,
+          total_price: (item.qty || 0) * matchedPrice,
+          moq_tiers: tiers,
           image_url: bom.image_url || '',
         }
       })
