@@ -1,21 +1,18 @@
 'use client'
 import { useDialog } from '@/components/Dialog'
+import FieldLockHint from '@/components/FieldLockHint'
 import { useEffect, useState } from 'react'
 import { apiFetch, API, getToken } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { getUser } from '@/lib/permissions'
 import { can } from '@/lib/usePermissions'
+import { UNIT_OPTIONS, normalizeUnit } from '@/lib/units'
 
 type Bom = {
   id:number; product_sku:string; product_name:string; material_name:string; spec:string; unit:string
   supplier_id:number|null; supplier_name:string; supplier_price:number; company_price:number
   currency:string; category:string; version:string; status:string; created_at:string
   cert_code:string; brand:string; image_url:string
-}
-const UNIT_OPTIONS = ['捲 roll', '張 sheet', '片 Pcs'] as const
-const normalizeUnit = (u?: string) => {
-  const val = (u || '').trim()
-  return UNIT_OPTIONS.includes(val as any) ? val : '片 Pcs'
 }
 const empty = (): Partial<Bom> => ({
   product_sku:'', product_name:'', material_name:'', spec:'', unit:'片 Pcs',
@@ -124,8 +121,17 @@ export default function BomPage() {
             </div>
             <div className="p-6 grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[11px] text-slate-500 mb-1.5">物料編號 *（唯一）</label>
-                <input className={inp} value={editing.product_sku||''} onChange={e=>setEditing(p=>({...p,product_sku:e.target.value}))} />
+                <label className="flex items-center gap-1.5 text-[11px] text-slate-500 mb-1.5">
+                  物料編號 *（唯一）
+                  {!!editing.id && <FieldLockHint />}
+                </label>
+                <input
+                  className={inp}
+                  value={editing.product_sku||''}
+                  onChange={e=>setEditing(p=>({...p,product_sku:e.target.value}))}
+                  disabled={!!editing.id}
+                />
+                {!!editing.id && <p className="text-[10px] text-slate-400 mt-1">物料編號建立後不可修改</p>}
               </div>
               <div>
                 <label className="block text-[11px] text-slate-500 mb-1.5">產品名稱 *</label>
