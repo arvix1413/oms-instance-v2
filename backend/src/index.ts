@@ -79,6 +79,18 @@ const calcMargin = (netProfit: number, revenue: number): number => {
   return Math.round((netProfit / revenue) * 10000) / 100
 }
 
+const toRate = (value: any): number => {
+  const num = Number(value)
+  if (!Number.isFinite(num)) return 0
+  if (num < 0) return 0
+  if (num > 100) return 100
+  return Math.round(num * 10000) / 10000
+}
+
+const pctAmount = (base: number, ratePct: number): number => toAmount(base * (ratePct / 100))
+
+const AUTO_RATE_PREFIX = '【自動比例】'
+
 type MoqTier = { moq: number; price: number }
 const normalizeMoqTiers = (raw: any): MoqTier[] => {
   const src = Array.isArray(raw) ? raw : []
@@ -142,6 +154,29 @@ const ensureBomMoqTiersColumn = async () => {
     })
   }
   await ensureBomMoqTiersPromise
+}
+
+let ensureCompanyProfitRatesPromise: Promise<void> | null = null
+const ensureCompanyProfitRatesColumns = async () => {
+  if (!ensureCompanyProfitRatesPromise) {
+    ensureCompanyProfitRatesPromise = (async () => {
+      const alterSafe = async (sql: string) => {
+        try {
+          await execute(sql)
+        } catch (e: any) {
+          const msg = String(e?.message || '').toLowerCase()
+          if (!msg.includes('duplicate column')) throw e
+        }
+      }
+      await alterSafe('ALTER TABLE company_settings ADD COLUMN operating_cost_rate DECIMAL(8,4) NOT NULL DEFAULT 0')
+      await alterSafe('ALTER TABLE company_settings ADD COLUMN vat_rate DECIMAL(8,4) NOT NULL DEFAULT 0')
+      await alterSafe('ALTER TABLE company_settings ADD COLUMN cit_rate DECIMAL(8,4) NOT NULL DEFAULT 0')
+    })().catch((e) => {
+      ensureCompanyProfitRatesPromise = null
+      throw e
+    })
+  }
+  await ensureCompanyProfitRatesPromise
 }
 
 // ── Audit ────────────────────────────────────────────────────────────────────
@@ -992,6 +1027,104 @@ app.get('/api/profit-tracking/orders/:id', authMiddleware, requireManager, async
         net_profit,
         net_margin: calcMargin(net_profit, revenue),
       },
+    })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+
+app.get('/api/profit-tracking/config', authMiddleware, requireManager, async c => {
+  try {
+    await ensureCompanyProfitRatesColumns()
+    const row = await queryOne<any>(`
+      SELECT operating_cost_rate, vat_rate, cit_rate
+      FROM company_settings
+      WHERE id=1
+    `)
+    return c.json({
+      operating_cost_rate: toRate(row?.operating_cost_rate),
+      vat_rate: toRate(row?.vat_rate),
+      cit_rate: toRate(row?.cit_rate),
+    })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+
+app.put('/api/profit-tracking/config', authMiddleware, requireManager, async c => {
+  try {
+    await ensureCompanyProfitRatesColumns()
+    const b = await c.req.json()
+    const operating_cost_rate = toRate(b.operating_cost_rate)
+    const vat_rate = toRate(b.vat_rate)
+    const cit_rate = toRate(b.cit_rate)
+    await execute(
+      `INSERT INTO company_settings (id, operating_cost_rate, vat_rate, cit_rate)
+       VALUES (1, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE operating_cost_rate=?, vat_rate=?, cit_rate=?`,
+      [operating_cost_rate, vat_rate, cit_rate, operating_cost_rate, vat_rate, cit_rate]
+    )
+    await audit(c.get('user'), 'UPDATE', '利潤參數', 1, `op=${operating_cost_rate} vat=${vat_rate} cit=${cit_rate}`)
+    return c.json({ ok: true, operating_cost_rate, vat_rate, cit_rate })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+
+app.post('/api/profit-tracking/orders/:id/apply-rates', authMiddleware, requireManager, async c => {
+  try {
+    await ensureProfitTrackingTable()
+    await ensureCompanyProfitRatesColumns()
+    const orderId = Number(c.req.param('id'))
+    if (!Number.isFinite(orderId)) return c.json({ error: 'Invalid order id' }, 400)
+    const order = await queryOne<any>('SELECT id, po_number FROM customer_orders WHERE id=?', [orderId])
+    if (!order) return c.json({ error: 'Order not found' }, 404)
+
+    const row = await queryOne<any>(
+      'SELECT COALESCE(SUM(qty * unit_price), 0) as revenue FROM customer_order_items WHERE order_id=?',
+      [orderId]
+    )
+    const revenue = toAmount(row?.revenue)
+    const cfg = await queryOne<any>(`
+      SELECT operating_cost_rate, vat_rate, cit_rate
+      FROM company_settings
+      WHERE id=1
+    `)
+    const operating_cost_rate = toRate(cfg?.operating_cost_rate)
+    const vat_rate = toRate(cfg?.vat_rate)
+    const cit_rate = toRate(cfg?.cit_rate)
+
+    const operatingCost = pctAmount(revenue, operating_cost_rate)
+    const salesTax = pctAmount(revenue, vat_rate)
+    const incomeTax = pctAmount(revenue, cit_rate)
+
+    await execute(
+      `DELETE FROM order_profit_entries
+       WHERE order_id=? AND category IN ('operating_cost','sales_tax','income_tax') AND description LIKE ?`,
+      [orderId, `${AUTO_RATE_PREFIX}%`]
+    )
+
+    const u = c.get('user')
+    let inserted = 0
+    const insertRow = async (category: string, amount: number, description: string) => {
+      if (amount <= 0) return
+      inserted += 1
+      await execute(
+        'INSERT INTO order_profit_entries (order_id,category,description,amount,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?)',
+        [orderId, category, description, amount, '', u.userId, now8()]
+      )
+    }
+    await insertRow('operating_cost', operatingCost, `${AUTO_RATE_PREFIX}營運成本 (${operating_cost_rate}%)`)
+    await insertRow('sales_tax', salesTax, `${AUTO_RATE_PREFIX}營業稅 (${vat_rate}%)`)
+    await insertRow('income_tax', incomeTax, `${AUTO_RATE_PREFIX}所得稅 (${cit_rate}%)`)
+
+    await audit(
+      u,
+      'UPDATE',
+      '利潤追蹤',
+      orderId,
+      `${order.po_number} auto-rates revenue=${revenue} op=${operatingCost} vat=${salesTax} cit=${incomeTax}`
+    )
+    return c.json({
+      ok: true,
+      inserted,
+      revenue,
+      rates: { operating_cost_rate, vat_rate, cit_rate },
+      amounts: { operating_cost: operatingCost, sales_tax: salesTax, income_tax: incomeTax },
     })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })

@@ -77,6 +77,12 @@ type ProfitDetail = {
   summary: ProfitSummary
 }
 
+type ProfitRateConfig = {
+  operating_cost_rate: number
+  vat_rate: number
+  cit_rate: number
+}
+
 const STATUS_LABEL: Record<string, string> = {
   pending: '待出貨',
   partial: '部分出貨',
@@ -116,6 +122,9 @@ export default function ProfitTrackingPage() {
     remark: '',
   })
   const [savingEntry, setSavingEntry] = useState(false)
+  const [rateConfig, setRateConfig] = useState<ProfitRateConfig>({ operating_cost_rate: 0, vat_rate: 0, cit_rate: 0 })
+  const [savingConfig, setSavingConfig] = useState(false)
+  const [applyingRates, setApplyingRates] = useState(false)
 
   const loadOrders = async (nextSearch = search, nextStatus = status) => {
     setLoading(true)
@@ -149,6 +158,19 @@ export default function ProfitTrackingPage() {
     }
   }
 
+  const loadRateConfig = async () => {
+    try {
+      const data = await apiFetch<ProfitRateConfig>('/api/profit-tracking/config')
+      setRateConfig({
+        operating_cost_rate: Number(data.operating_cost_rate || 0),
+        vat_rate: Number(data.vat_rate || 0),
+        cit_rate: Number(data.cit_rate || 0),
+      })
+    } catch (e: any) {
+      toast('載入比例參數失敗：' + e.message, 'error')
+    }
+  }
+
   useEffect(() => {
     const user = getUser()
     if (!user || user.role !== 'manager') {
@@ -156,6 +178,7 @@ export default function ProfitTrackingPage() {
       return
     }
     loadOrders()
+    loadRateConfig()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router])
 
@@ -209,6 +232,49 @@ export default function ProfitTrackingPage() {
       toast('已刪除')
     } catch (e: any) {
       toast('刪除失敗：' + e.message, 'error')
+    }
+  }
+
+  const saveRateConfig = async () => {
+    setSavingConfig(true)
+    try {
+      const payload = {
+        operating_cost_rate: Math.max(0, Math.min(100, Number(rateConfig.operating_cost_rate) || 0)),
+        vat_rate: Math.max(0, Math.min(100, Number(rateConfig.vat_rate) || 0)),
+        cit_rate: Math.max(0, Math.min(100, Number(rateConfig.cit_rate) || 0)),
+      }
+      const data = await apiFetch<ProfitRateConfig & { ok: boolean }>('/api/profit-tracking/config', {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      })
+      setRateConfig({
+        operating_cost_rate: Number(data.operating_cost_rate || 0),
+        vat_rate: Number(data.vat_rate || 0),
+        cit_rate: Number(data.cit_rate || 0),
+      })
+      toast('比例參數已儲存')
+    } catch (e: any) {
+      toast('儲存比例參數失敗：' + e.message, 'error')
+    } finally {
+      setSavingConfig(false)
+    }
+  }
+
+  const applyRatesToOrder = async () => {
+    if (!selectedId) { toast('請先選擇訂單', 'error'); return }
+    setApplyingRates(true)
+    try {
+      const data = await apiFetch<{
+        ok: boolean
+        inserted: number
+        amounts: { operating_cost: number; sales_tax: number; income_tax: number }
+      }>(`/api/profit-tracking/orders/${selectedId}/apply-rates`, { method: 'POST' })
+      await Promise.all([loadDetail(selectedId), loadOrders()])
+      toast(`已自動帶入 ${data.inserted} 項：營運 ${money(data.amounts.operating_cost)} / VAT ${money(data.amounts.sales_tax)} / CIT ${money(data.amounts.income_tax)}`)
+    } catch (e: any) {
+      toast('自動帶入失敗：' + e.message, 'error')
+    } finally {
+      setApplyingRates(false)
     }
   }
 
@@ -317,6 +383,56 @@ export default function ProfitTrackingPage() {
                   <div className="text-xs text-slate-500">淨利</div>
                   <div className={`text-2xl font-bold ${(detail.summary.net_profit || 0) >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{money(detail.summary.net_profit)}</div>
                   <div className="text-xs text-slate-400 mt-1">Margin {detail.summary.net_margin.toFixed(2)}%</div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold text-slate-600">自動比例帶入（以訂單收入計）</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-[11px] text-slate-400 mb-1">營運成本%</label>
+                      <input
+                        className="oms-input text-sm"
+                        type="number"
+                        min={0}
+                        max={100}
+                        step="0.01"
+                        value={rateConfig.operating_cost_rate}
+                        onChange={e => setRateConfig(p => ({ ...p, operating_cost_rate: Number(e.target.value) }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-slate-400 mb-1">VAT%</label>
+                      <input
+                        className="oms-input text-sm"
+                        type="number"
+                        min={0}
+                        max={100}
+                        step="0.01"
+                        value={rateConfig.vat_rate}
+                        onChange={e => setRateConfig(p => ({ ...p, vat_rate: Number(e.target.value) }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-slate-400 mb-1">CIT%</label>
+                      <input
+                        className="oms-input text-sm"
+                        type="number"
+                        min={0}
+                        max={100}
+                        step="0.01"
+                        value={rateConfig.cit_rate}
+                        onChange={e => setRateConfig(p => ({ ...p, cit_rate: Number(e.target.value) }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button className="btn-ghost border border-slate-200 justify-center" disabled={savingConfig} onClick={saveRateConfig}>
+                      {savingConfig ? '儲存中...' : '儲存比例參數'}
+                    </button>
+                    <button className="btn-primary justify-center" disabled={applyingRates || !selectedId} onClick={applyRatesToOrder}>
+                      {applyingRates ? '帶入中...' : '套用到目前訂單'}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
