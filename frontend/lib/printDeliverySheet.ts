@@ -35,7 +35,7 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
       <td style="text-align:center">${idx + 1}</td>
       <td style="font-family:monospace">${txt(item.po_ref || orderRef)}</td>
       <td style="font-family:monospace;color:#1847b8">${txt(item.material_code)}</td>
-      <td>${txt(item.item_name)}</td>
+      <td class="col-name">${txt(item.item_name)}</td>
       <td>${txt(item.spec)}</td>
       <td style="text-align:center">${txt(item.unit) || 'PCS'}</td>
       <td style="text-align:center">${fmt(item.qty)}</td>
@@ -67,6 +67,7 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
     .qty{text-align:center;font-weight:700}
     .total td{font-weight:700;background:#fafafa}
     .right{text-align:right}
+    .col-name{min-width:190px;word-break:break-word;line-height:1.35}
     @media print{body{padding:0}@page{size:A4;margin:8mm}}
   </style></head><body><div class="wrap">
     <div class="head">
@@ -95,13 +96,13 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
       <thead>
         <tr>
           <th style="width:48px">序號<span class="sub">SỐ TT</span></th>
-          <th style="width:140px">訂單編號<span class="sub">Mã đơn đặt</span></th>
-          <th style="width:140px">物料編號<span class="sub">Mã vật liệu</span></th>
+          <th style="width:112px">訂單編號<span class="sub">Mã đơn đặt</span></th>
+          <th style="width:112px">物料編號<span class="sub">Mã vật liệu</span></th>
           <th>品名<span class="sub">Tên hàng</span></th>
-          <th style="width:120px">規格<span class="sub">Qui cách</span></th>
+          <th style="width:96px">規格<span class="sub">Qui cách</span></th>
           <th style="width:72px">單位<span class="sub">Đơn vị</span></th>
           <th style="width:88px">交貨量<span class="sub">Số lượng</span></th>
-          <th style="width:120px">備註<span class="sub">Ghi chú</span></th>
+          <th style="width:96px">備註<span class="sub">Ghi chú</span></th>
         </tr>
       </thead>
       <tbody>
@@ -117,4 +118,3 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
 
   return html
 }
-

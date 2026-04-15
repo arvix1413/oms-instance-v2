@@ -30,7 +30,7 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
       '<td style="text-align:center">' + (i+1) + '</td>',
       '<td style="font-family:monospace;font-size:10px;color:#1a56db">' + txt(item.po_ref || orderRef) + '</td>',
       '<td style="font-family:monospace;font-size:10px;color:#1a56db">' + txt(item.material_code) + '</td>',
-      '<td>' + txt(item.item_name) + '</td>',
+      '<td class="col-name">' + txt(item.item_name) + '</td>',
       '<td style="color:#555;font-size:10px">' + txt(item.spec) + '</td>',
       '<td style="text-align:center">' + (txt(item.unit) || 'PCS') + '</td>',
       '<td style="text-align:right;font-weight:600">' + fmt(item.qty) + '</td>',
@@ -59,6 +59,7 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
   parts.push('table.items th{border:1px solid #555;background:#e8e8e8;padding:6px 6px;text-align:center;font-size:10px;font-weight:600;color:#000}')
   parts.push('table.items td{border:1px solid #bbb;padding:5px 6px;font-size:11px;font-weight:400;color:#000}')
   parts.push('table.items tbody tr:nth-child(even){background:#fafafa}')
+  parts.push('table.items .col-name{min-width:170px;word-break:break-word;line-height:1.35}')
   parts.push('.total-row td{border:1px solid #555;background:#efefef;font-weight:600;font-size:11px;padding:6px 8px}')
   parts.push('.notes-box{border:1px solid #bbb;padding:6px 10px;margin-bottom:5mm;font-size:10px;font-weight:400}')
   parts.push('.notes-title{font-weight:600;margin-bottom:3px;font-size:10px}')
@@ -89,13 +90,13 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
   parts.push('<table class="items">')
   parts.push('<thead><tr>')
   parts.push('<th style="width:28px">ST</th>')
-  parts.push('<th style="width:85px">訂單編號</th>')
-  parts.push('<th style="width:85px">物料編號</th>')
+  parts.push('<th style="width:78px">訂單編號</th>')
+  parts.push('<th style="width:78px">物料編號</th>')
   parts.push('<th style="min-width:120px">品名</th>')
-  parts.push('<th style="width:80px">規格</th>')
+  parts.push('<th style="width:72px">規格</th>')
   parts.push('<th style="width:45px">單位</th>')
   parts.push('<th style="width:60px">數量</th>')
-  parts.push('<th style="width:80px">備註</th>')
+  parts.push('<th style="width:68px">備註</th>')
   parts.push('</tr></thead>')
   parts.push('<tbody>')
   parts.push(itemRows)
