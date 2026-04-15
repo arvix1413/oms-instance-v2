@@ -7,6 +7,7 @@ import { can } from '@/lib/usePermissions'
 import { useRouter } from 'next/navigation'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { validate } from '@/lib/validate'
+import FieldLockHint from '@/components/FieldLockHint'
 
 type User = { id: number; email: string; name: string; role: Role; created_at: string }
 const empty = (): Partial<User> & { password?: string } => ({ email:'', name:'', role:'employee', password:'' })
@@ -83,6 +84,7 @@ export default function UsersPage() {
   }
 
   const inp = 'oms-input'
+  const lockedInp = `${inp} bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed`
   const me = getUser()
   const filtered = users.filter(u => !search || u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()))
   const { page, setPage, totalPages, paged, total } = usePagination(filtered, 20)
@@ -119,10 +121,13 @@ export default function UsersPage() {
           <h2 className="font-semibold mb-4 text-lg">{editing.id ? '編輯使用者資料' : '新增使用者'}</h2>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium mb-1 text-gray-700">電子郵件 *</label>
-              <input type="email" className={inp} value={editing.email||''} onChange={e=>setEditing(p=>({...p,email:e.target.value}))}
+              <label className="block text-xs font-medium mb-1 text-gray-700 flex items-center gap-1.5">
+                電子郵件 *
+                {editing.id && <FieldLockHint title="帳號建立後不可修改" />}
+              </label>
+              <input type="email" className={editing.id ? lockedInp : inp} value={editing.email||''} onChange={e=>setEditing(p=>({...p,email:e.target.value}))}
                 disabled={!!editing.id} placeholder="user@company.com" />
-              {editing.id && <p className="text-xs text-slate-300 mt-1">電子郵件不可修改</p>}
+              {editing.id && <p className="text-[10px] text-slate-400 mt-1">電子郵件建立後不可修改</p>}
             </div>
             <div>
               <label className="block text-xs font-medium mb-1 text-gray-700">姓名 *</label>

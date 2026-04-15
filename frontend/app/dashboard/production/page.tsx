@@ -6,6 +6,7 @@ import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, PROD_STEPS, getProdActions } from '@/components/StatusFlow'
 import { can } from '@/lib/usePermissions'
 import { getCompany } from '@/lib/useCompany'
+import FieldLockHint from '@/components/FieldLockHint'
 
 type ProdMat = {
   material_code: string; material_name: string; spec: string; unit: string
@@ -355,14 +356,18 @@ export default function ProductionPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">成品 BOM</label>
-                <select className="oms-input" value={editForm.bom_id} onChange={e => {
+                <label className="block text-xs font-medium text-slate-600 mb-1.5 flex items-center gap-1.5">
+                  成品 BOM
+                  <FieldLockHint title="生產單建立後不可更換 BOM" />
+                </label>
+                <select className="oms-input bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed" value={editForm.bom_id} disabled onChange={e => {
                   const bom = boms.find(b => String(b.id) === e.target.value)
                   setEditForm(p => ({ ...p, bom_id: e.target.value, product_sku: bom?.product_sku || p.product_sku, product_name: bom?.product_name || p.product_name }))
                 }}>
                   <option value="">-- 選擇 BOM --</option>
                   {boms.map(b => <option key={b.id} value={String(b.id)}>{b.product_sku} — {b.product_name}</option>)}
                 </select>
+                <p className="text-[10px] text-slate-400 mt-1">生產單建立後不可更換 BOM</p>
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1.5">生產數量</label>
