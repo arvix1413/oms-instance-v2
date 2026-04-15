@@ -623,6 +623,12 @@ export default function PoPage() {
                                 else await changeStatus(p.id, toStatus, { stopPropagation: ()=>{} } as any)
                               }} />
                             <button onClick={e => { e.stopPropagation(); printPo(p.id, p.po_number, p.supplier_name) }} className="btn-ghost ml-1" title="列印">🖨 列印</button>
+                            {canWrite && p.status === 'draft' && (
+                              <button onClick={e => startEdit(p, e)} className="btn-ghost text-blue-600">✏ 編輯</button>
+                            )}
+                            {canDel && (
+                              <button onClick={e => del(p.id, e)} className="btn-danger">刪除</button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -678,15 +684,6 @@ export default function PoPage() {
                                   </table>
                                 </div>
                               )}
-                              {/* Edit/Delete actions in expanded row - always show */}
-                              <div className="expand-row-actions">
-                                {canWrite && p.status === 'draft' && (
-                                  <button onClick={e => startEdit(p, e)} className="btn-ghost text-blue-600 text-xs">✏ 編輯採購單</button>
-                                )}
-                                {canDel && (
-                                  <button onClick={e => del(p.id, e)} className="btn-danger text-xs">刪除</button>
-                                )}
-                              </div>
                             </div>
                           </td>
                         </tr>

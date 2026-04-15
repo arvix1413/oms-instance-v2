@@ -432,6 +432,12 @@ export default function CustomerOrdersPage() {
                         <td className="px-4 py-3" onClick={e=>e.stopPropagation()}>
                           <div className="flex gap-1">
                             <button onClick={e=>{e.stopPropagation();printOrder(o.id)}} className="btn-ghost" title="列印">🖨 列印</button>
+                            {canWrite && o.status !== 'completed' && (
+                              <button onClick={e=>{e.stopPropagation();startEdit(o)}} className="btn-ghost text-blue-600">✏ 編輯</button>
+                            )}
+                            {canDel && (
+                              <button onClick={e=>{e.stopPropagation();del(o.id)}} className="btn-danger">刪除</button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -475,15 +481,6 @@ export default function CustomerOrdersPage() {
                                   </tbody>
                                 </table>
                               )}
-                              {/* Edit/Delete in expanded row */}
-                              <div className="expand-row-actions">
-                                {canWrite && o.status !== 'completed' && (
-                                  <button onClick={e=>{e.stopPropagation();startEdit(o)}} className="btn-ghost text-blue-600 text-xs">✏ 編輯訂單</button>
-                                )}
-                                {canDel && (
-                                  <button onClick={()=>del(o.id)} className="btn-danger text-xs">刪除</button>
-                                )}
-                              </div>
                             </div>
                           </td>
                         </tr>

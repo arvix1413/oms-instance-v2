@@ -541,6 +541,11 @@ export default function QuotationsPage() {
                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center gap-1">
                             <button onClick={e=>{ e.stopPropagation(); printQuotation(q.id, q) }} className="btn-ghost" title="列印">🖨 列印</button>
+                            {q.status==='draft' && <button onClick={e=>startEdit(q,e)} className="btn-ghost text-blue-600">✏ 編輯</button>}
+                            {q.status==='draft' && <button onClick={e=>changeStatus(q.id,'sent',e)} className="btn-ghost">送出</button>}
+                            {q.status==='sent' && <button onClick={e=>changeStatus(q.id,'accepted',e)} className="btn-ghost text-emerald-600">接受</button>}
+                            {q.status==='sent' && <button onClick={e=>changeStatus(q.id,'rejected',e)} className="btn-danger">拒絕</button>}
+                            <button onClick={e=>del(q.id,e)} className="btn-danger">刪除</button>
                           </div>
                         </td>
                       </tr>
@@ -598,16 +603,6 @@ export default function QuotationsPage() {
                                   </table>
                                 </div>
                               )}
-                              {/* Action bar */}
-                              <div className="expand-row-actions">
-                                {q.status==='draft' && <button onClick={e=>startEdit(q,e)} className="btn-ghost text-blue-600 text-xs">✏ 編輯</button>}
-                                {q.status==='draft' && <button onClick={e=>changeStatus(q.id,'sent',e)} className="btn-ghost text-xs">送出</button>}
-                                {q.status==='sent' && <>
-                                  <button onClick={e=>changeStatus(q.id,'accepted',e)} className="btn-ghost text-emerald-600 text-xs">接受</button>
-                                  <button onClick={e=>changeStatus(q.id,'rejected',e)} className="btn-danger text-xs">拒絕</button>
-                                </>}
-                                <button onClick={e=>del(q.id,e)} className="btn-danger text-xs">刪除</button>
-                              </div>
                             </div>
                           </td>
                         </tr>

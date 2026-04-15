@@ -400,6 +400,8 @@ export default function DeliveryNotesPage() {
                               onAction={(toStatus) => changeStatus(dn.id, toStatus)} />
                             {actionLoading === dn.id && <span className="text-xs text-slate-400 px-1">處理中...</span>}
                             <button onClick={e => { e.stopPropagation(); printDN(dn) }} className="btn-ghost" title="列印">🖨 列印</button>
+                            {canWrite && dn.status === 'draft' && <button onClick={e => { e.stopPropagation(); startEditDN(dn) }} className="btn-ghost text-blue-600">✏ 編輯</button>}
+                            {canDel && <button onClick={e => { e.stopPropagation(); del(dn.id) }} className="btn-danger">刪除</button>}
                           </div>
                         </td>
                       </tr>
@@ -434,11 +436,6 @@ export default function DeliveryNotesPage() {
                                   </table>
                                 </div>
                               )}
-                              {/* Action bar */}
-                              <div className="expand-row-actions">
-                                {canWrite && dn.status === 'draft' && <button onClick={() => startEditDN(dn)} className="btn-ghost text-blue-600 text-xs">✏ 編輯</button>}
-                                {canDel && <button onClick={() => del(dn.id)} className="btn-danger text-xs">刪除</button>}
-                              </div>
                             </div>
                           </td>
                         </tr>

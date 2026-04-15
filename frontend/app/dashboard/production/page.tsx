@@ -458,8 +458,11 @@ export default function ProductionPage() {
                               actions={getProdActions(p.status)}
                               onAction={(toStatus) => changeStatus(p.id, toStatus, toStatus === 'completed' ? p.planned_qty : undefined)} />
                             <button onClick={e => { e.stopPropagation(); printProd(p) }} className="btn-ghost" title="列印">🖨 列印</button>
+                            {canWrite && ['draft','confirmed','shortage'].includes(p.status) && (
+                              <button onClick={e => { e.stopPropagation(); startEditProd(p) }} className="btn-ghost text-blue-600">✏ 編輯</button>
+                            )}
                             {p.status === 'draft' && canDel && (
-                              <button onClick={e => { e.stopPropagation(); del(p.id, p.prod_number) }} className="btn-danger text-xs">刪除</button>
+                              <button onClick={e => { e.stopPropagation(); del(p.id, p.prod_number) }} className="btn-danger">刪除</button>
                             )}
                           </div>
                         </td>
@@ -501,15 +504,6 @@ export default function ProductionPage() {
                                 </div>
                               )
                               })()}
-                              {/* Action bar */}
-                              <div className="expand-row-actions">
-                                {canWrite && ['draft','confirmed','shortage'].includes(p.status) && (
-                                  <button onClick={() => startEditProd(p)} className="btn-ghost text-blue-600 text-xs">✏ 編輯</button>
-                                )}
-                                {p.status === 'draft' && canDel && (
-                                  <button onClick={() => del(p.id, p.prod_number)} className="btn-danger text-xs">刪除</button>
-                                )}
-                              </div>
                             </div>
                           </td>
                         </tr>
