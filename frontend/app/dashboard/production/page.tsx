@@ -461,7 +461,7 @@ export default function ProductionPage() {
                             {canWrite && ['draft','confirmed','shortage'].includes(p.status) && (
                               <button onClick={e => { e.stopPropagation(); startEditProd(p) }} className="btn-ghost text-blue-600">✏ 編輯</button>
                             )}
-                            {p.status === 'draft' && canDel && (
+                            {canDel && (
                               <button onClick={e => { e.stopPropagation(); del(p.id, p.prod_number) }} className="btn-danger">刪除</button>
                             )}
                           </div>

@@ -213,7 +213,7 @@ export default function GoodsReceiptsPage() {
                           actions={getGRActions(gr.status)}
                           onAction={() => confirm(gr.id)} />
                         <button onClick={() => viewGR(gr.id)} className="btn-ghost ml-1">詳情</button>
-                        {gr.status === 'draft' && <button onClick={() => del(gr.id)} className="btn-danger">刪除</button>}
+                        <button onClick={() => del(gr.id)} className="btn-danger">刪除</button>
                       </div>
                     </td>
                   </tr>

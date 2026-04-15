@@ -616,7 +616,6 @@ app.delete('/api/po/:id', authMiddleware, requirePerm('po.delete'), async c => {
     const id = c.req.param('id')
     const row = await queryOne<any>('SELECT po_number, status FROM purchase_orders WHERE id=?', [id])
     if (!row) return c.json({ error: 'Not found' }, 404)
-    if (row.status === 'received') return c.json({ error: '已收貨的採購單不能刪除（庫存已更新）' }, 400)
     await execute('DELETE FROM po_items WHERE po_id=?', [id])
     await execute('DELETE FROM purchase_orders WHERE id=?', [id])
     await audit(c.get('user'), 'DELETE', '採購單', id, row?.po_number)
@@ -831,9 +830,6 @@ app.put('/api/customer-orders/:id', authMiddleware, requirePerm('customer_order.
 app.delete('/api/customer-orders/:id', authMiddleware, requirePerm('customer_order.delete'), async c => {
   try {
     const id = c.req.param('id')
-    // Check if any delivery note is already shipped — can't delete
-    const shippedDN = await queryOne<any>('SELECT COUNT(*) as cnt FROM delivery_notes WHERE customer_order_id=? AND status="shipped"', [id])
-    if ((shippedDN?.cnt || 0) > 0) return c.json({ error: '此訂單已有出貨記錄，無法刪除' }, 400)
     const row = await queryOne<any>(`
       SELECT co.po_number, c.customer_name
       FROM customer_orders co LEFT JOIN customers c ON co.customer_id = c.id
@@ -1817,7 +1813,6 @@ app.patch('/api/goods-receipts/:id/confirm', authMiddleware, requirePerm('po.app
 app.delete('/api/goods-receipts/:id', authMiddleware, requirePerm('po.delete'), async c => {
   const id = c.req.param('id')
   const row = await queryOne<any>('SELECT gr_number,status FROM goods_receipts WHERE id=?', [id])
-  if (row?.status === 'confirmed') return c.json({ error: '已確認的進貨單不能刪除' }, 400)
   await execute('DELETE FROM goods_receipt_items WHERE gr_id=?', [id])
   await execute('DELETE FROM goods_receipts WHERE id=?', [id])
   await audit(c.get('user'), 'DELETE', '進貨單', id, row?.gr_number)
@@ -1941,7 +1936,6 @@ app.patch('/api/production/:id/status', authMiddleware, requirePerm('production.
 app.delete('/api/production/:id', authMiddleware, requirePerm('production.delete'), async c => {
   const id = c.req.param('id')
   const row = await queryOne<any>('SELECT prod_number,status FROM production_orders WHERE id=?', [id])
-  if (row?.status === 'completed') return c.json({ error: '已完成的生產單不能刪除' }, 400)
   await execute('DELETE FROM production_materials WHERE prod_id=?', [id])
   await execute('DELETE FROM production_orders WHERE id=?', [id])
   await audit(c.get('user'), 'DELETE', '生產單', id, row?.prod_number)
@@ -2023,7 +2017,6 @@ app.patch('/api/stock-adjustments/:id/approve', authMiddleware, requirePerm('sto
 app.delete('/api/stock-adjustments/:id', authMiddleware, requirePerm('stock.adjust'), async c => {
   const id = c.req.param('id')
   const row = await queryOne<any>('SELECT adj_number,status FROM stock_adjustments WHERE id=?', [id])
-  if (row?.status === 'approved') return c.json({ error: '已核准的調整單不能刪除' }, 400)
   await execute('DELETE FROM stock_adjustment_items WHERE adj_id=?', [id])
   await execute('DELETE FROM stock_adjustments WHERE id=?', [id])
   await audit(c.get('user'), 'DELETE', '庫存調整', id, row?.adj_number)

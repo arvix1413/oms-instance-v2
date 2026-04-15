@@ -252,7 +252,7 @@ export default function StockAdjustmentsPage() {
                         <StatusFlow compact steps={ADJ_STEPS} current={a.status} actions={approving === a.id ? [] : getAdjActions(a.status)} onAction={() => approve(a.id)} />
                         {approving === a.id && <span className="text-xs text-slate-400 px-2">處理中...</span>}
                         <button onClick={() => viewAdj(a.id)} className="btn-ghost ml-1">詳情</button>
-                        {a.status === 'draft' && <button onClick={() => del(a.id)} className="btn-danger">刪除</button>}
+                        <button onClick={() => del(a.id)} className="btn-danger">刪除</button>
                       </div>
                     </td>
                   </tr>
