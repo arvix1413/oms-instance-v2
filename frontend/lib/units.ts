@@ -1,15 +1,25 @@
 export const UNIT_OPTIONS = [
-  '捲 roll',
-  '張 sheet',
-  '片 Pcs',
-  '盒 box',
-  '套 Set',
+  'ROLL',
+  'SHEET',
+  'PCS',
+  'BOX',
+  'SET',
 ] as const
 
 export function normalizeUnit(unit?: string): string {
   const val = String(unit || '').trim()
-  if (!val) return '片 Pcs'
-  return UNIT_OPTIONS.includes(val as any) ? val : val
+  if (!val) return 'PCS'
+  const upper = val.toUpperCase()
+  const legacyMap: Record<string, string> = {
+    '捲 ROLL': 'ROLL',
+    '張 SHEET': 'SHEET',
+    '片 PCS': 'PCS',
+    '盒 BOX': 'BOX',
+    '套 SET': 'SET',
+  }
+  if (legacyMap[upper]) return legacyMap[upper]
+  if (UNIT_OPTIONS.includes(upper as any)) return upper
+  return val
 }
 
 export function getUnitOptions(current?: string): string[] {

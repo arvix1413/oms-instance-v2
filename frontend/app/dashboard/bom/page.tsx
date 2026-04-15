@@ -15,7 +15,7 @@ type Bom = {
   cert_code:string; brand:string; image_url:string
 }
 const empty = (): Partial<Bom> => ({
-  product_sku:'', product_name:'', material_name:'', spec:'', unit:'片 Pcs',
+  product_sku:'', product_name:'', material_name:'', spec:'', unit:'PCS',
   supplier_id:null, supplier_name:'', supplier_price:0, company_price:0,
   currency:'VND', category:'', version:'V1', cert_code:'', brand:'', image_url:''
 })
