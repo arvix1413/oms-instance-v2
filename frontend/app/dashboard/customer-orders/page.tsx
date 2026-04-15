@@ -129,7 +129,7 @@ export default function CustomerOrdersPage() {
           unit_price: Number(i.unit_price) || Number(matchedBom?.company_price) || 0,
           remark: (i as any).remark || '',
           spec: i.spec || matchedBom?.spec || '',
-          unit: i.unit || matchedBom?.unit || 'PCS',
+          unit: i.unit || matchedBom?.unit || '',
           product_sku: i.product_sku || matchedBom?.product_sku,
           product_name: i.product_name || matchedBom?.product_name,
           image_url: i.image_url || matchedBom?.image_url,
@@ -330,7 +330,7 @@ export default function CustomerOrdersPage() {
                       <input className={lockedInp} value={item.spec||''} onChange={e=>updateItem(i,'spec',e.target.value)} placeholder="規格" readOnly />
                     </td>
                     <td className="p-1.5 w-20">
-                      <input className={lockedInp} value={item.unit||'PCS'} onChange={e=>updateItem(i,'unit',e.target.value)} readOnly />
+                      <input className={lockedInp} value={item.unit||''} onChange={e=>updateItem(i,'unit',e.target.value)} readOnly />
                     </td>
                     <td className="p-1.5 w-24">
                       <input type="number" className={inp} value={item.qty||''} onChange={e=>updateItem(i,'qty',Number(e.target.value))} />
