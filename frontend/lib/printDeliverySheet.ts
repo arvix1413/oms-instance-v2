@@ -33,13 +33,13 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
   const rows = items.map((item, idx) => `
     <tr>
       <td style="text-align:center">${idx + 1}</td>
-      <td style="font-family:monospace">${txt(item.po_ref || orderRef)}</td>
-      <td style="font-family:monospace;color:#1847b8">${txt(item.material_code)}</td>
+      <td class="col-order" style="font-family:monospace">${txt(item.po_ref || orderRef)}</td>
+      <td class="col-material" style="font-family:monospace;color:#1847b8">${txt(item.material_code)}</td>
       <td class="col-name">${txt(item.item_name)}</td>
-      <td>${txt(item.spec)}</td>
-      <td style="text-align:center">${txt(item.unit) || 'PCS'}</td>
-      <td style="text-align:center">${fmt(item.qty)}</td>
-      <td>${txt(item.remark)}</td>
+      <td class="col-spec">${txt(item.spec)}</td>
+      <td class="col-unit" style="text-align:center">${txt(item.unit) || 'PCS'}</td>
+      <td class="col-qty" style="text-align:center">${fmt(item.qty)}</td>
+      <td class="col-remark">${txt(item.remark)}</td>
     </tr>
   `).join('')
 
@@ -60,14 +60,20 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
     .meta b{display:inline-block;width:92px}
     .cust{font-size:14px;font-weight:700;margin:4px 0}
     .addr{font-size:11px;margin-bottom:4px}
-    table{width:100%;border-collapse:collapse}
+    table{width:100%;border-collapse:collapse;table-layout:fixed}
     th,td{border:1px solid #555;padding:5px 6px;font-size:11px;vertical-align:middle}
     th{background:#f5f5f5;font-weight:700;text-align:center}
     .sub{display:block;font-size:10px;font-weight:500;color:#333;margin-top:1px}
     .qty{text-align:center;font-weight:700}
     .total td{font-weight:700;background:#fafafa}
     .right{text-align:right}
-    .col-name{min-width:190px;word-break:break-word;line-height:1.35}
+    .col-order{width:112px}
+    .col-material{width:112px}
+    .col-spec{width:96px}
+    .col-unit{width:72px}
+    .col-qty{width:88px}
+    .col-remark{width:96px}
+    .col-name{word-break:break-word;line-height:1.35}
     @media print{body{padding:0}@page{size:A4;margin:8mm}}
   </style></head><body><div class="wrap">
     <div class="head">
@@ -96,13 +102,13 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
       <thead>
         <tr>
           <th style="width:48px">序號<span class="sub">SỐ TT</span></th>
-          <th style="width:112px">訂單編號<span class="sub">Mã đơn đặt</span></th>
-          <th style="width:112px">物料編號<span class="sub">Mã vật liệu</span></th>
+          <th class="col-order">訂單編號<span class="sub">Mã đơn đặt</span></th>
+          <th class="col-material">物料編號<span class="sub">Mã vật liệu</span></th>
           <th>品名<span class="sub">Tên hàng</span></th>
-          <th style="width:96px">規格<span class="sub">Qui cách</span></th>
-          <th style="width:72px">單位<span class="sub">Đơn vị</span></th>
-          <th style="width:88px">交貨量<span class="sub">Số lượng</span></th>
-          <th style="width:96px">備註<span class="sub">Ghi chú</span></th>
+          <th class="col-spec">規格<span class="sub">Qui cách</span></th>
+          <th class="col-unit">單位<span class="sub">Đơn vị</span></th>
+          <th class="col-qty">交貨量<span class="sub">Số lượng</span></th>
+          <th class="col-remark">備註<span class="sub">Ghi chú</span></th>
         </tr>
       </thead>
       <tbody>
