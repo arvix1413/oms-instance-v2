@@ -7,13 +7,23 @@ import { usePagination, Pagination } from '@/lib/usePagination'
 import { getCompany } from '@/lib/useCompany'
 
 type MoqTier = { moq: number; price: number }
-type QItem = { item_name:string; material_code:string; spec:string; unit:string; qty:number; unit_price:number; total_price:number; remark:string; moq_tiers:MoqTier[]; image_url?:string }
+type QItem = { bom_id?:number|null; item_name:string; material_code:string; spec:string; unit:string; qty:number; unit_price:number; total_price:number; remark:string; moq_tiers:MoqTier[]; image_url?:string }
 type Q = { id:number; quotation_number:string; customer_name:string; customer_id?:number; status:string; total_amount:number; currency:string; valid_until:string; remark:string; created_at:string; items?:QItem[] }
 type Customer = { id:number; customer_name:string; customer_code:string }
 type BOM = { id:number; product_sku:string; product_name:string; spec:string; unit:string; company_price:number; image_url?:string }
 
 const emptyTiers = (): MoqTier[] => Array.from({length:5}, () => ({ moq: 0, price: 0 }))
-const emptyItem = (): QItem => ({ item_name:'', material_code:'', spec:'', unit:'PCS', qty:0, unit_price:0, total_price:0, remark:'', moq_tiers:emptyTiers(), image_url:'' })
+const emptyItem = (): QItem => ({ bom_id:null, item_name:'', material_code:'', spec:'', unit:'', qty:0, unit_price:0, total_price:0, remark:'', moq_tiers:emptyTiers(), image_url:'' })
+const normalizeTiers = (tiers: any): MoqTier[] => {
+  const src = Array.isArray(tiers) ? tiers : []
+  return Array.from({ length: 5 }, (_, i) => {
+    const t = src[i] || {}
+    return {
+      moq: Number(t.moq) || 0,
+      price: Number(t.price) || 0,
+    }
+  })
+}
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
   draft:    { label:'草稿',   badge:'badge-gray'  },
   sent:     { label:'已送出', badge:'badge-blue'  },
@@ -95,8 +105,10 @@ export default function QuotationsPage() {
   }
   const save = async () => {
     if (!form.customer_name) { toast('請選擇客戶', 'error'); return }
+    const validItems = form.items.filter(item => item.bom_id)
+    if (!validItems.length) { toast('請至少選擇一個 BOM 品項', 'error'); return }
     // Serialize moq_tiers as JSON string for storage, also set unit_price from first tier
-    const itemsToSave = form.items.map(item => {
+    const itemsToSave = validItems.map(item => {
       const activeTiers = item.moq_tiers.filter(t => t.moq > 0 || t.price > 0)
       const firstPrice = activeTiers[0]?.price || item.unit_price || 0
       return {
@@ -138,18 +150,19 @@ export default function QuotationsPage() {
         // Parse moq_tiers from stored moq field (JSON array or legacy number)
         let moq_tiers = emptyTiers()
         if (i.moq_tiers) {
-          moq_tiers = i.moq_tiers
+          moq_tiers = normalizeTiers(i.moq_tiers)
         } else if (i.moq) {
           try {
             const parsed = JSON.parse(String(i.moq))
-            if (Array.isArray(parsed)) moq_tiers = [...parsed, ...emptyTiers()].slice(0,5)
+            if (Array.isArray(parsed)) moq_tiers = normalizeTiers(parsed)
           } catch { /* legacy number, ignore */ }
         }
         return {
+          bom_id: i.bom_id ?? matchedBom?.id ?? null,
           item_name: i.item_name || '',
           material_code: i.material_code || '',
           spec: i.spec || '',
-          unit: i.unit || 'PCS',
+          unit: i.unit || matchedBom?.unit || '',
           qty: Number(i.qty) || 0,
           unit_price: Number(i.unit_price) || 0,
           total_price: Number(i.total_price) || 0,
@@ -342,6 +355,31 @@ export default function QuotationsPage() {
       })
     }))
   }
+  const onSelectBom = (index: number, bomId: string) => {
+    const bom = boms.find(b => String(b.id) === bomId)
+    setForm(p => ({
+      ...p,
+      items: p.items.map((item, i) => {
+        if (i !== index) return item
+        if (!bom) {
+          return { ...item, bom_id: null, material_code: '', item_name: '', spec: '', unit: '', unit_price: 0, image_url: '' }
+        }
+        const firstTier = item.moq_tiers[0]
+        const fallbackPrice = firstTier && firstTier.price > 0 ? firstTier.price : (bom.company_price || 0)
+        return {
+          ...item,
+          bom_id: bom.id,
+          material_code: bom.product_sku,
+          item_name: bom.product_name,
+          spec: bom.spec || '',
+          unit: bom.unit || '',
+          unit_price: fallbackPrice,
+          total_price: (item.qty || 0) * fallbackPrice,
+          image_url: bom.image_url || '',
+        }
+      })
+    }))
+  }
   const parseNum = (raw: string) => {
     if (raw.trim() === '') return 0
     const n = Number(raw)
@@ -429,23 +467,14 @@ export default function QuotationsPage() {
                 {form.items.map((item,i)=>(
                   <tr key={i} className="border-b border-slate-100">
                     <td className="p-1 min-w-[260px]">
-                      <select className={inp} value={item.material_code} onChange={e => {
-                        const bom = boms.find(b => b.product_sku === e.target.value)
-                        if (bom) {
-                          setForm(p => ({ ...p, items: p.items.map((it, idx) => idx !== i ? it : {
-                            ...it, material_code: bom.product_sku, item_name: bom.product_name,
-                            spec: bom.spec || '', unit: bom.unit || 'PCS',
-                            unit_price: bom.company_price || 0, image_url: bom.image_url || '',
-                          })}))
-                        } else { updateItem(i, 'material_code', e.target.value) }
-                      }}>
+                      <select className={inp} value={item.bom_id ? String(item.bom_id) : ''} onChange={e => onSelectBom(i, e.target.value)}>
                         <option value="">-- 選擇 BOM --</option>
-                        {boms.map(b => <option key={b.id} value={b.product_sku}>{b.product_sku} — {b.product_name}</option>)}
+                        {boms.map(b => <option key={b.id} value={String(b.id)}>{b.product_sku} — {b.product_name}</option>)}
                       </select>
                     </td>
-                    <td className="p-1"><input className={inp} style={{width:180}} value={item.item_name} onChange={e=>updateItem(i,'item_name',e.target.value)} /></td>
-                    <td className="p-1"><input className={inp} style={{width:120}} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} /></td>
-                    <td className="p-1"><input className={inp} style={{width:40}} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} /></td>
+                    <td className="p-1"><input className={inp} style={{width:180, backgroundColor:'#f8fafc'}} value={item.item_name} readOnly /></td>
+                    <td className="p-1"><input className={inp} style={{width:120, backgroundColor:'#f8fafc'}} value={item.spec} readOnly /></td>
+                    <td className="p-1"><input className={inp} style={{width:70, backgroundColor:'#f8fafc'}} value={item.unit || ''} readOnly /></td>
                     <td className="p-1 align-top">{renderTierEditor(item, i)}</td>
                     <td className="p-1"><input className={inp} style={{width:180}} value={item.remark} onChange={e=>updateItem(i,'remark',e.target.value)} /></td>
                     <td className="p-1 text-center"><button onClick={()=>removeItem(i)} className="text-slate-300 hover:text-red-600 transition-colors">✕</button></td>
@@ -550,23 +579,14 @@ export default function QuotationsPage() {
                                         {form.items.map((item,i)=>(
                                           <tr key={i} className="border-b border-slate-100">
                                             <td className="p-1 min-w-[260px]">
-                                              <select className={inp} value={item.material_code} onChange={e => {
-                                                const bom = boms.find(b => b.product_sku === e.target.value)
-                                                if (bom) {
-                                                  setForm(p => ({ ...p, items: p.items.map((it, idx) => idx !== i ? it : {
-                                                    ...it, material_code: bom.product_sku, item_name: bom.product_name,
-                                                    spec: bom.spec || '', unit: bom.unit || 'PCS',
-                                                    unit_price: bom.company_price || 0, image_url: bom.image_url || '',
-                                                  })}))
-                                                } else { updateItem(i, 'material_code', e.target.value) }
-                                              }}>
+                                              <select className={inp} value={item.bom_id ? String(item.bom_id) : ''} onChange={e => onSelectBom(i, e.target.value)}>
                                                 <option value="">-- 選擇 BOM --</option>
-                                                {boms.map(b => <option key={b.id} value={b.product_sku}>{b.product_sku} — {b.product_name}</option>)}
+                                                {boms.map(b => <option key={b.id} value={String(b.id)}>{b.product_sku} — {b.product_name}</option>)}
                                               </select>
                                             </td>
-                                            <td className="p-1"><input className={inp} style={{width:180}} value={item.item_name} onChange={e=>updateItem(i,'item_name',e.target.value)} /></td>
-                                            <td className="p-1"><input className={inp} style={{width:120}} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} /></td>
-                                            <td className="p-1"><input className={inp} style={{width:40}} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} /></td>
+                                            <td className="p-1"><input className={inp} style={{width:180, backgroundColor:'#f8fafc'}} value={item.item_name} readOnly /></td>
+                                            <td className="p-1"><input className={inp} style={{width:120, backgroundColor:'#f8fafc'}} value={item.spec} readOnly /></td>
+                                            <td className="p-1"><input className={inp} style={{width:70, backgroundColor:'#f8fafc'}} value={item.unit || ''} readOnly /></td>
                                             <td className="p-1 align-top">{renderTierEditor(item, i)}</td>
                                             <td className="p-1"><input className={inp} style={{width:180}} value={item.remark} onChange={e=>updateItem(i,'remark',e.target.value)} /></td>
                                             <td className="p-1 text-center"><button onClick={()=>removeItem(i)} className="text-slate-300 hover:text-red-600">✕</button></td>

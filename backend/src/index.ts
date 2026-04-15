@@ -520,7 +520,7 @@ app.get('/api/customer-orders', authMiddleware, async c => {
     const whereClause = where.length ? ' WHERE ' + where.join(' AND ') : ''
     const orders = await query(`
       SELECT co.id, co.po_date, co.po_number, co.customer_id, co.status, co.remark, co.created_at,
-             COALESCE(co.tax_rate, 8) as tax_rate, 
+             COALESCE(co.tax_rate, 0) as tax_rate,
              COALESCE(co.tax_amount, 0) as tax_amount, 
              COALESCE(co.total_amount, 0) as total_amount, 
              COALESCE(co.currency, 'VND') as currency,
@@ -583,7 +583,7 @@ app.get('/api/customer-orders/:id', authMiddleware, async c => {
     WHERE co.id=?`, [c.req.param('id')])
   if (!order) return c.json({ error: 'Not found' }, 404)
   const items = await query(`
-    SELECT ci.id, ci.order_id, ci.bom_id, ci.qty, ci.unit_price, ci.rta_date,
+    SELECT ci.id, ci.order_id, ci.bom_id, ci.qty, ci.unit_price, ci.rta_date, ci.remark,
            ci.arrived_qty, ci.arrived_date, ci.balance, ci.status,
            b.product_sku, b.product_name, b.version, b.spec, b.unit
     FROM customer_order_items ci
@@ -596,11 +596,11 @@ app.post('/api/customer-orders', authMiddleware, requirePerm('customer_order.cre
     const b = await c.req.json()
     if (!b.po_number || !b.customer_id) return c.json({ error: 'po_number and customer_id required' }, 400)
     const cust = await queryOne<any>('SELECT customer_name, payment_terms FROM customers WHERE id=?', [b.customer_id])
-    // Calculate tax and total
+    // No tax for customer orders
     const subtotal = (b.items||[]).reduce((s: number, i: any) => s + (i.qty||0) * (i.unit_price||0), 0)
-    const taxRate = parseFloat(b.tax_rate) || 0
-    const taxAmount = Math.round(subtotal * taxRate / 100 * 100) / 100
-    const totalAmount = subtotal + taxAmount
+    const taxRate = 0
+    const taxAmount = 0
+    const totalAmount = subtotal
     const r = await execute('INSERT INTO customer_orders (po_date,po_number,customer_id,status,remark,tax_rate,tax_amount,total_amount,currency,delivery_date,delivery_address,person_in_charge,payment_terms,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
       [b.po_date||null, b.po_number, b.customer_id, b.status||'pending', b.remark||'',
        taxRate, taxAmount, totalAmount, b.currency||'VND',
@@ -610,8 +610,8 @@ app.post('/api/customer-orders', authMiddleware, requirePerm('customer_order.cre
     if (b.items?.length) {
       for (const item of b.items) {
         if (!item.bom_id) continue  // skip items without BOM
-        await execute('INSERT INTO customer_order_items (order_id,bom_id,qty,unit_price,rta_date,arrived_qty,balance,status) VALUES (?,?,?,?,?,?,?,?)',
-          [orderId, item.bom_id, item.qty||0, item.unit_price||0, item.rta_date||null, 0, item.qty||0, 'pending'])
+        await execute('INSERT INTO customer_order_items (order_id,bom_id,qty,unit_price,rta_date,remark,arrived_qty,balance,status) VALUES (?,?,?,?,?,?,?,?,?)',
+          [orderId, item.bom_id, item.qty||0, item.unit_price||0, null, item.remark||'', 0, item.qty||0, 'pending'])
       }
     }
     await audit(c.get('user'), 'CREATE', '客戶訂單', orderId, `${b.po_number} / ${cust?.customer_name||b.customer_id}`)
@@ -658,9 +658,9 @@ app.put('/api/customer-orders/:id', authMiddleware, requirePerm('customer_order.
     if (!existing) return c.json({ error: 'Not found' }, 404)
     if (existing.status === 'completed') return c.json({ error: '已完成的訂單不能修改' }, 400)
     const subtotal = (b.items||[]).reduce((s: number, i: any) => s + (i.qty||0) * (i.unit_price||0), 0)
-    const taxRate = parseFloat(b.tax_rate) || 0
-    const taxAmount = Math.round(subtotal * taxRate / 100 * 100) / 100
-    const totalAmount = subtotal + taxAmount
+    const taxRate = 0
+    const taxAmount = 0
+    const totalAmount = subtotal
     await execute('UPDATE customer_orders SET po_date=?,po_number=?,customer_id=?,remark=?,tax_rate=?,tax_amount=?,total_amount=?,currency=?,delivery_date=?,delivery_address=?,person_in_charge=?,payment_terms=? WHERE id=?',
       [b.po_date||null, b.po_number, b.customer_id, b.remark||'', taxRate, taxAmount, totalAmount, b.currency||'VND', b.delivery_date||null, b.delivery_address||'', b.person_in_charge||'', b.payment_terms||'', id])
     // Replace items
@@ -668,8 +668,8 @@ app.put('/api/customer-orders/:id', authMiddleware, requirePerm('customer_order.
     if (b.items?.length) {
       for (const item of b.items) {
         if (!item.bom_id) continue
-        await execute('INSERT INTO customer_order_items (order_id,bom_id,qty,unit_price,rta_date,arrived_qty,balance,status) VALUES (?,?,?,?,?,?,?,?)',
-          [id, item.bom_id, item.qty||0, item.unit_price||0, item.rta_date||null, 0, item.qty||0, 'pending'])
+        await execute('INSERT INTO customer_order_items (order_id,bom_id,qty,unit_price,rta_date,remark,arrived_qty,balance,status) VALUES (?,?,?,?,?,?,?,?,?)',
+          [id, item.bom_id, item.qty||0, item.unit_price||0, null, item.remark||'', 0, item.qty||0, 'pending'])
       }
     }
     await audit(u, 'UPDATE', '客戶訂單', id, b.po_number)

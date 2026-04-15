@@ -12,8 +12,13 @@ type Bom = {
   currency:string; category:string; version:string; status:string; created_at:string
   cert_code:string; brand:string; image_url:string
 }
+const UNIT_OPTIONS = ['捲 roll', '張 sheet', '片 Pcs'] as const
+const normalizeUnit = (u?: string) => {
+  const val = (u || '').trim()
+  return UNIT_OPTIONS.includes(val as any) ? val : '片 Pcs'
+}
 const empty = (): Partial<Bom> => ({
-  product_sku:'', product_name:'', material_name:'', spec:'', unit:'PCS',
+  product_sku:'', product_name:'', material_name:'', spec:'', unit:'片 Pcs',
   supplier_id:null, supplier_name:'', supplier_price:0, company_price:0,
   currency:'VND', category:'', version:'V1', cert_code:'', brand:'', image_url:''
 })
@@ -136,7 +141,13 @@ export default function BomPage() {
               </div>
               <div>
                 <label className="block text-[11px] text-slate-500 mb-1.5">單位</label>
-                <input className={inp} value={editing.unit||'PCS'} onChange={e=>setEditing(p=>({...p,unit:e.target.value}))} />
+                <select
+                  className={inp}
+                  value={normalizeUnit(editing.unit)}
+                  onChange={e=>setEditing(p=>({...p,unit:e.target.value}))}
+                >
+                  {UNIT_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}
+                </select>
               </div>
               <div>
                 <label className="block text-[11px] text-slate-500 mb-1.5">分類</label>
@@ -236,7 +247,7 @@ export default function BomPage() {
                       <td className="px-3 py-2.5 text-slate-400 whitespace-nowrap">{b.currency}</td>
                       <td className="px-3 py-2.5 whitespace-nowrap">
                         <div className="flex gap-1">
-                          {canEdit && <button onClick={()=>setEditing(b)} className="btn-ghost text-blue-600">編輯</button>}
+                          {canEdit && <button onClick={()=>setEditing({ ...b, unit: normalizeUnit(b.unit) })} className="btn-ghost text-blue-600">編輯</button>}
                           {canDel && <button onClick={e=>del(b.id,e)} className="btn-danger">刪除</button>}
                         </div>
                       </td>

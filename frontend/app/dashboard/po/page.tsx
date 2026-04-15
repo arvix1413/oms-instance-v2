@@ -21,7 +21,7 @@ const STATUS_MAP: Record<string,{label:string;badge:string}> = {
   cancelled: { label:'已取消', badge:'badge-red'    },
 }
 
-const emptyItem = (): PoItem => ({ material_code:'', material_name:'', spec:'', unit:'PCS', quantity:1, unit_price:0, total_price:0, currency:'VND', remark:'', po_ref:'' })
+const emptyItem = (): PoItem => ({ material_code:'', material_name:'', spec:'', unit:'', quantity:1, unit_price:0, total_price:0, currency:'VND', remark:'', po_ref:'' })
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -70,7 +70,23 @@ export default function PoPage() {
 
   const selectBOM = (i: number, bomId: string) => {
     const bom = getFilteredBoms().find(b => String(b.id) === bomId)
-    if (!bom) return
+    if (!bom) {
+      setForm(p => ({
+        ...p,
+        items: p.items.map((item, idx) => idx !== i ? item : {
+          ...item,
+          bom_id: undefined,
+          material_code: '',
+          material_name: '',
+          spec: '',
+          unit: '',
+          unit_price: 0,
+          image_url: '',
+          total_price: 0,
+        })
+      }))
+      return
+    }
     
     setForm(p => ({
       ...p,
@@ -166,13 +182,15 @@ export default function PoPage() {
 
   const save = async () => {
     if (!form.supplier_id) { toast('請選擇供應商', 'error'); return }
+    const validItems = form.items.filter(i => i.bom_id)
+    if (!validItems.length) { toast('請至少選擇一個 BOM 品項', 'error'); return }
     try {
       if (editingId) {
-        await apiFetch(`/api/po/${editingId}`, { method: 'PUT', body: JSON.stringify(form) })
+        await apiFetch(`/api/po/${editingId}`, { method: 'PUT', body: JSON.stringify({ ...form, items: validItems }) })
         toast('採購單已更新')
         setEditingId(null)
       } else {
-        await apiFetch('/api/po', { method: 'POST', body: JSON.stringify(form) })
+        await apiFetch('/api/po', { method: 'POST', body: JSON.stringify({ ...form, items: validItems }) })
         toast('採購單建立成功')
         setCreating(false)
       }

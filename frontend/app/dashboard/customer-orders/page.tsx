@@ -24,11 +24,11 @@ function getCOActions(status: string) {
   return []
 }
 
-type OrderItem = { id?:number; bom_id:number|null; qty:number; unit_price:number; rta_date:string; arrived_qty?:number; arrived_date?:string; balance?:number; status?:string; product_sku?:string; product_name?:string; spec?:string; unit?:string; image_url?:string }
+type OrderItem = { id?:number; bom_id:number|null; qty:number; unit_price:number; remark:string; arrived_qty?:number; arrived_date?:string; balance?:number; status?:string; product_sku?:string; product_name?:string; spec?:string; unit?:string; image_url?:string }
 type Order = { id:number; po_date:string; po_number:string; customer_id:number; customer_name:string; customer_code:string; status:string; remark:string; created_at:string; items?:OrderItem[]; tax_rate?:number; tax_amount?:number; total_amount?:number; delivery_date?:string; person_in_charge?:string; payment_terms?:string }
 type BOM = { id:number; product_sku:string; product_name:string; company_price?:number; unit?:string; spec?:string; image_url?:string }
 type Customer = { id:number; customer_code:string; customer_name:string }
-const emptyItem = (): OrderItem => ({ bom_id:null, qty:0, unit_price:0, rta_date:'', spec:'', unit:'PCS' })
+const emptyItem = (): OrderItem => ({ bom_id:null, qty:0, unit_price:0, remark:'', spec:'', unit:'' })
 
 const STATUS_BADGE: Record<string,string> = { pending:'badge-yellow', completed:'badge-green', delay:'badge-red', partial:'badge-blue' }
 const STATUS_LABEL: Record<string,string> = { pending:'待出貨', completed:'已完成', delay:'延遲', partial:'部分到貨' }
@@ -54,7 +54,7 @@ export default function CustomerOrdersPage() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [form, setForm] = useState({
     po_date:'', po_number:'', customer_id:'', remark:'',
-    tax_rate: 8, currency: 'VND', delivery_date:'', delivery_address:'', 
+    currency: 'VND', delivery_date:'', delivery_address:'',
     person_in_charge:'', payment_terms:'',
     items:[emptyItem()]
   })
@@ -96,13 +96,13 @@ export default function CustomerOrdersPage() {
     if (!validItems.length) { toast('請至少選擇一個 BOM 品項', 'error'); return }
     try {
       if (editingId) {
-        await apiFetch(`/api/customer-orders/${editingId}`, { method:'PUT', body:JSON.stringify({ ...form, items: validItems }) })
+        await apiFetch(`/api/customer-orders/${editingId}`, { method:'PUT', body:JSON.stringify({ ...form, tax_rate: 0, items: validItems }) })
         toast('訂單已更新'); setEditingId(null)
       } else {
-        await apiFetch('/api/customer-orders', { method:'POST', body:JSON.stringify({ ...form, items: validItems }) })
+        await apiFetch('/api/customer-orders', { method:'POST', body:JSON.stringify({ ...form, tax_rate: 0, items: validItems }) })
         toast('建立成功'); setCreating(false)
       }
-      setForm({ po_date:'', po_number:'', customer_id:'', remark:'', tax_rate:8, currency:'VND', delivery_date:'', delivery_address:'', person_in_charge:'', payment_terms:'', items:[emptyItem()] })
+      setForm({ po_date:'', po_number:'', customer_id:'', remark:'', currency:'VND', delivery_date:'', delivery_address:'', person_in_charge:'', payment_terms:'', items:[emptyItem()] })
       await load()
     } catch(e:any){ toast('錯誤：'+e.message, 'error') }
   }
@@ -114,7 +114,6 @@ export default function CustomerOrdersPage() {
       po_number: order.po_number,
       customer_id: String(order.customer_id),
       remark: order.remark || '',
-      tax_rate: Number(order.tax_rate) || 8,
       currency: (order as any).currency || 'VND',
       delivery_date: order.delivery_date ? String(order.delivery_date).slice(0,10) : '',
       delivery_address: (order as any).delivery_address || '',
@@ -128,7 +127,7 @@ export default function CustomerOrdersPage() {
           bom_id: i.bom_id ?? matchedBom?.id ?? null,
           qty: Number(i.qty),
           unit_price: Number(i.unit_price) || Number(matchedBom?.company_price) || 0,
-          rta_date: i.rta_date ? String(i.rta_date).slice(0,10) : '',
+          remark: (i as any).remark || '',
           spec: i.spec || matchedBom?.spec || '',
           unit: i.unit || matchedBom?.unit || 'PCS',
           product_sku: i.product_sku || matchedBom?.product_sku,
@@ -193,6 +192,15 @@ export default function CustomerOrdersPage() {
       if (bom.spec) updates.spec = bom.spec
       if (bom.unit) updates.unit = bom.unit
       if (bom.image_url) updates.image_url = bom.image_url
+      updates.product_sku = bom.product_sku
+      updates.product_name = bom.product_name
+    } else {
+      updates.unit_price = 0
+      updates.spec = ''
+      updates.unit = ''
+      updates.image_url = ''
+      updates.product_sku = ''
+      updates.product_name = ''
     }
     
     setForm(p => ({
@@ -219,7 +227,7 @@ export default function CustomerOrdersPage() {
           <h1 className="text-xl font-bold text-slate-800">客戶訂單明細</h1>
           <p className="section-hint">點選訂單列展開檢視品項明細</p>
         </div>
-        {canWrite && <button onClick={()=>{ setCreating(true); setEditingId(null); setForm({ po_date:'', po_number:'', customer_id:'', remark:'', tax_rate:8, currency:'VND', delivery_date:'', delivery_address:'', person_in_charge:'', payment_terms:'', items:[emptyItem()] }) }} className="btn-primary">+ 新增訂單</button>}
+        {canWrite && <button onClick={()=>{ setCreating(true); setEditingId(null); setForm({ po_date:'', po_number:'', customer_id:'', remark:'', currency:'VND', delivery_date:'', delivery_address:'', person_in_charge:'', payment_terms:'', items:[emptyItem()] }) }} className="btn-primary">+ 新增訂單</button>}
       </div>
 
       {(creating || editingId !== null) && canWrite && (
@@ -247,7 +255,7 @@ export default function CustomerOrdersPage() {
               </select>
             </div>
             <div>
-              <label className="block text-[11px] text-slate-500 mb-1.5">預計交貨日</label>
+              <label className="block text-[11px] text-slate-500 mb-1.5">交貨日期</label>
               <input type="date" className={inp} value={form.delivery_date} onChange={e=>setForm(p=>({...p,delivery_date:e.target.value}))} />
             </div>
             <div>
@@ -270,16 +278,7 @@ export default function CustomerOrdersPage() {
                 <option value="CNY">CNY</option>
               </select>
             </div>
-            <div>
-              <label className="block text-[11px] text-slate-500 mb-1.5">稅率 (%)</label>
-              <select className={inp} value={form.tax_rate} onChange={e=>setForm(p=>({...p,tax_rate:Number(e.target.value)}))}>
-                <option value={0}>0% (免稅)</option>
-                {Array.from({length: 25}, (_, i) => i + 1).map(n => (
-                  <option key={n} value={n}>{n}%</option>
-                ))}
-              </select>
-            </div>
-            <div className="md:col-span-3">
+            <div className="md:col-span-4">
               <label className="block text-[11px] text-slate-500 mb-1.5">備註（交易條件、特殊要求等）</label>
               <textarea className={inp} rows={3} value={form.remark} onChange={e=>setForm(p=>({...p,remark:e.target.value}))} placeholder="可輸入交易條件、付款方式、交貨要求等資訊..." />
             </div>
@@ -299,7 +298,7 @@ export default function CustomerOrdersPage() {
                 <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">數量</th>
                 <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">單價</th>
                 <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase">小計</th>
-                <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">出貨日期</th>
+                <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">Remark</th>
                 <th className="w-8" />
               </tr></thead>
               <tbody>
@@ -341,8 +340,8 @@ export default function CustomerOrdersPage() {
                     <td className="p-1.5 w-28 text-right">
                       <span className="font-semibold text-slate-700">{((item.qty||0) * (item.unit_price||0)).toLocaleString()}</span>
                     </td>
-                    <td className="p-1.5 w-36">
-                      <input type="date" className={inp} value={item.rta_date} onChange={e=>updateItem(i,'rta_date',e.target.value)} />
+                    <td className="p-1.5 min-w-[180px]">
+                      <input className={inp} value={item.remark || ''} onChange={e=>updateItem(i,'remark',e.target.value)} placeholder="Remark" />
                     </td>
                     <td className="p-1.5 text-center">
                       <button onClick={()=>removeItem(i)} className="text-slate-300 hover:text-red-600 transition-colors">✕</button>
@@ -352,21 +351,19 @@ export default function CustomerOrdersPage() {
               </tbody>
             </table>
           </div>
-          {/* Tax summary */}
+          {/* Summary */}
           {(() => {
             const subtotal = form.items.reduce((s,i) => s + (i.qty||0)*(i.unit_price||0), 0)
-            const taxAmt = Math.round(subtotal * (form.tax_rate||0) / 100 * 100) / 100
             return (
               <div className="flex justify-end mt-3 text-xs text-slate-500 gap-6">
                 <span>小計：<span className="font-semibold text-slate-700">{subtotal.toLocaleString()}</span></span>
-                <span>稅額 ({form.tax_rate}%)：<span className="font-semibold text-slate-700">{taxAmt.toLocaleString()}</span></span>
-                <span>含稅總計：<span className="font-bold text-slate-900 text-sm">{(subtotal+taxAmt).toLocaleString()}</span></span>
+                <span>總計：<span className="font-bold text-slate-900 text-sm">{subtotal.toLocaleString()}</span></span>
               </div>
             )
           })()}
           <div className="flex gap-2 mt-4">
             <button onClick={save} className="btn-primary">{editingId ? '儲存修改' : '建立訂單'}</button>
-            <button onClick={()=>{ setCreating(false); setEditingId(null); setForm({ po_date:'', po_number:'', customer_id:'', remark:'', tax_rate:8, currency:'VND', delivery_date:'', delivery_address:'', person_in_charge:'', payment_terms:'', items:[emptyItem()] }) }} className="btn-ghost border border-slate-200">取消</button>
+            <button onClick={()=>{ setCreating(false); setEditingId(null); setForm({ po_date:'', po_number:'', customer_id:'', remark:'', currency:'VND', delivery_date:'', delivery_address:'', person_in_charge:'', payment_terms:'', items:[emptyItem()] }) }} className="btn-ghost border border-slate-200">取消</button>
           </div>
         </div>
       )}
@@ -396,7 +393,7 @@ export default function CustomerOrdersPage() {
                   <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">客戶</th>
                   <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">訂單日期</th>
                   <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">交貨日</th>
-                  <th className="px-4 py-3 text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider">含稅總計</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider">總計</th>
                   <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">狀態</th>
                   <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">操作</th>
                 </tr>
@@ -444,7 +441,7 @@ export default function CustomerOrdersPage() {
                                     <th className="px-4 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">品名</th>
                                     <th className="px-4 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">數量</th>
                                     <th className="px-4 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">單價</th>
-                                    <th className="px-4 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">出貨日期</th>
+                                    <th className="px-4 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">Remark</th>
                                     <th className="px-4 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">已到數量</th>
                                     <th className="px-4 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">結餘</th>
                                     <th className="px-4 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">狀態</th>
@@ -456,7 +453,7 @@ export default function CustomerOrdersPage() {
                                         <td className="px-4 py-2 text-slate-700 whitespace-nowrap max-w-[200px] truncate" title={item.product_name}>{item.product_name}</td>
                                         <td className="px-4 py-2 text-right font-medium whitespace-nowrap">{Number(item.qty).toLocaleString()}</td>
                                         <td className="px-4 py-2 text-right text-slate-600 whitespace-nowrap">{Number(item.unit_price).toLocaleString()}</td>
-                                        <td className="px-4 py-2 text-slate-400 whitespace-nowrap">{item.rta_date ? String(item.rta_date).slice(0,10) : '—'}</td>
+                                        <td className="px-4 py-2 text-slate-400 whitespace-nowrap">{(item as any).remark || '—'}</td>
                                         <td className="px-4 py-2 text-right text-slate-600 whitespace-nowrap">{Number(item.arrived_qty||0).toLocaleString()}</td>
                                         <td className="px-4 py-2 text-right font-medium whitespace-nowrap">{Number(item.balance||0).toLocaleString()}</td>
                                         <td className="px-4 py-2 whitespace-nowrap">

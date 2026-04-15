@@ -22,9 +22,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
   const logoUrl = co.logo_url ? (co.logo_url.startsWith('http') ? co.logo_url : `${API_BASE}${co.logo_url}`) : null
   const items: any[] = data.items || []
   const subtotal = items.reduce((s: number, i: any) => s + (Number(i.qty)||0) * (Number(i.unit_price)||0), 0)
-  const taxRate = Number(data.tax_rate) || 0
-  const taxAmt = Math.round(subtotal * taxRate / 100 * 100) / 100
-  const total = subtotal + taxAmt
+  const total = subtotal
 
   const itemRows = items.map((item: any, idx: number) => {
     const unitPrice = num(item.unit_price)
@@ -113,8 +111,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
   // Summary
   parts.push('<div class="summary-right">')
   parts.push('<div class="sum-row"><span>小計</span><span>' + fmt(subtotal) + '</span></div>')
-  parts.push('<div class="sum-row"><span>稅額 (' + taxRate + '%)</span><span>' + fmt(taxAmt) + '</span></div>')
-  parts.push('<div class="sum-row"><span>含稅總計</span><span style="font-size:13px;color:#1a56db">' + fmt(total) + ' ' + (txt(data.currency) || 'VND') + '</span></div>')
+  parts.push('<div class="sum-row"><span>總計</span><span style="font-size:13px;color:#1a56db">' + fmt(total) + ' ' + (txt(data.currency) || 'VND') + '</span></div>')
   parts.push('</div>')
 
   // Notes
