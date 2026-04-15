@@ -236,8 +236,8 @@ export default function DeliveryNotesPage() {
               </select>
             </div>
             <div>
-              <label className="block text-[11px] text-slate-500 mb-1.5">或直接搜尋訂單號</label>
-              <input className="oms-input" placeholder="輸入採購單號..." value={poSearch}
+              <label className="block text-[11px] text-slate-500 mb-1.5">或直接搜尋客戶訂單號</label>
+              <input className="oms-input" placeholder="輸入客戶訂單號..." value={poSearch}
                 onChange={e => onSearchPO(e.target.value)} />
             </div>
             <div>
