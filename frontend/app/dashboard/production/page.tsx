@@ -127,8 +127,8 @@ export default function ProductionPage() {
     } catch (e: any) { toast(e.message, 'error') }
   }
 
-  const del = async (id: number) => {
-    if (!await confirmDialog('確定刪除此生產單？')) return
+  const del = async (id: number, prodNumber?: string) => {
+    if (!await confirmDialog('確定刪除此生產單？', prodNumber ? `單號：${prodNumber}` : '')) return
     try { await apiFetch(`/api/production/${id}`, { method: 'DELETE' })
       await load() }
     catch (e: any) { toast(e.message, 'error') }
@@ -458,6 +458,9 @@ export default function ProductionPage() {
                               actions={getProdActions(p.status)}
                               onAction={(toStatus) => changeStatus(p.id, toStatus, toStatus === 'completed' ? p.planned_qty : undefined)} />
                             <button onClick={e => { e.stopPropagation(); printProd(p) }} className="btn-ghost" title="列印">🖨 列印</button>
+                            {p.status === 'draft' && canDel && (
+                              <button onClick={e => { e.stopPropagation(); del(p.id, p.prod_number) }} className="btn-danger text-xs">刪除</button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -504,7 +507,7 @@ export default function ProductionPage() {
                                   <button onClick={() => startEditProd(p)} className="btn-ghost text-blue-600 text-xs">✏ 編輯</button>
                                 )}
                                 {p.status === 'draft' && canDel && (
-                                  <button onClick={() => del(p.id)} className="btn-danger text-xs">刪除</button>
+                                  <button onClick={() => del(p.id, p.prod_number)} className="btn-danger text-xs">刪除</button>
                                 )}
                               </div>
                             </div>
