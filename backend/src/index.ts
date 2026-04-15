@@ -565,8 +565,13 @@ app.put('/api/bom/:id', authMiddleware, requirePerm('bom.edit'), async c => {
 })
 app.delete('/api/bom/:id', authMiddleware, requirePerm('bom.delete'), async c => {
   const id = c.req.param('id')
-  // Check for linked customer orders or PO items
-  const linkedCO = await queryOne<any>('SELECT COUNT(*) as cnt FROM customer_order_items WHERE bom_id=?', [id])
+  // Only active (non-soft-deleted) customer orders should block BOM deletion.
+  const linkedCO = await queryOne<any>(`
+    SELECT COUNT(*) as cnt
+    FROM customer_order_items coi
+    JOIN customer_orders co ON co.id = coi.order_id
+    WHERE coi.bom_id=? AND co.deleted_at IS NULL
+  `, [id])
   if ((linkedCO?.cnt || 0) > 0) return c.json({ error: `此 BOM 有 ${linkedCO.cnt} 筆客戶訂單明細，無法刪除` }, 400)
   const row = await queryOne<any>('SELECT product_sku,product_name FROM bom WHERE id=? AND deleted_at IS NULL', [id])
   if (!row) return c.json({ error: 'Not found' }, 404)
