@@ -270,18 +270,18 @@ export default function PoPage() {
 
     const itemRows = items.map((item, idx) => `
       <tr>
-        <td style="text-align:center">${idx + 1}</td>
-        <td style="text-align:center;font-family:monospace;font-size:10px">${txt(item.po_ref)}</td>
-        <td style="font-family:monospace;font-size:10px;color:#1a56db">${txt(item.material_code)}</td>
-        <td>${txt(item.material_name)}</td>
-        <td style="font-size:10px;color:#555">${txt(item.spec)}</td>
-        <td style="text-align:center">${txt(item.unit) || 'PCS'}</td>
-        <td style="text-align:right;font-weight:600">${fmt(item.quantity)}</td>
-        <td style="text-align:right">${fmt(item.unit_price)}</td>
-        <td style="text-align:right;font-weight:700">${fmt(item.total_price)}</td>
-        <td style="text-align:center">${taxRate}%</td>
-        <td style="text-align:center;font-size:10px">${txt(item.currency) || currency}</td>
-        <td style="font-size:10px;color:#666">${txt(item.remark)}</td>
+        <td class="col-st" style="text-align:center">${idx + 1}</td>
+        <td class="col-poref" style="text-align:center;font-family:monospace;font-size:10px">${txt(item.po_ref)}</td>
+        <td class="col-code" style="font-family:monospace;font-size:10px;color:#1a56db">${txt(item.material_code)}</td>
+        <td class="col-name">${txt(item.material_name)}</td>
+        <td class="col-spec" style="font-size:10px;color:#555">${txt(item.spec)}</td>
+        <td class="col-unit" style="text-align:center">${txt(item.unit) || 'PCS'}</td>
+        <td class="col-qty" style="text-align:right;font-weight:600">${fmt(item.quantity)}</td>
+        <td class="col-price" style="text-align:right">${fmt(item.unit_price)}</td>
+        <td class="col-total" style="text-align:right;font-weight:700">${fmt(item.total_price)}</td>
+        <td class="col-tax" style="text-align:center">${taxRate}%</td>
+        <td class="col-cur" style="text-align:center;font-size:10px">${txt(item.currency) || currency}</td>
+        <td class="col-remark" style="font-size:10px;color:#666">${txt(item.remark)}</td>
       </tr>`).join('')
 
     const html = `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="utf-8"/>
@@ -303,10 +303,22 @@ export default function PoPage() {
       .info-table .lbl { font-weight: 600; background: #f5f5f5; white-space: nowrap; width: 110px; color: #333; line-height: 1.4; }
       .info-table .val { color: #000; }
       /* Items table */
-      table.items { width: 100%; border-collapse: collapse; margin-bottom: 4mm; }
+      table.items { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 4mm; }
       table.items th { border: 1px solid #555; background: #e8e8e8; padding: 5px 4px; text-align: center; font-size: 10px; font-weight: 600; white-space: nowrap; color: #000; }
       table.items td { border: 1px solid #bbb; padding: 5px 5px; font-size: 11px; font-weight: 400; color: #000; }
       table.items tbody tr:nth-child(even) { background: #fafafa; }
+      table.items .col-st { width: 24px; }
+      table.items .col-poref { width: 48px; }
+      table.items .col-code { width: 64px; }
+      table.items .col-name { width: 140px; word-break: break-word; line-height: 1.35; font-weight: 500; }
+      table.items .col-spec { width: 56px; }
+      table.items .col-unit { width: 36px; }
+      table.items .col-qty { width: 42px; }
+      table.items .col-price { width: 56px; }
+      table.items .col-total { width: 64px; }
+      table.items .col-tax { width: 40px; }
+      table.items .col-cur { width: 32px; }
+      table.items .col-remark { width: 44px; }
       .total-row td { border: 1px solid #555; background: #efefef; font-weight: 600; font-size: 11px; padding: 6px 8px; }
       /* Remark */
       .remark-box { border: 1px solid #bbb; padding: 6px 10px; min-height: 18mm; font-size: 10px; font-weight: 400; margin-top: 5mm; }
@@ -361,18 +373,18 @@ export default function PoPage() {
 
       <table class="items">
         <thead><tr>
-          <th style="width:24px">ST</th>
-          <th style="width:70px">PO訂單編號</th>
-          <th style="width:90px">物料編號</th>
-          <th style="min-width:80px">材料名稱</th>
-          <th style="width:80px">規格</th>
-          <th style="width:38px">單位</th>
-          <th style="width:50px">數量</th>
-          <th style="width:70px">單價</th>
-          <th style="width:80px">小計</th>
-          <th style="width:48px">稅率</th>
-          <th style="width:38px">幣別</th>
-          <th style="width:60px">備註</th>
+          <th class="col-st">ST</th>
+          <th class="col-poref">PO訂單編號</th>
+          <th class="col-code">物料編號</th>
+          <th class="col-name">材料名稱</th>
+          <th class="col-spec">規格</th>
+          <th class="col-unit">單位</th>
+          <th class="col-qty">數量</th>
+          <th class="col-price">單價</th>
+          <th class="col-total">小計</th>
+          <th class="col-tax">稅率</th>
+          <th class="col-cur">幣別</th>
+          <th class="col-remark">備註</th>
         </tr></thead>
         <tbody>${itemRows}</tbody>
         <tfoot>
