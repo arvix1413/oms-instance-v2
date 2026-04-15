@@ -219,6 +219,7 @@ export default function CustomerOrdersPage() {
   
   const { page, setPage, totalPages, paged, total } = usePagination(filtered, 20)
   const inp = 'oms-input text-xs py-1.5'
+  const lockedInp = `${inp} bom-locked-field`
 
   return (
     <div>
@@ -326,10 +327,10 @@ export default function CustomerOrdersPage() {
                       />
                     </td>
                     <td className="p-1.5 min-w-[120px]">
-                      <input className={inp} value={item.spec||''} onChange={e=>updateItem(i,'spec',e.target.value)} placeholder="規格" readOnly style={{backgroundColor:'#f8fafc'}} />
+                      <input className={lockedInp} value={item.spec||''} onChange={e=>updateItem(i,'spec',e.target.value)} placeholder="規格" readOnly />
                     </td>
                     <td className="p-1.5 w-20">
-                      <input className={inp} value={item.unit||'PCS'} onChange={e=>updateItem(i,'unit',e.target.value)} readOnly style={{backgroundColor:'#f8fafc'}} />
+                      <input className={lockedInp} value={item.unit||'PCS'} onChange={e=>updateItem(i,'unit',e.target.value)} readOnly />
                     </td>
                     <td className="p-1.5 w-24">
                       <input type="number" className={inp} value={item.qty||''} onChange={e=>updateItem(i,'qty',Number(e.target.value))} />

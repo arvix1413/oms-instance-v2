@@ -424,6 +424,7 @@ export default function PoPage() {
   })
   const { page, setPage, totalPages, paged, total } = usePagination(filteredPos, 20)
   const inp = 'oms-input text-xs py-1.5'
+  const lockedInp = `${inp} bom-locked-field`
 
   return (
     <div>
@@ -497,9 +498,9 @@ export default function PoPage() {
                         }
                       />
                     </td>
-                    <td className="p-1"><input className={inp} value={item.material_name} onChange={e=>updateItem(i,'material_name',e.target.value)} readOnly style={{backgroundColor:'#f8fafc'}} /></td>
-                    <td className="p-1"><input className={inp} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} readOnly style={{width:80, backgroundColor:'#f8fafc'}} /></td>
-                    <td className="p-1"><input className={inp} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} readOnly style={{width:45, backgroundColor:'#f8fafc'}} /></td>
+                    <td className="p-1"><input className={lockedInp} value={item.material_name} onChange={e=>updateItem(i,'material_name',e.target.value)} readOnly /></td>
+                    <td className="p-1"><input className={lockedInp} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} readOnly style={{width:80}} /></td>
+                    <td className="p-1"><input className={lockedInp} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} readOnly style={{width:45}} /></td>
                     <td className="p-1"><input type="number" className={inp} style={{width:65}} value={item.quantity || ""} onChange={e=>updateItem(i,'quantity',Number(e.target.value))} /></td>
                     <td className="p-1"><input type="number" className={inp} style={{width:85}} value={item.unit_price || ""} onChange={e=>updateItem(i,'unit_price',Number(e.target.value))} /></td>
                     <td className="p-1 px-2 text-right text-slate-600 font-medium whitespace-nowrap">{Number(item.total_price).toLocaleString()}</td>

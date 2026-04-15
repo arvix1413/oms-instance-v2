@@ -304,13 +304,11 @@ export default function DeliveryNotesPage() {
         </div>
       )}
 
-      {/* Edit DN Modal */}
-      {editing && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-2xl w-full max-h-[85vh] overflow-auto">
+      {editing && canWrite && (
+        <div className="oms-card p-6 mb-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-bold">編輯出貨單 {editing.dn_number}</h2>
-              <button onClick={() => setEditing(null)} className="text-slate-400 hover:text-slate-600 text-xl">✕</button>
+              <button onClick={() => setEditing(null)} className="btn-ghost border border-slate-200">返回列表</button>
             </div>
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div>
@@ -353,11 +351,10 @@ export default function DeliveryNotesPage() {
               <button onClick={saveEditDN} className="btn-primary">儲存修改</button>
               <button onClick={() => setEditing(null)} className="btn-ghost border border-slate-200">取消</button>
             </div>
-          </div>
         </div>
       )}
 
-      {!creating && (
+      {!creating && !editing && (
         <>
           <div className="mb-4">
             <input className="oms-input w-64" placeholder="搜尋出貨單號或客戶..." value={search} onChange={e => setSearch(e.target.value)} />

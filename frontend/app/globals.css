@@ -23,6 +23,7 @@ input[type="number"] { -moz-appearance: textfield; }
 
 /* Input */
 .oms-input { @apply w-full min-h-9 bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed; }
+.bom-locked-field { @apply bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed; }
 
 /* Badge */
 .badge-green  { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200; }

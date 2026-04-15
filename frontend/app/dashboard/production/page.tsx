@@ -347,13 +347,11 @@ export default function ProductionPage() {
         </div>
       )}
 
-      {/* Edit Production Modal */}
-      {editing && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-lg w-full">
+      {editing && canWrite && (
+        <div className="oms-card p-6 mb-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-bold">編輯生產單 {editing.prod_number}</h2>
-              <button onClick={() => setEditing(null)} className="text-slate-400 hover:text-slate-600 text-xl">✕</button>
+              <button onClick={() => setEditing(null)} className="btn-ghost border border-slate-200">返回列表</button>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -387,10 +385,11 @@ export default function ProductionPage() {
               <button onClick={saveEditProd} className="btn-primary">儲存修改</button>
               <button onClick={() => setEditing(null)} className="btn-ghost border border-slate-200">取消</button>
             </div>
-          </div>
         </div>
       )}
 
+      {!creating && !editing && (
+      <>
       <div className="list-controls">
         <input className="list-search" placeholder="搜尋生產單號或產品名稱..." value={search} onChange={e => setSearch(e.target.value)} />
         <div className="flex gap-1">
@@ -517,6 +516,8 @@ export default function ProductionPage() {
           </>
         )}
       </div>
+      </>
+      )}
     </div>
   )
 }

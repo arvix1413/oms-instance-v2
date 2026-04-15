@@ -411,6 +411,7 @@ export default function QuotationsPage() {
   const filtered = items.filter(q => !search || q.quotation_number.toLowerCase().includes(search.toLowerCase()) || q.customer_name.toLowerCase().includes(search.toLowerCase()))
   const { page, setPage, totalPages, paged, total: filteredTotal } = usePagination(filtered, 20)
   const inp = 'oms-input text-xs py-1.5'
+  const lockedInp = `${inp} bom-locked-field`
   const formTotal = form.items.reduce((s,i)=>s+Number(i.total_price),0)
 
   return (
@@ -423,9 +424,12 @@ export default function QuotationsPage() {
         <button onClick={startCreate} className="btn-primary">+ 新增報價單</button>
       </div>
 
-      {mounted && creating && (
+      {mounted && (creating || editingId !== null) && (
         <div className="oms-card p-6 mb-5">
-          <h2 className="text-sm font-semibold text-slate-800 mb-4">新增報價單</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-slate-800">{editingId ? '編輯報價單' : '新增報價單'}</h2>
+            <button onClick={() => resetForm()} className="btn-ghost border border-slate-200">返回列表</button>
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">客戶 *</label>
@@ -456,8 +460,8 @@ export default function QuotationsPage() {
             <span className="text-xs font-semibold text-slate-600">報價明細</span>
             <button onClick={addItem} className="btn-ghost text-blue-600">+ 新增品項</button>
           </div>
-          <div className="overflow-x-auto rounded-lg border border-slate-200">
-            <table className="w-full text-xs" style={{ minWidth: 1180 }}>
+          <div className="overflow-x-auto overscroll-x-contain rounded-lg border border-slate-200">
+            <table className="w-full text-xs" style={{ minWidth: 1320 }}>
               <thead><tr className="border-b border-slate-200">
                 {['選擇BOM','品名','規格','單位','階梯報價（MOQ / 單價）','Remark',''].map(h=>(
                   <th key={h} className="px-1.5 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
@@ -472,9 +476,9 @@ export default function QuotationsPage() {
                         {boms.map(b => <option key={b.id} value={String(b.id)}>{b.product_sku} — {b.product_name}</option>)}
                       </select>
                     </td>
-                    <td className="p-1"><input className={inp} style={{width:180, backgroundColor:'#f8fafc'}} value={item.item_name} readOnly /></td>
-                    <td className="p-1"><input className={inp} style={{width:120, backgroundColor:'#f8fafc'}} value={item.spec} readOnly /></td>
-                    <td className="p-1"><input className={inp} style={{width:70, backgroundColor:'#f8fafc'}} value={item.unit || ''} readOnly /></td>
+                    <td className="p-1"><input className={lockedInp} style={{width:180}} value={item.item_name} readOnly /></td>
+                    <td className="p-1"><input className={lockedInp} style={{width:120}} value={item.spec} readOnly /></td>
+                    <td className="p-1"><input className={lockedInp} style={{width:70}} value={item.unit || ''} readOnly /></td>
                     <td className="p-1 align-top">{renderTierEditor(item, i)}</td>
                     <td className="p-1"><input className={inp} style={{width:180}} value={item.remark} onChange={e=>updateItem(i,'remark',e.target.value)} /></td>
                     <td className="p-1 text-center"><button onClick={()=>removeItem(i)} className="text-slate-300 hover:text-red-600 transition-colors">✕</button></td>
@@ -484,18 +488,21 @@ export default function QuotationsPage() {
             </table>
           </div>
           <div className="flex gap-2 mt-4">
-            <button onClick={save} className="btn-primary">建立報價單</button>
+            <button onClick={save} className="btn-primary">{editingId ? '儲存修改' : '建立報價單'}</button>
             <button onClick={() => resetForm()} className="btn-ghost border border-slate-200">取消</button>
           </div>
         </div>
       )}
 
+      {!creating && editingId === null && (
+      <>
       <div className="mb-4"><input className="oms-input w-64" placeholder="搜尋報價單號或客戶..." value={search} onChange={e=>setSearch(e.target.value)} /></div>
 
-      <div className="oms-card overflow-hidden">
+      <div className="oms-card">
         {loading ? <div className="flex justify-center py-16"><div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"/></div> : (
           <>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto overscroll-x-contain">
+            <table className="w-full text-sm" style={{ minWidth: 980 }}>
               <thead>
                 <tr className="border-b border-slate-200">
                   <th className="w-8" />
@@ -535,72 +542,7 @@ export default function QuotationsPage() {
                         <tr key={`${q.id}-items`} className="border-b border-slate-100">
                           <td colSpan={8} className="px-0 py-0">
                             <div className="expand-row-wrap">
-                              {mounted && editingId === q.id ? (
-                                /* Inline edit form */
-                                <div className="p-4">
-                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                                    <div>
-                                      <label className="block text-[11px] text-slate-500 mb-1">客戶</label>
-                                      <select className={inp} value={form.customer_id} onChange={e => {
-                                        const c = customers.find(c => String(c.id) === e.target.value)
-                                        setForm(p => ({ ...p, customer_id: e.target.value, customer_name: c?.customer_name || '' }))
-                                      }}>
-                                        <option value="">-- 選擇客戶 --</option>
-                                        {customers.map(c => <option key={c.id} value={String(c.id)}>{c.customer_name}</option>)}
-                                      </select>
-                                    </div>
-                                    <div>
-                                      <label className="block text-[11px] text-slate-500 mb-1">有效期限</label>
-                                      <input type="date" className={inp} value={form.valid_until} onChange={e=>setForm(p=>({...p,valid_until:e.target.value}))} />
-                                    </div>
-                                    <div>
-                                      <label className="block text-[11px] text-slate-500 mb-1">幣別</label>
-                                      <select className={inp} value={form.currency} onChange={e=>setForm(p=>({...p,currency:e.target.value}))}>
-                                        <option>VND</option><option>TWD</option><option>USD</option>
-                                      </select>
-                                    </div>
-                                    <div>
-                                      <label className="block text-[11px] text-slate-500 mb-1">備註</label>
-                                      <input className={inp} value={form.remark} onChange={e=>setForm(p=>({...p,remark:e.target.value}))} />
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center justify-between mb-2">
-                                    <span className="text-xs font-semibold text-slate-600">報價明細</span>
-                                    <button onClick={addItem} className="btn-ghost text-blue-600 text-xs">+ 新增品項</button>
-                                  </div>
-                                  <div className="overflow-x-auto rounded-lg border border-slate-200 mb-3">
-                                    <table className="w-full text-xs" style={{ minWidth: 1180 }}>
-                                      <thead><tr className="border-b border-slate-200 bg-slate-50">
-                                        {['選擇BOM','品名','規格','單位','階梯報價（MOQ / 單價）','Remark',''].map(h=>(
-                                          <th key={h} className="px-1.5 py-1.5 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
-                                        ))}
-                                      </tr></thead>
-                                      <tbody>
-                                        {form.items.map((item,i)=>(
-                                          <tr key={i} className="border-b border-slate-100">
-                                            <td className="p-1 min-w-[260px]">
-                                              <select className={inp} value={item.bom_id ? String(item.bom_id) : ''} onChange={e => onSelectBom(i, e.target.value)}>
-                                                <option value="">-- 選擇 BOM --</option>
-                                                {boms.map(b => <option key={b.id} value={String(b.id)}>{b.product_sku} — {b.product_name}</option>)}
-                                              </select>
-                                            </td>
-                                            <td className="p-1"><input className={inp} style={{width:180, backgroundColor:'#f8fafc'}} value={item.item_name} readOnly /></td>
-                                            <td className="p-1"><input className={inp} style={{width:120, backgroundColor:'#f8fafc'}} value={item.spec} readOnly /></td>
-                                            <td className="p-1"><input className={inp} style={{width:70, backgroundColor:'#f8fafc'}} value={item.unit || ''} readOnly /></td>
-                                            <td className="p-1 align-top">{renderTierEditor(item, i)}</td>
-                                            <td className="p-1"><input className={inp} style={{width:180}} value={item.remark} onChange={e=>updateItem(i,'remark',e.target.value)} /></td>
-                                            <td className="p-1 text-center"><button onClick={()=>removeItem(i)} className="text-slate-300 hover:text-red-600">✕</button></td>
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <button onClick={save} className="btn-primary text-xs">儲存修改</button>
-                                    <button onClick={() => resetForm()} className="btn-ghost border border-slate-200 text-xs">取消</button>
-                                  </div>
-                                </div>
-                              ) : qItems.length === 0 ? (
+                              {qItems.length === 0 ? (
                                 <div className="expand-row-loading">
                                   <div className="w-3 h-3 border border-slate-300 border-t-slate-500 rounded-full animate-spin"/>載入中...
                                 </div>
@@ -651,17 +593,15 @@ export default function QuotationsPage() {
                                 </div>
                               )}
                               {/* Action bar */}
-                              {editingId !== q.id && (
-                                <div className="expand-row-actions">
-                                  {q.status==='draft' && <button onClick={e=>startEdit(q,e)} className="btn-ghost text-blue-600 text-xs">✏ 編輯</button>}
-                                  {q.status==='draft' && <button onClick={e=>changeStatus(q.id,'sent',e)} className="btn-ghost text-xs">送出</button>}
-                                  {q.status==='sent' && <>
-                                    <button onClick={e=>changeStatus(q.id,'accepted',e)} className="btn-ghost text-emerald-600 text-xs">接受</button>
-                                    <button onClick={e=>changeStatus(q.id,'rejected',e)} className="btn-danger text-xs">拒絕</button>
-                                  </>}
-                                  <button onClick={e=>del(q.id,e)} className="btn-danger text-xs">刪除</button>
-                                </div>
-                              )}
+                              <div className="expand-row-actions">
+                                {q.status==='draft' && <button onClick={e=>startEdit(q,e)} className="btn-ghost text-blue-600 text-xs">✏ 編輯</button>}
+                                {q.status==='draft' && <button onClick={e=>changeStatus(q.id,'sent',e)} className="btn-ghost text-xs">送出</button>}
+                                {q.status==='sent' && <>
+                                  <button onClick={e=>changeStatus(q.id,'accepted',e)} className="btn-ghost text-emerald-600 text-xs">接受</button>
+                                  <button onClick={e=>changeStatus(q.id,'rejected',e)} className="btn-danger text-xs">拒絕</button>
+                                </>}
+                                <button onClick={e=>del(q.id,e)} className="btn-danger text-xs">刪除</button>
+                              </div>
                             </div>
                           </td>
                         </tr>
@@ -672,10 +612,13 @@ export default function QuotationsPage() {
                 {paged.length===0 && <tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400">尚無報價單</td></tr>}
               </tbody>
             </table>
+            </div>
             <Pagination page={page} totalPages={totalPages} setPage={setPage} total={filteredTotal} />
           </>
         )}
       </div>
+      </>
+      )}
     </div>
   )
 }
