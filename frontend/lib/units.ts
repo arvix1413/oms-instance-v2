@@ -2,6 +2,7 @@ export const UNIT_OPTIONS = [
   'ROLL',
   'SHEET',
   'PCS',
+  'KG',
   'BOX',
   'SET',
 ] as const
@@ -14,6 +15,8 @@ export function normalizeUnit(unit?: string): string {
     '捲 ROLL': 'ROLL',
     '張 SHEET': 'SHEET',
     '片 PCS': 'PCS',
+    '公斤 KG': 'KG',
+    'KG 公斤': 'KG',
     '盒 BOX': 'BOX',
     '套 SET': 'SET',
   }
