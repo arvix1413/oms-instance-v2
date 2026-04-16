@@ -61,7 +61,7 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
     .cust{font-size:14px;font-weight:700;margin:4px 0}
     .addr{font-size:11px;margin-bottom:4px}
     table{width:100%;border-collapse:collapse;table-layout:fixed}
-    th,td{border:1px solid #555;padding:5px 6px;font-size:11px;vertical-align:middle}
+    th,td{border:1px solid #555;padding:5px 6px;font-size:11px;vertical-align:top;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
     th{background:#f5f5f5;font-weight:700;text-align:center}
     .sub{display:block;font-size:10px;font-weight:500;color:#333;margin-top:1px}
     .qty{text-align:center;font-weight:700}
@@ -69,10 +69,10 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
     .right{text-align:right}
     .col-order{width:112px}
     .col-material{width:112px}
-    .col-spec{width:96px}
+    .col-spec{width:110px}
     .col-unit{width:72px}
     .col-qty{width:88px}
-    .col-remark{width:96px}
+    .col-remark{width:108px}
     .col-name{word-break:break-word;line-height:1.35}
     @media print{body{padding:0}@page{size:A4;margin:8mm}}
   </style></head><body><div class="wrap">

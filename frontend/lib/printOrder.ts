@@ -56,9 +56,9 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
     .info-table{width:100%;border-collapse:collapse;margin-bottom:5mm}
     .info-table td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;vertical-align:middle}
     .info-table .lbl{font-weight:600;background:#f5f5f5;white-space:nowrap;width:120px;color:#333}
-    table.items{width:100%;border-collapse:collapse;margin-bottom:5mm}
-    table.items th{border:1px solid #555;background:#e8e8e8;padding:6px 8px;text-align:center;font-size:10px;font-weight:600;color:#000}
-    table.items td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;color:#000}
+    table.items{width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:5mm}
+    table.items th{border:1px solid #555;background:#e8e8e8;padding:6px 8px;text-align:center;font-size:10px;font-weight:600;color:#000;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
+    table.items td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;color:#000;white-space:normal;overflow-wrap:anywhere;word-break:break-word;vertical-align:top}
     table.items tbody tr:nth-child(even){background:#fafafa}
     .total-row td{border:1px solid #555;background:#efefef;font-weight:600;font-size:11px;padding:6px 8px}
     .summary-right{width:260px;border:1px solid #bbb;padding:6px 10px;margin-left:auto;margin-bottom:5mm}
