@@ -366,8 +366,12 @@ app.delete('/api/suppliers/:id', authMiddleware, requirePerm('supplier.manage'),
   // Check for linked POs before deleting
   const linked = await queryOne<any>('SELECT COUNT(*) as cnt FROM purchase_orders WHERE supplier_id=? AND deleted_at IS NULL', [id])
   if ((linked?.cnt || 0) > 0) return c.json({ error: `此供應商有 ${linked.cnt} 筆採購單，無法刪除` }, 400)
-  const row = await queryOne<any>('SELECT name FROM suppliers WHERE id=? AND deleted_at IS NULL', [id])
+  const row = await queryOne<any>('SELECT name, supplier_code FROM suppliers WHERE id=? AND deleted_at IS NULL', [id])
   if (!row) return c.json({ error: 'Not found' }, 404)
+  if (row.supplier_code) {
+    const releasedCode = `${String(row.supplier_code).trim()}#DEL${Date.now()}-${id}`
+    await execute('UPDATE suppliers SET supplier_code=? WHERE id=? AND deleted_at IS NULL', [releasedCode, id])
+  }
   await softDeleteById('suppliers', id, c.get('user')?.userId)
   await audit(c.get('user'), 'DELETE', '供應商', id, row?.name)
   return c.json({ ok: true })
@@ -402,8 +406,12 @@ app.delete('/api/customers/:id', authMiddleware, requirePerm('customer.manage'),
   // Check for linked orders before deleting
   const linked = await queryOne<any>('SELECT COUNT(*) as cnt FROM customer_orders WHERE customer_id=? AND deleted_at IS NULL', [id])
   if ((linked?.cnt || 0) > 0) return c.json({ error: `此客戶有 ${linked.cnt} 筆訂單，無法刪除` }, 400)
-  const row = await queryOne<any>('SELECT customer_name FROM customers WHERE id=? AND deleted_at IS NULL', [id])
+  const row = await queryOne<any>('SELECT customer_name, customer_code FROM customers WHERE id=? AND deleted_at IS NULL', [id])
   if (!row) return c.json({ error: 'Not found' }, 404)
+  if (row.customer_code) {
+    const releasedCode = `${String(row.customer_code).trim()}#DEL${Date.now()}-${id}`
+    await execute('UPDATE customers SET customer_code=? WHERE id=? AND deleted_at IS NULL', [releasedCode, id])
+  }
   await softDeleteById('customers', id, c.get('user')?.userId)
   await audit(c.get('user'), 'DELETE', '客戶', id, row?.customer_name)
   return c.json({ ok: true })
@@ -454,6 +462,10 @@ app.delete('/api/materials/:id', authMiddleware, requirePerm('bom.delete'), asyn
   const id = c.req.param('id')
   const row = await queryOne<any>('SELECT material_code, material_name FROM materials WHERE id=? AND deleted_at IS NULL', [id])
   if (!row) return c.json({ error: 'Not found' }, 404)
+  if (row.material_code) {
+    const releasedCode = `${String(row.material_code).trim()}#DEL${Date.now()}-${id}`
+    await execute('UPDATE materials SET material_code=? WHERE id=? AND deleted_at IS NULL', [releasedCode, id])
+  }
   await softDeleteById('materials', id, c.get('user')?.userId)
   await audit(c.get('user'), 'DELETE', '材料', id, `${row.material_code} ${row.material_name}`)
   return c.json({ ok: true })
@@ -606,6 +618,10 @@ app.delete('/api/bom/:id', authMiddleware, requirePerm('bom.delete'), async c =>
   if ((linkedCO?.cnt || 0) > 0) return c.json({ error: `此 BOM 有 ${linkedCO.cnt} 筆客戶訂單明細，無法刪除` }, 400)
   const row = await queryOne<any>('SELECT product_sku,product_name FROM bom WHERE id=? AND deleted_at IS NULL', [id])
   if (!row) return c.json({ error: 'Not found' }, 404)
+  if (row.product_sku) {
+    const releasedSku = `${String(row.product_sku).trim()}#DEL${Date.now()}-${id}`
+    await execute('UPDATE bom SET product_sku=? WHERE id=? AND deleted_at IS NULL', [releasedSku, id])
+  }
   await softDeleteById('bom', id, c.get('user')?.userId)
   await audit(c.get('user'), 'DELETE', 'BOM', id, `${row?.product_sku} ${row?.product_name}`)
   return c.json({ ok: true })
@@ -930,14 +946,20 @@ app.put('/api/customer-orders/:id', authMiddleware, requirePerm('customer_order.
 app.delete('/api/customer-orders/:id', authMiddleware, requirePerm('customer_order.delete'), async c => {
   try {
     const id = c.req.param('id')
+    const deletedBy = c.get('user')?.userId || null
+    const deletedAt = now8()
     const row = await queryOne<any>(`
       SELECT co.po_number, c.customer_name
       FROM customer_orders co LEFT JOIN customers c ON co.customer_id = c.id AND c.deleted_at IS NULL
       WHERE co.id=? AND co.deleted_at IS NULL`, [id])
     if (!row) return c.json({ error: 'Not found' }, 404)
-    await execute('UPDATE delivery_notes SET deleted_at=?, deleted_by=? WHERE customer_order_id=? AND deleted_at IS NULL', [now8(), c.get('user')?.userId || null, id])
-    await execute('UPDATE delivery_sheets SET deleted_at=?, deleted_by=? WHERE customer_order_id=? AND deleted_at IS NULL', [now8(), c.get('user')?.userId || null, id])
-    await softDeleteById('customer_orders', id, c.get('user')?.userId)
+    await execute('UPDATE delivery_notes SET deleted_at=?, deleted_by=? WHERE customer_order_id=? AND deleted_at IS NULL', [deletedAt, deletedBy, id])
+    await execute('UPDATE delivery_sheets SET deleted_at=?, deleted_by=? WHERE customer_order_id=? AND deleted_at IS NULL', [deletedAt, deletedBy, id])
+
+    // Release po_number for future reuse after soft delete.
+    const deletedPoNumber = `${String(row.po_number || '').trim()}#DEL${Date.now()}-${id}`
+    await execute('UPDATE customer_orders SET po_number=? WHERE id=? AND deleted_at IS NULL', [deletedPoNumber, id])
+    await softDeleteById('customer_orders', id, deletedBy)
     await audit(c.get('user'), 'DELETE', '客戶訂單', id, `${row?.po_number} / ${row?.customer_name}`)
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
@@ -1703,6 +1725,10 @@ app.delete('/api/users/:id', authMiddleware, requirePerm('user.manage'), async c
     if (String(u.userId) === id) return c.json({ error: 'Cannot delete yourself' }, 400)
     const target = await queryOne<any>('SELECT email,name,role FROM users WHERE id=? AND deleted_at IS NULL', [id])
     if (!target) return c.json({ error: 'User not found' }, 404)
+    if (target.email) {
+      const releasedEmail = `${String(target.email).trim()}#DEL${Date.now()}-${id}`
+      await execute('UPDATE users SET email=? WHERE id=? AND deleted_at IS NULL', [releasedEmail, id])
+    }
     await softDeleteById('users', id, u.userId)
     await audit(u, 'DELETE', '使用者', id, `${target.email} (${target.name})`)
     return c.json({ ok: true })
