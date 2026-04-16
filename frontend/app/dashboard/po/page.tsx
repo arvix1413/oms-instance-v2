@@ -274,7 +274,7 @@ export default function PoPage() {
       <tr>
         <td class="col-st" style="text-align:center">${idx + 1}</td>
         <td class="col-code" style="font-family:monospace;font-size:10px;color:#1a56db">${txt(item.material_code)}</td>
-        <td class="col-name">${txt(item.material_name)}${txt(item.spec) ? `<br/><span class="sub-spec">${txt(item.spec)}</span>` : ''}</td>
+        <td class="col-name">${txt(item.material_name)}${txt(item.spec) ? `<span class="sub-spec-inline"> ${txt(item.spec)}</span>` : ''}</td>
         <td class="col-qty" style="text-align:right">${fmt(item.quantity)}</td>
         <td class="col-unit" style="text-align:center">${txt(item.unit) || 'PCS'}</td>
         <td class="col-price" style="text-align:right">${fmt(item.unit_price)}</td>
@@ -311,7 +311,7 @@ export default function PoPage() {
       table.items .col-unit { width: 8%; white-space: nowrap; }
       table.items .col-price { width: 11%; white-space: nowrap; font-variant-numeric: tabular-nums; }
       table.items .col-total { width: 12%; white-space: nowrap; font-variant-numeric: tabular-nums; }
-      table.items .sub-spec { color: #000; font-size: 11px; font-weight: 400; }
+      table.items .sub-spec-inline { color: #000; font-size: 11px; font-weight: 400; white-space: nowrap; margin-left: 4px; }
       .total-row td { border: 1px solid #555; background: #efefef; font-weight: 600; font-size: 11px; padding: 6px 8px; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; }
       /* Remark */
       .remark-box { border: 1px solid #bbb; padding: 6px 10px; min-height: 18mm; font-size: 10px; font-weight: 400; margin-top: 5mm; }
