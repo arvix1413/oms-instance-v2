@@ -31,7 +31,7 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
       '<td class="col-order" style="font-family:monospace;font-size:10px;color:#1a56db">' + txt(item.po_ref || orderRef) + '</td>',
       '<td class="col-material" style="font-family:monospace;font-size:10px;color:#1a56db">' + txt(item.material_code) + '</td>',
       '<td class="col-name">' + txt(item.item_name) + '</td>',
-      '<td class="col-spec" style="color:#555;font-size:10px">' + txt(item.spec) + '</td>',
+      '<td class="col-spec">' + txt(item.spec) + '</td>',
       '<td class="col-unit" style="text-align:center">' + (txt(item.unit) || 'PCS') + '</td>',
       '<td class="col-qty" style="text-align:right">' + fmt(item.qty) + '</td>',
       '<td class="col-remark" style="color:#666;font-size:10px">' + txt(item.remark) + '</td>',
@@ -45,7 +45,7 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
   parts.push('<title>出貨單 ' + txt(data.dn_number) + '</title>')
   parts.push('<style>')
   parts.push('*{margin:0;padding:0;box-sizing:border-box}')
-  parts.push('body{font-family:"Microsoft JhengHei","PingFang TC",Arial,sans-serif;font-size:11px;font-weight:400;color:#000;padding:12mm 15mm;background:#fff;line-height:1.4}')
+  parts.push('body{font-family:"Microsoft JhengHei","PingFang TC",Arial,sans-serif;font-size:11px;font-weight:400;color:#000;padding:8mm 6mm;background:#fff;line-height:1.4}')
   parts.push('.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:5mm;margin-bottom:5mm}')
   parts.push('.company{font-size:18px;font-weight:700;letter-spacing:1px;text-transform:uppercase}')
   parts.push('.subtitle{font-size:10px;color:#666;margin-top:3px}')
@@ -74,7 +74,7 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
   parts.push('.sign-label{font-weight:600;font-size:10px;color:#333;padding-bottom:4px;border-bottom:1px solid #eee}')
   parts.push('.sign-area{flex:1;min-height:50px;display:flex;align-items:center;justify-content:center}')
   parts.push('.sign-line{border-top:1px solid #555;padding-top:4px;font-size:10px;font-weight:400;color:#333;margin-top:4px}')
-  parts.push('@media print{body{padding:8mm 12mm}@page{size:A4;margin:0}}')
+  parts.push('@media print{body{padding:8mm 6mm}@page{size:A4;margin:0}}')
   parts.push('</style></head><body>')
 
   // Header

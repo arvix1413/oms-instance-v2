@@ -35,7 +35,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
       '<tr>',
       '<td style="text-align:center">' + (idx+1) + '</td>',
       '<td>' + nameText + skuText + '</td>',
-      '<td style="color:#555">' + txt(item.spec) + '</td>',
+      '<td>' + txt(item.spec) + '</td>',
       '<td style="text-align:right">' + fmt(qty) + '</td>',
       '<td style="text-align:center">' + (txt(item.unit) || 'PCS') + '</td>',
       '<td style="text-align:right">' + fmt(unitPrice) + '</td>',
@@ -46,7 +46,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
 
   const CSS = `
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:"Microsoft JhengHei","PingFang TC",Arial,sans-serif;font-size:11px;font-weight:400;color:#000;padding:12mm 15mm;background:#fff;line-height:1.4}
+    body{font-family:"Microsoft JhengHei","PingFang TC",Arial,sans-serif;font-size:11px;font-weight:400;color:#000;padding:8mm 6mm;background:#fff;line-height:1.4}
     .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:5mm;margin-bottom:5mm}
     .company{font-size:18px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
     .subtitle{font-size:10px;color:#666;margin-top:3px}
@@ -72,7 +72,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
     .sign-label{font-weight:600;font-size:10px;color:#333;padding-bottom:4px;border-bottom:1px solid #eee}
     .sign-area{flex:1;min-height:50px;display:flex;align-items:center;justify-content:center}
     .sign-line{border-top:1px solid #555;padding-top:4px;font-size:10px;font-weight:400;color:#333;margin-top:4px}
-    @media print{body{padding:10mm}@page{size:A4;margin:0}}
+    @media print{body{padding:8mm 6mm}@page{size:A4;margin:0}}
   `
 
   const parts: string[] = []

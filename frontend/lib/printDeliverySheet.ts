@@ -47,7 +47,7 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
   <title>送貨單 ${txt(data.dn_number)}</title>
   <style>
     *{box-sizing:border-box}
-    body{font-family:"Microsoft JhengHei","PingFang TC",Arial,sans-serif;font-size:11px;color:#111;background:#fff;padding:8mm}
+    body{font-family:"Microsoft JhengHei","PingFang TC",Arial,sans-serif;font-size:11px;color:#111;background:#fff;padding:6mm 4mm}
     .wrap{max-width:210mm;margin:0 auto}
     .head{display:grid;grid-template-columns:88px 1fr 250px;align-items:start;gap:8px;margin-bottom:6px}
     .logo{height:30px;object-fit:contain;max-width:80px}
@@ -74,7 +74,7 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
     .col-qty{width:88px}
     .col-remark{width:108px}
     .col-name{word-break:break-word;line-height:1.35}
-    @media print{body{padding:0}@page{size:A4;margin:8mm}}
+    @media print{body{padding:0}@page{size:A4;margin:4mm}}
   </style></head><body><div class="wrap">
     <div class="head">
       <div>${logoUrl ? `<img class="logo" src="${logoUrl}" onerror="this.style.display='none'"/>` : ''}</div>

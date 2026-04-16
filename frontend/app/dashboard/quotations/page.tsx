@@ -224,7 +224,7 @@ export default function QuotationsPage() {
       <tr>
         <td style="text-align:center;font-size:11px">${idx+1}</td>
         <td style="font-size:11px">${txt(item.item_name)}</td>
-        <td style="font-size:10px;color:#444">${txt(item.spec)}</td>
+        <td style="font-size:11px">${txt(item.spec)}</td>
         <td style="text-align:center;font-size:11px">${txt(item.unit) || 'PCS'}</td>
         <td style="text-align:center;font-size:11px">${moqCell}</td>
         <td style="text-align:right;font-size:11px">${priceCell}</td>
@@ -240,7 +240,7 @@ export default function QuotationsPage() {
     <style>
       *{box-sizing:border-box;margin:0;padding:0}
       body{font-family:"Microsoft JhengHei","PingFang TC",Arial,sans-serif;font-size:11px;font-weight:400;color:#000;background:#fff}
-      .page{padding:12mm 15mm;max-width:210mm;margin:0 auto}
+      .page{padding:8mm 6mm;max-width:210mm;margin:0 auto}
       .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:5mm;margin-bottom:5mm}
       .company{font-size:18px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
       .subtitle{font-size:10px;color:#666;margin-top:3px}
