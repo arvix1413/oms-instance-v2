@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { getToken, clearToken } from '@/lib/api'
@@ -92,6 +92,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [user, setUser] = useState<any>(null)
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(['業務流程']))
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [syncCount, setSyncCount] = useState(0)
+  const [softRefreshing, setSoftRefreshing] = useState(false)
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!getToken()) { router.replace('/login'); return }
@@ -109,6 +112,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     })
     setSidebarOpen(false)
   }, [pathname])
+
+  useEffect(() => {
+    const onMutation = (ev: Event) => {
+      const e = ev as CustomEvent<{ phase?: string }>
+      const phase = e.detail?.phase
+      if (phase === 'start') {
+        setSyncCount(v => v + 1)
+        return
+      }
+      if (phase === 'end') {
+        setSyncCount(v => Math.max(0, v - 1))
+        setSoftRefreshing(true)
+        if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
+        refreshTimerRef.current = setTimeout(() => setSoftRefreshing(false), 280)
+      }
+    }
+    window.addEventListener('oms:mutation', onMutation as EventListener)
+    return () => {
+      window.removeEventListener('oms:mutation', onMutation as EventListener)
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
+    }
+  }, [])
 
   const logout = () => {
     clearToken()
@@ -265,6 +290,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main */}
       <main className="flex-1 overflow-auto bg-slate-50">
+        {syncCount > 0 && (
+          <div className="oms-sync-bar" aria-hidden="true">
+            <div className="oms-sync-bar-inner" />
+          </div>
+        )}
         <div className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-2.5 md:hidden">
           <button onClick={() => setSidebarOpen(v => !v)} className="btn-ghost px-2.5 py-1.5">
             {sidebarOpen ? <IconClose /> : <IconMenu />}
@@ -272,7 +302,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
           <div className="text-[11px] font-semibold tracking-wide text-slate-500">FAN YONG OMS</div>
         </div>
-        <div className="p-5 md:p-6 xl:p-7">{children}</div>
+        <div className={`p-5 md:p-6 xl:p-7 ${softRefreshing ? 'oms-soft-refresh' : ''}`}>{children}</div>
       </main>
     </div>
   )

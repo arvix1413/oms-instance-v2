@@ -1,6 +1,7 @@
 export const API = process.env.NEXT_PUBLIC_API_URL || 'https://oms-backend.arvix1413.workers.dev'
 type ReloadMode = 'auto' | 'always' | 'never'
 type OmsRequestInit = RequestInit & { reloadOnSuccess?: ReloadMode }
+type MutationPhase = 'start' | 'end'
 
 export function getToken() {
   if (typeof window === 'undefined') return null
@@ -75,6 +76,11 @@ function shouldReloadOnSuccess(_path: string, _method: string, mode: ReloadMode)
   return false
 }
 
+function dispatchMutationEvent(phase: MutationPhase, detail: Record<string, any>) {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new CustomEvent('oms:mutation', { detail: { phase, ...detail } }))
+}
+
 export async function apiFetch<T>(path: string, opts: OmsRequestInit = {}): Promise<T> {
   const token = getToken()
   // Don't set Content-Type for FormData (let browser set multipart boundary)
@@ -83,6 +89,8 @@ export async function apiFetch<T>(path: string, opts: OmsRequestInit = {}): Prom
     const method = String(opts.method || 'GET').toUpperCase()
     const reloadOnSuccess = opts.reloadOnSuccess || 'auto'
     const isGet = method === 'GET'
+    const isMutation = !['GET', 'HEAD', 'OPTIONS'].includes(method)
+    if (isMutation) dispatchMutationEvent('start', { path, method })
     const res = await fetch(`${API}${path}`, {
       ...opts,
       cache: isGet ? 'no-store' : opts.cache,
@@ -99,11 +107,15 @@ export async function apiFetch<T>(path: string, opts: OmsRequestInit = {}): Prom
       throw new Error(mapApiErrorMessage(raw, res.status))
     }
     const data = await res.json().catch(() => ({} as T))
+    if (isMutation) dispatchMutationEvent('end', { path, method, ok: true })
     if (typeof window !== 'undefined' && shouldReloadOnSuccess(path, method, reloadOnSuccess)) {
       setTimeout(() => window.location.reload(), 180)
     }
     return data as T
   } catch (e: any) {
+    const method = String(opts.method || 'GET').toUpperCase()
+    const isMutation = !['GET', 'HEAD', 'OPTIONS'].includes(method)
+    if (isMutation) dispatchMutationEvent('end', { path, method, ok: false })
     // Network/CORS/timeout
     if (e?.name === 'TypeError' && String(e.message || '').toLowerCase().includes('fetch')) {
       throw new Error('網路連線異常，請檢查網路後重試')

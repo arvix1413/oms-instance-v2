@@ -67,3 +67,26 @@ input[type="number"] { -moz-appearance: textfield; }
   to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
 }
 .animate-slide-down { animation: slide-down 0.2s ease-out; }
+
+/* Global in-page refresh UX: mutation sync bar + soft content refresh */
+.oms-sync-bar {
+  @apply sticky top-0 z-30 h-[2px] w-full overflow-hidden bg-transparent;
+}
+.oms-sync-bar-inner {
+  width: 30%;
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #0ea5e9);
+  animation: oms-sync-slide 1s ease-in-out infinite;
+}
+@keyframes oms-sync-slide {
+  0% { transform: translateX(-120%); opacity: .9; }
+  60% { transform: translateX(250%); opacity: .95; }
+  100% { transform: translateX(250%); opacity: .1; }
+}
+.oms-soft-refresh {
+  animation: oms-soft-refresh-fade 0.28s ease-out;
+}
+@keyframes oms-soft-refresh-fade {
+  0% { opacity: .78; transform: translateY(1px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
