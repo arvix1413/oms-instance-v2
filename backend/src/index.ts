@@ -939,8 +939,42 @@ app.put('/api/customer-orders/:id', authMiddleware, requirePerm('customer_order.
           [id, item.bom_id, item.qty||0, item.unit_price||0, null, item.remark||'', 0, item.qty||0, 'pending'])
       }
     }
-    await audit(u, 'UPDATE', '客戶訂單', id, existing.po_number)
-    return c.json({ ok: true })
+    // Sync linked draft delivery notes so item changes (e.g. added BOM) are reflected.
+    const draftDeliveryNotes = await query<any>(
+      'SELECT id, dn_number FROM delivery_notes WHERE customer_order_id=? AND deleted_at IS NULL AND status=?',
+      [id, 'draft']
+    )
+    const lockedDeliveryNotes = await queryOne<any>(
+      'SELECT COUNT(*) as cnt FROM delivery_notes WHERE customer_order_id=? AND deleted_at IS NULL AND status<>?',
+      [id, 'draft']
+    )
+    for (const dn of draftDeliveryNotes) {
+      await execute('DELETE FROM delivery_note_items WHERE dn_id=?', [dn.id])
+      if (b.items?.length) {
+        for (const item of b.items) {
+          if (!item.bom_id) continue
+          const bom = await queryOne<any>('SELECT product_sku, product_name, spec, unit FROM bom WHERE id=? AND deleted_at IS NULL', [item.bom_id])
+          await execute(
+            'INSERT INTO delivery_note_items (dn_id,item_name,material_code,spec,unit,qty,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?)',
+            [dn.id, bom?.product_name||'', bom?.product_sku||'', bom?.spec||'', bom?.unit||'PCS', item.qty||0, '', existing.po_number||'', null]
+          )
+        }
+      }
+      await audit(u, 'AUTO_UPDATE', '出貨單', dn.id, `${dn.dn_number} ← ${existing.po_number}（客戶訂單變更同步）`)
+    }
+
+    await audit(
+      u,
+      'UPDATE',
+      '客戶訂單',
+      id,
+      `${existing.po_number}（同步草稿出貨單 ${draftDeliveryNotes.length} 筆，略過非草稿 ${Number(lockedDeliveryNotes?.cnt || 0)} 筆）`
+    )
+    return c.json({
+      ok: true,
+      synced_delivery_notes: draftDeliveryNotes.length,
+      skipped_delivery_notes: Number(lockedDeliveryNotes?.cnt || 0),
+    })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 app.delete('/api/customer-orders/:id', authMiddleware, requirePerm('customer_order.delete'), async c => {
