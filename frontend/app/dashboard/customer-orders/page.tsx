@@ -121,7 +121,7 @@ export default function CustomerOrdersPage() {
   }
 
   const save = async () => {
-    if (!form.po_number) { toast('請填寫採購單號', 'error'); return }
+    if (!form.po_number) { toast('請填寫客戶訂單號', 'error'); return }
     if (!form.customer_id) { toast('請選擇客戶', 'error'); return }
     const validItems = form.items.filter(i => i.bom_id)
     if (!validItems.length) { toast('請至少選擇一個 BOM 品項', 'error'); return }
@@ -273,7 +273,7 @@ export default function CustomerOrdersPage() {
             </div>
             <div>
               <label className="flex items-center gap-1.5 text-[11px] text-slate-500 mb-1.5">
-                採購單號 *
+                客戶訂單號 *
                 {editingId !== null && <FieldLockHint />}
               </label>
               <input
@@ -413,7 +413,7 @@ export default function CustomerOrdersPage() {
       {!creating && editingId === null && (
         <>
           <div className="list-controls">
-            <input className="list-search" placeholder="搜尋採購單號或客戶..." value={search} onChange={e=>setSearch(e.target.value)} />
+            <input className="list-search" placeholder="搜尋客戶訂單號或客戶..." value={search} onChange={e=>setSearch(e.target.value)} />
             <div className="flex gap-1">
               {[['', '全部'], ['pending', '待出貨'], ['partial', '部分'], ['delay', '延遲'], ['completed', '已完成']].map(([val, label]) => (
                 <button key={val} onClick={() => setStatusFilter(val)}
