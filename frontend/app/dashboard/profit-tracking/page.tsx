@@ -190,6 +190,39 @@ export default function ProfitTrackingPage() {
       return acc
     }, { revenue: 0, cogs: 0, net: 0 })
   }, [orders])
+  const detailCalc = useMemo(() => {
+    if (!detail) return null
+    const revenue = Number(detail.summary.revenue || 0)
+    const cogs = Number(detail.summary.cogs || 0)
+    const gross = Number(detail.summary.gross_profit || 0)
+    const salesTax = Number(detail.summary.sales_tax || 0)
+    const incomeTax = Number(detail.summary.income_tax || 0)
+    const taxTotal = salesTax + incomeTax
+    const afterTaxGross = gross - taxTotal
+    const operatingCost = Number(detail.summary.operating_cost || 0)
+    const manualAdjustment = Number(detail.summary.manual_adjustment || 0)
+    const netBeforeManual = afterTaxGross - operatingCost
+    const finalNet = netBeforeManual + manualAdjustment
+    const vatRateOnGross = gross !== 0 ? (salesTax / gross) * 100 : 0
+    const citRateOnGross = gross !== 0 ? (incomeTax / gross) * 100 : 0
+    const opRateOnAfterTaxGross = afterTaxGross !== 0 ? (operatingCost / afterTaxGross) * 100 : 0
+    return {
+      revenue,
+      cogs,
+      gross,
+      salesTax,
+      incomeTax,
+      taxTotal,
+      afterTaxGross,
+      operatingCost,
+      manualAdjustment,
+      netBeforeManual,
+      finalNet,
+      vatRateOnGross,
+      citRateOnGross,
+      opRateOnAfterTaxGross,
+    }
+  }, [detail])
 
   const onSearch = async () => {
     await loadOrders(search, status)
@@ -384,6 +417,38 @@ export default function ProfitTrackingPage() {
                   <div className={`text-2xl font-bold ${(detail.summary.net_profit || 0) >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{money(detail.summary.net_profit)}</div>
                   <div className="text-xs text-slate-400 mt-1">Margin {detail.summary.net_margin.toFixed(2)}%</div>
                 </div>
+
+                {detailCalc && (
+                  <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-3">
+                    <div className="text-xs font-semibold text-blue-800">淨利計算邏輯與步驟</div>
+                    <div className="text-[11px] text-slate-600 mt-1">
+                      公式：淨利 = （毛利 - VAT - CIT） - 營運成本 + 手動調整
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-1">
+                      其中 VAT/CIT 以毛利為基礎，營運成本以稅後毛利為基礎
+                    </div>
+                    <div className="mt-2 rounded-lg border border-slate-200 bg-white overflow-hidden">
+                      <div className="px-3 py-2 border-b border-slate-100 text-[11px] text-slate-600">
+                        1. 毛利 = 收入 - 商品成本 = {money(detailCalc.revenue)} - {money(detailCalc.cogs)} = <span className="font-semibold text-slate-800">{money(detailCalc.gross)}</span>
+                      </div>
+                      <div className="px-3 py-2 border-b border-slate-100 text-[11px] text-slate-600">
+                        2. VAT = 毛利 × VAT% = {money(detailCalc.gross)} × {detailCalc.vatRateOnGross.toFixed(2)}% = <span className="font-semibold text-slate-800">{money(detailCalc.salesTax)}</span>
+                      </div>
+                      <div className="px-3 py-2 border-b border-slate-100 text-[11px] text-slate-600">
+                        3. CIT = 毛利 × CIT% = {money(detailCalc.gross)} × {detailCalc.citRateOnGross.toFixed(2)}% = <span className="font-semibold text-slate-800">{money(detailCalc.incomeTax)}</span>
+                      </div>
+                      <div className="px-3 py-2 border-b border-slate-100 text-[11px] text-slate-600">
+                        4. 稅後毛利 = 毛利 - VAT - CIT = {money(detailCalc.gross)} - {money(detailCalc.salesTax)} - {money(detailCalc.incomeTax)} = <span className="font-semibold text-slate-800">{money(detailCalc.afterTaxGross)}</span>
+                      </div>
+                      <div className="px-3 py-2 border-b border-slate-100 text-[11px] text-slate-600">
+                        5. 營運成本 = 稅後毛利 × 營運% = {money(detailCalc.afterTaxGross)} × {detailCalc.opRateOnAfterTaxGross.toFixed(2)}% = <span className="font-semibold text-slate-800">{money(detailCalc.operatingCost)}</span>
+                      </div>
+                      <div className="px-3 py-2 text-[11px] text-slate-700">
+                        6. 淨利 = 稅後毛利 - 營運成本 + 手動調整 = {money(detailCalc.afterTaxGross)} - {money(detailCalc.operatingCost)} + {money(detailCalc.manualAdjustment)} = <span className={`font-bold ${detailCalc.finalNet >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{money(detailCalc.finalNet)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <div className="text-xs font-semibold text-slate-600">自動比例帶入（VAT/CIT 以毛利計，營運成本以稅後毛利計）</div>
