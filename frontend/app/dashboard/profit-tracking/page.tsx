@@ -386,7 +386,7 @@ export default function ProfitTrackingPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <div className="text-xs font-semibold text-slate-600">自動比例帶入（以訂單收入計）</div>
+                  <div className="text-xs font-semibold text-slate-600">自動比例帶入（VAT/CIT 以毛利計，營運成本以稅後毛利計）</div>
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <label className="block text-[11px] text-slate-400 mb-1">營運成本%</label>

@@ -1136,11 +1136,17 @@ app.post('/api/profit-tracking/orders/:id/apply-rates', authMiddleware, requireM
     const order = await queryOne<any>('SELECT id, po_number FROM customer_orders WHERE id=? AND deleted_at IS NULL', [orderId])
     if (!order) return c.json({ error: 'Order not found' }, 404)
 
-    const row = await queryOne<any>(
-      'SELECT COALESCE(SUM(qty * unit_price), 0) as revenue FROM customer_order_items WHERE order_id=?',
-      [orderId]
-    )
+    const row = await queryOne<any>(`
+      SELECT
+        COALESCE(SUM(ci.qty * ci.unit_price), 0) as revenue,
+        COALESCE(SUM(ci.qty * COALESCE(b.company_price, b.supplier_price, 0)), 0) as cogs
+      FROM customer_order_items ci
+      LEFT JOIN bom b ON b.id = ci.bom_id
+      WHERE ci.order_id=?
+    `, [orderId])
     const revenue = toAmount(row?.revenue)
+    const cogs = toAmount(row?.cogs)
+    const grossProfit = toAmount(revenue - cogs)
     const cfg = await queryOne<any>(`
       SELECT operating_cost_rate, vat_rate, cit_rate
       FROM company_settings
@@ -1150,9 +1156,13 @@ app.post('/api/profit-tracking/orders/:id/apply-rates', authMiddleware, requireM
     const vat_rate = toRate(cfg?.vat_rate)
     const cit_rate = toRate(cfg?.cit_rate)
 
-    const operatingCost = pctAmount(revenue, operating_cost_rate)
-    const salesTax = pctAmount(revenue, vat_rate)
-    const incomeTax = pctAmount(revenue, cit_rate)
+    // Danny confirmed formula:
+    // 1) taxes are calculated on gross profit
+    // 2) operating cost is calculated on after-tax gross profit
+    const salesTax = pctAmount(grossProfit, vat_rate)
+    const incomeTax = pctAmount(grossProfit, cit_rate)
+    const afterTaxGross = toAmount(grossProfit - salesTax - incomeTax)
+    const operatingCost = pctAmount(afterTaxGross, operating_cost_rate)
 
     await execute(
       `UPDATE order_profit_entries
@@ -1180,12 +1190,15 @@ app.post('/api/profit-tracking/orders/:id/apply-rates', authMiddleware, requireM
       'UPDATE',
       '利潤追蹤',
       orderId,
-      `${order.po_number} auto-rates revenue=${revenue} op=${operatingCost} vat=${salesTax} cit=${incomeTax}`
+      `${order.po_number} auto-rates revenue=${revenue} cogs=${cogs} gross=${grossProfit} after_tax_gross=${afterTaxGross} op=${operatingCost} vat=${salesTax} cit=${incomeTax}`
     )
     return c.json({
       ok: true,
       inserted,
       revenue,
+      cogs,
+      gross_profit: grossProfit,
+      after_tax_gross: afterTaxGross,
       rates: { operating_cost_rate, vat_rate, cit_rate },
       amounts: { operating_cost: operatingCost, sales_tax: salesTax, income_tax: incomeTax },
     })

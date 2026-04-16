@@ -498,6 +498,9 @@ export default function CustomerOrdersPage() {
                                   <div className="mt-2 text-[11px] text-slate-500">
                                     淨利 = 毛利 - 營運成本 - VAT - CIT + 手動調整
                                   </div>
+                                  <div className="mt-1 text-[10px] text-slate-400">
+                                    VAT/CIT 以毛利計；營運成本以稅後毛利計
+                                  </div>
                                 </div>
                               )}
                               {items === undefined ? (
