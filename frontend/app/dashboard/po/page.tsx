@@ -273,12 +273,11 @@ export default function PoPage() {
         <td class="col-st" style="text-align:center">${idx + 1}</td>
         <td class="col-poref" style="text-align:center;font-family:monospace;font-size:10px">${txt(item.po_ref)}</td>
         <td class="col-code" style="font-family:monospace;font-size:10px;color:#1a56db">${txt(item.material_code)}</td>
-        <td class="col-name">${txt(item.material_name)}</td>
-        <td class="col-spec" style="font-size:10px;color:#555">${txt(item.spec)}</td>
+        <td class="col-name">${txt(item.material_name)}${txt(item.spec) ? `<br/><span style="font-size:10px;color:#555">${txt(item.spec)}</span>` : ''}</td>
         <td class="col-unit" style="text-align:center">${txt(item.unit) || 'PCS'}</td>
-        <td class="col-qty" style="text-align:right;font-weight:600">${fmt(item.quantity)}</td>
+        <td class="col-qty" style="text-align:right">${fmt(item.quantity)}</td>
         <td class="col-price" style="text-align:right">${fmt(item.unit_price)}</td>
-        <td class="col-total" style="text-align:right;font-weight:700">${fmt(item.total_price)}</td>
+        <td class="col-total" style="text-align:right">${fmt(item.total_price)}</td>
         <td class="col-tax" style="text-align:center">${taxRate}%</td>
         <td class="col-cur" style="text-align:center;font-size:10px">${txt(item.currency) || currency}</td>
         <td class="col-remark" style="font-size:10px;color:#666">${txt(item.remark)}</td>
@@ -304,18 +303,17 @@ export default function PoPage() {
       .info-table .val { color: #000; }
       /* Items table */
       table.items { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 4mm; }
-      table.items th { border: 1px solid #555; background: #e8e8e8; padding: 5px 4px; text-align: center; font-size: 10px; font-weight: 600; white-space: normal; overflow-wrap: anywhere; word-break: break-word; line-height: 1.25; color: #000; }
+      table.items th { border: 1px solid #555; background: #e8e8e8; padding: 5px 4px; text-align: center; font-size: 10px; font-weight: 600; white-space: nowrap; color: #000; }
       table.items td { border: 1px solid #bbb; padding: 5px 5px; font-size: 11px; font-weight: 400; color: #000; white-space: normal; overflow-wrap: anywhere; word-break: break-word; vertical-align: top; }
       table.items tbody tr:nth-child(even) { background: #fafafa; }
       table.items .col-st { width: 4%; }
       table.items .col-poref { width: 8%; }
       table.items .col-code { width: 9%; }
-      table.items .col-name { width: 20%; word-break: break-word; line-height: 1.35; font-weight: 500; }
-      table.items .col-spec { width: 11%; }
+      table.items .col-name { width: 30%; word-break: break-word; line-height: 1.35; }
       table.items .col-unit { width: 5%; }
-      table.items .col-qty { width: 6%; white-space: nowrap; }
-      table.items .col-price { width: 8%; white-space: nowrap; }
-      table.items .col-total { width: 9%; white-space: nowrap; }
+      table.items .col-qty { width: 7%; white-space: nowrap; font-variant-numeric: tabular-nums; }
+      table.items .col-price { width: 9%; white-space: nowrap; font-variant-numeric: tabular-nums; }
+      table.items .col-total { width: 10%; white-space: nowrap; font-variant-numeric: tabular-nums; }
       table.items .col-tax { width: 6%; white-space: nowrap; }
       table.items .col-cur { width: 5%; white-space: nowrap; }
       table.items .col-remark { width: 9%; }
@@ -376,8 +374,7 @@ export default function PoPage() {
           <th class="col-st">ST</th>
           <th class="col-poref">PO訂單編號</th>
           <th class="col-code">物料編號</th>
-          <th class="col-name">材料名稱</th>
-          <th class="col-spec">規格</th>
+          <th class="col-name">材料名稱 / 規格</th>
           <th class="col-unit">單位</th>
           <th class="col-qty">數量</th>
           <th class="col-price">單價</th>
@@ -389,14 +386,14 @@ export default function PoPage() {
         <tbody>${itemRows}</tbody>
         <tfoot>
           <tr class="total-row">
-            <td colspan="8" style="text-align:right">未稅 / Trước thuế</td>
+            <td colspan="7" style="text-align:right">未稅 / Trước thuế</td>
             <td style="text-align:right;font-size:12px">${fmt(subTotal)}</td>
             <td style="text-align:center">${taxRate}%</td>
             <td style="text-align:center">${currency}</td>
             <td></td>
           </tr>
           <tr class="total-row">
-            <td colspan="8" style="text-align:right">含稅合計 / Tổng cộng sau thuế</td>
+            <td colspan="7" style="text-align:right">含稅合計 / Tổng cộng sau thuế</td>
             <td style="text-align:right;font-size:12px;color:#1a56db">${fmt(total)}</td>
             <td style="text-align:center">${taxRate}%</td>
             <td style="text-align:center">${currency}</td>
