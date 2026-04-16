@@ -29,6 +29,18 @@ type OrderItem = { id?:number; bom_id:number|null; qty:number; unit_price:number
 type Order = { id:number; po_date:string; po_number:string; customer_id:number; customer_name:string; customer_code:string; status:string; remark:string; created_at:string; items?:OrderItem[]; tax_rate?:number; tax_amount?:number; total_amount?:number; delivery_date?:string; person_in_charge?:string; payment_terms?:string }
 type BOM = { id:number; product_sku:string; product_name:string; company_price?:number; unit?:string; spec?:string; image_url?:string }
 type Customer = { id:number; customer_code:string; customer_name:string }
+type ProfitOrderSummary = {
+  id: number
+  revenue: number
+  cogs: number
+  gross_profit: number
+  operating_cost: number
+  sales_tax: number
+  income_tax: number
+  manual_adjustment: number
+  net_profit: number
+  net_margin: number
+}
 const emptyItem = (): OrderItem => ({ bom_id:null, qty:0, unit_price:0, remark:'', spec:'', unit:'' })
 
 const STATUS_BADGE: Record<string,string> = { pending:'badge-yellow', completed:'badge-green', delay:'badge-red', partial:'badge-blue' }
@@ -45,8 +57,11 @@ function ChevronIcon({ open }: { open: boolean }) {
 
 export default function CustomerOrdersPage() {
   const { toast, confirm: confirmDialog } = useDialog()
+  const user = getUser()
+  const canViewProfit = user?.role === 'manager'
 
   const [orders, setOrders] = useState<Order[]>([])
+  const [profitByOrderId, setProfitByOrderId] = useState<Record<number, ProfitOrderSummary>>({})
   const [boms, setBoms] = useState<BOM[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
@@ -65,13 +80,28 @@ export default function CustomerOrdersPage() {
   const canWrite = can('customer_order.create')
   const canDel = can('customer_order.delete')
 
-  const load = () => apiFetch<Order[]>('/api/customer-orders')
-    .then(setOrders)
-    .catch(err => {
-      console.error('Failed to load orders:', err)
-      toast('載入訂單失敗：' + err.message, 'error')
-    })
-    .finally(()=>setLoading(false))
+  const load = () => {
+    const requests: Promise<any>[] = [apiFetch<Order[]>('/api/customer-orders')]
+    if (canViewProfit) requests.push(apiFetch<{ orders: ProfitOrderSummary[] }>('/api/profit-tracking/orders'))
+    return Promise.all(requests)
+      .then(([orderList, profitResp]) => {
+        setOrders(orderList as Order[])
+        if (!canViewProfit) {
+          setProfitByOrderId({})
+          return
+        }
+        const map: Record<number, ProfitOrderSummary> = {}
+        ;((profitResp as { orders?: ProfitOrderSummary[] } | undefined)?.orders || []).forEach((row) => {
+          map[Number(row.id)] = row
+        })
+        setProfitByOrderId(map)
+      })
+      .catch(err => {
+        console.error('Failed to load orders:', err)
+        toast('載入訂單失敗：' + err.message, 'error')
+      })
+      .finally(()=>setLoading(false))
+  }
   useEffect(()=>{
     load()
     apiFetch<BOM[]>('/api/bom').then(setBoms).catch(()=>{})
@@ -221,6 +251,7 @@ export default function CustomerOrdersPage() {
   const { page, setPage, totalPages, paged, total } = usePagination(filtered, 20)
   const inp = 'oms-input text-xs py-1.5'
   const lockedInp = `${inp} bom-locked-field`
+  const money = (v?: number) => Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })
 
   return (
     <div>
@@ -405,6 +436,7 @@ export default function CustomerOrdersPage() {
                   <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">訂單日期</th>
                   <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">交貨日</th>
                   <th className="px-4 py-3 text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider">總計</th>
+                  {canViewProfit && <th className="px-4 py-3 text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider">淨利</th>}
                   <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">狀態</th>
                   <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">操作</th>
                 </tr>
@@ -413,6 +445,7 @@ export default function CustomerOrdersPage() {
                 {paged.map(o => {
                   const isOpen = expanded.has(o.id)
                   const items = loadedItems[o.id]
+                  const profit = profitByOrderId[o.id]
                   return (
                     <>
                       <tr key={o.id}
@@ -424,6 +457,11 @@ export default function CustomerOrdersPage() {
                         <td className="px-4 py-3 text-slate-400 text-xs">{o.po_date ? String(o.po_date).slice(0,10) : '—'}</td>
                         <td className="px-4 py-3 text-slate-400 text-xs">{o.delivery_date ? String(o.delivery_date).slice(0,10) : '—'}</td>
                         <td className="px-4 py-3 text-right font-semibold text-slate-800">{o.total_amount ? Number(o.total_amount).toLocaleString() : '—'}</td>
+                        {canViewProfit && (
+                          <td className={`px-4 py-3 text-right font-semibold ${(profit?.net_profit || 0) >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                            {profit ? money(profit.net_profit) : '—'}
+                          </td>
+                        )}
                         <td className="px-4 py-3">
                           <StatusFlow compact steps={CO_STEPS} current={o.status}
                             actions={getCOActions(o.status)}
@@ -443,8 +481,25 @@ export default function CustomerOrdersPage() {
                       </tr>
                       {isOpen && (
                         <tr key={`${o.id}-items`} className="border-b border-slate-100">
-                          <td colSpan={8} className="px-0 py-0">
+                          <td colSpan={canViewProfit ? 9 : 8} className="px-0 py-0">
                             <div className="expand-row-wrap">
+                              {canViewProfit && profit && (
+                                <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[11px]">
+                                    <div><span className="text-slate-400">營收</span><div className="font-semibold text-slate-700">{money(profit.revenue)}</div></div>
+                                    <div><span className="text-slate-400">成本</span><div className="font-semibold text-slate-700">{money(profit.cogs)}</div></div>
+                                    <div><span className="text-slate-400">毛利</span><div className="font-semibold text-slate-700">{money(profit.gross_profit)}</div></div>
+                                    <div><span className="text-slate-400">營運成本</span><div className="font-semibold text-slate-700">{money(profit.operating_cost)}</div></div>
+                                    <div><span className="text-slate-400">VAT</span><div className="font-semibold text-slate-700">{money(profit.sales_tax)}</div></div>
+                                    <div><span className="text-slate-400">CIT</span><div className="font-semibold text-slate-700">{money(profit.income_tax)}</div></div>
+                                    <div><span className="text-slate-400">手動調整</span><div className="font-semibold text-slate-700">{money(profit.manual_adjustment)}</div></div>
+                                    <div><span className="text-slate-400">淨利率</span><div className={`font-semibold ${(profit.net_margin || 0) >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{Number(profit.net_margin || 0).toFixed(2)}%</div></div>
+                                  </div>
+                                  <div className="mt-2 text-[11px] text-slate-500">
+                                    淨利 = 毛利 - 營運成本 - VAT - CIT + 手動調整
+                                  </div>
+                                </div>
+                              )}
                               {items === undefined ? (
                                 <div className="expand-row-loading">
                                   <div className="w-3 h-3 border border-slate-300 border-t-slate-500 rounded-full animate-spin"/>載入中...
@@ -488,7 +543,7 @@ export default function CustomerOrdersPage() {
                     </>
                   )
                 })}
-                {paged.length===0 && <tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400">尚無訂單</td></tr>}
+                {paged.length===0 && <tr><td colSpan={canViewProfit ? 9 : 8} className="px-4 py-12 text-center text-slate-400">尚無訂單</td></tr>}
               </tbody>
             </table>
             <Pagination page={page} totalPages={totalPages} setPage={setPage} total={total} />
