@@ -304,22 +304,22 @@ export default function PoPage() {
       .info-table .val { color: #000; }
       /* Items table */
       table.items { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 4mm; }
-      table.items th { border: 1px solid #555; background: #e8e8e8; padding: 5px 4px; text-align: center; font-size: 10px; font-weight: 600; white-space: nowrap; color: #000; }
+      table.items th { border: 1px solid #555; background: #e8e8e8; padding: 5px 4px; text-align: center; font-size: 10px; font-weight: 600; white-space: normal; overflow-wrap: anywhere; word-break: break-word; line-height: 1.25; color: #000; }
       table.items td { border: 1px solid #bbb; padding: 5px 5px; font-size: 11px; font-weight: 400; color: #000; white-space: normal; overflow-wrap: anywhere; word-break: break-word; vertical-align: top; }
       table.items tbody tr:nth-child(even) { background: #fafafa; }
-      table.items .col-st { width: 24px; }
-      table.items .col-poref { width: 48px; }
-      table.items .col-code { width: 64px; }
-      table.items .col-name { width: 140px; word-break: break-word; line-height: 1.35; font-weight: 500; }
-      table.items .col-spec { width: 72px; }
-      table.items .col-unit { width: 36px; }
-      table.items .col-qty { width: 42px; }
-      table.items .col-price { width: 56px; }
-      table.items .col-total { width: 64px; }
-      table.items .col-tax { width: 40px; }
-      table.items .col-cur { width: 32px; }
-      table.items .col-remark { width: 56px; }
-      .total-row td { border: 1px solid #555; background: #efefef; font-weight: 600; font-size: 11px; padding: 6px 8px; }
+      table.items .col-st { width: 4%; }
+      table.items .col-poref { width: 8%; }
+      table.items .col-code { width: 9%; }
+      table.items .col-name { width: 20%; word-break: break-word; line-height: 1.35; font-weight: 500; }
+      table.items .col-spec { width: 11%; }
+      table.items .col-unit { width: 5%; }
+      table.items .col-qty { width: 6%; white-space: nowrap; }
+      table.items .col-price { width: 8%; white-space: nowrap; }
+      table.items .col-total { width: 9%; white-space: nowrap; }
+      table.items .col-tax { width: 6%; white-space: nowrap; }
+      table.items .col-cur { width: 5%; white-space: nowrap; }
+      table.items .col-remark { width: 9%; }
+      .total-row td { border: 1px solid #555; background: #efefef; font-weight: 600; font-size: 11px; padding: 6px 8px; white-space: nowrap; overflow-wrap: normal; word-break: keep-all; }
       /* Remark */
       .remark-box { border: 1px solid #bbb; padding: 6px 10px; min-height: 18mm; font-size: 10px; font-weight: 400; margin-top: 5mm; }
       .remark-title { font-weight: 600; margin-bottom: 4px; font-size: 10px; }
