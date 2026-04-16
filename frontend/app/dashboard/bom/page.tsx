@@ -63,8 +63,18 @@ export default function BomPage() {
 
   const save = async () => {
     if (!editing) return
-    if (!editing.product_sku) { toast('請填寫物料編號', 'error'); return }
-    if (!editing.product_name) { toast('請填寫產品名稱', 'error'); return }
+    if (!String(editing.product_sku || '').trim()) { toast('請填寫物料編號', 'error'); return }
+    if (!String(editing.product_name || '').trim()) { toast('請填寫產品名稱', 'error'); return }
+    if (!String(editing.unit || '').trim()) { toast('請選擇單位', 'error'); return }
+    if (!String(editing.currency || '').trim()) { toast('請選擇幣別', 'error'); return }
+    if (editing.supplier_price === null || editing.supplier_price === undefined || !Number.isFinite(Number(editing.supplier_price)) || Number(editing.supplier_price) < 0) {
+      toast('請填寫有效的供應商單價（不可為空）', 'error')
+      return
+    }
+    if (editing.company_price === null || editing.company_price === undefined || !Number.isFinite(Number(editing.company_price)) || Number(editing.company_price) < 0) {
+      toast('請填寫有效的公司售價（不可為空）', 'error')
+      return
+    }
     try {
       if (editing.id) {
         await apiFetch(`/api/bom/${editing.id}`, { method:'PUT', body:JSON.stringify(editing) })
@@ -183,11 +193,27 @@ export default function BomPage() {
               </div>
               <div>
                 <label className="block text-[11px] text-slate-500 mb-1.5">供應商單價</label>
-                <input type="number" className={inp} value={editing.supplier_price||''} onChange={e=>setEditing(p=>({...p,supplier_price:Number(e.target.value)}))} />
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  required
+                  className={inp}
+                  value={editing.supplier_price ?? 0}
+                  onChange={e=>setEditing(p=>({...p,supplier_price:e.target.value === '' ? undefined : Number(e.target.value)}))}
+                />
               </div>
               <div>
                 <label className="block text-[11px] text-slate-500 mb-1.5">公司售價</label>
-                <input type="number" className={inp} value={editing.company_price||''} onChange={e=>setEditing(p=>({...p,company_price:Number(e.target.value)}))} />
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  required
+                  className={inp}
+                  value={editing.company_price ?? 0}
+                  onChange={e=>setEditing(p=>({...p,company_price:e.target.value === '' ? undefined : Number(e.target.value)}))}
+                />
               </div>
               <div className="col-span-2">
                 <label className="block text-[11px] text-slate-500 mb-1.5">MOQ 階梯價格（數量 / 單價）</label>

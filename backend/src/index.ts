@@ -513,19 +513,40 @@ app.get('/api/bom/:id', authMiddleware, async c => {
     WHERE bi.bom_id=?`, [c.req.param('id')])
   return c.json({ ...bom, moq_tiers: parseMoqTiersFromDb(bom.moq_tiers), items })
 })
+
+const parseRequiredMoney = (value: any): number | null => {
+  if (value === null || value === undefined || value === '') return null
+  const num = Number(value)
+  if (!Number.isFinite(num) || num < 0) return null
+  return toAmount(num)
+}
+
+const normalizeRequiredText = (value: any): string => String(value ?? '').trim()
+
 app.post('/api/bom', authMiddleware, requirePerm('bom.create'), async c => {
   try {
     await ensureBomMoqTiersColumn()
     const b = await c.req.json()
-    if (!b.product_sku || !b.product_name) return c.json({ error: 'product_sku and product_name required' }, 400)
-    const existing = await queryOne<any>('SELECT id FROM bom WHERE product_sku=? AND deleted_at IS NULL', [b.product_sku])
-    if (existing) return c.json({ error: `SKU「${b.product_sku}」已存在，請使用不同的 SKU` }, 409)
+    const productSku = normalizeRequiredText(b.product_sku)
+    const productName = normalizeRequiredText(b.product_name)
+    const unit = normalizeRequiredText(b.unit)
+    const currency = normalizeRequiredText(b.currency)
+    const supplierPrice = parseRequiredMoney(b.supplier_price)
+    const companyPrice = parseRequiredMoney(b.company_price)
+    if (!productSku) return c.json({ error: 'product_sku required' }, 400)
+    if (!productName) return c.json({ error: 'product_name required' }, 400)
+    if (!unit) return c.json({ error: 'unit required' }, 400)
+    if (!currency) return c.json({ error: 'currency required' }, 400)
+    if (supplierPrice === null) return c.json({ error: 'supplier_price required and must be >= 0' }, 400)
+    if (companyPrice === null) return c.json({ error: 'company_price required and must be >= 0' }, 400)
+    const existing = await queryOne<any>('SELECT id FROM bom WHERE product_sku=? AND deleted_at IS NULL', [productSku])
+    if (existing) return c.json({ error: `SKU「${productSku}」已存在，請使用不同的 SKU` }, 409)
     const u = c.get('user')
     const moqTiers = normalizeMoqTiers(b.moq_tiers)
     const r = await execute(`INSERT INTO bom (product_sku,product_name,material_name,spec,unit,supplier_id,supplier_name,supplier_price,company_price,currency,category,cert_code,brand,image_url,version,moq_tiers,status,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [b.product_sku, b.product_name, b.material_name||'', b.spec||'', b.unit||'PCS',
-       b.supplier_id||null, b.supplier_name||'', b.supplier_price||0, b.company_price||0,
-       b.currency||'VND', b.category||'', b.cert_code||'', b.brand||'', b.image_url||'', b.version||'V1',
+      [productSku, productName, b.material_name||'', b.spec||'', unit,
+       b.supplier_id||null, b.supplier_name||'', supplierPrice, companyPrice,
+       currency, b.category||'', b.cert_code||'', b.brand||'', b.image_url||'', b.version||'V1',
        moqTiers.length ? JSON.stringify(moqTiers) : null,
        'active', u.userId, now8()])
     const bomId = r.insertId
@@ -535,7 +556,7 @@ app.post('/api/bom', authMiddleware, requirePerm('bom.create'), async c => {
           [bomId,item.material_code,item.material_name,item.spec||'',item.unit||'PCS',item.quantity||null,item.supplier_name||'',item.supplier_price||0,item.company_price||0,item.currency||'VND',item.remark||'',item.color||'',item.lt||'',item.moq||null])
       }
     }
-    await audit(u, 'CREATE', 'BOM', bomId, `${b.product_sku} ${b.product_name}`)
+    await audit(u, 'CREATE', 'BOM', bomId, `${productSku} ${productName}`)
     return c.json({ id: bomId }, 201)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
@@ -545,11 +566,21 @@ app.put('/api/bom/:id', authMiddleware, requirePerm('bom.edit'), async c => {
     const id = c.req.param('id'); const b = await c.req.json(); const u = c.get('user')
     const existing = await queryOne<any>('SELECT product_sku FROM bom WHERE id=? AND deleted_at IS NULL', [id])
     if (!existing) return c.json({ error: 'Not found' }, 404)
+    const productName = normalizeRequiredText(b.product_name)
+    const unit = normalizeRequiredText(b.unit)
+    const currency = normalizeRequiredText(b.currency)
+    const supplierPrice = parseRequiredMoney(b.supplier_price)
+    const companyPrice = parseRequiredMoney(b.company_price)
+    if (!productName) return c.json({ error: 'product_name required' }, 400)
+    if (!unit) return c.json({ error: 'unit required' }, 400)
+    if (!currency) return c.json({ error: 'currency required' }, 400)
+    if (supplierPrice === null) return c.json({ error: 'supplier_price required and must be >= 0' }, 400)
+    if (companyPrice === null) return c.json({ error: 'company_price required and must be >= 0' }, 400)
     const moqTiers = normalizeMoqTiers(b.moq_tiers)
     await execute(`UPDATE bom SET product_sku=?,product_name=?,material_name=?,spec=?,unit=?,supplier_id=?,supplier_name=?,supplier_price=?,company_price=?,currency=?,category=?,cert_code=?,brand=?,image_url=?,version=?,moq_tiers=? WHERE id=?`,
-      [existing.product_sku, b.product_name, b.material_name||'', b.spec||'', b.unit||'PCS',
-       b.supplier_id||null, b.supplier_name||'', b.supplier_price||0, b.company_price||0,
-       b.currency||'VND', b.category||'', b.cert_code||'', b.brand||'', b.image_url||'', b.version||'V1',
+      [existing.product_sku, productName, b.material_name||'', b.spec||'', unit,
+       b.supplier_id||null, b.supplier_name||'', supplierPrice, companyPrice,
+       currency, b.category||'', b.cert_code||'', b.brand||'', b.image_url||'', b.version||'V1',
        moqTiers.length ? JSON.stringify(moqTiers) : null,
        id])
     await execute('DELETE FROM bom_items WHERE bom_id=?', [id])
@@ -559,7 +590,7 @@ app.put('/api/bom/:id', authMiddleware, requirePerm('bom.edit'), async c => {
           [id,item.material_code,item.material_name,item.spec||'',item.unit||'PCS',item.quantity||null,item.supplier_name||'',item.supplier_price||0,item.company_price||0,item.currency||'VND',item.remark||'',item.color||'',item.lt||'',item.moq||null])
       }
     }
-    await audit(u, 'UPDATE', 'BOM', id, `${existing.product_sku} ${b.product_name}`)
+    await audit(u, 'UPDATE', 'BOM', id, `${existing.product_sku} ${productName}`)
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
