@@ -100,7 +100,7 @@ export default function PoPage() {
         spec: bom.spec || '',
         unit: bom.unit || 'PCS',
         unit_price: resolveTierPrice(bom.moq_tiers, item.quantity || 0, bom.supplier_price || 0),
-        currency: bom.currency || form.currency,
+        currency: form.currency,
         image_url: bom.image_url || '',
         total_price: (item.quantity || 0) * resolveTierPrice(bom.moq_tiers, item.quantity || 0, bom.supplier_price || 0),
       })
@@ -188,7 +188,9 @@ export default function PoPage() {
 
   const save = async () => {
     if (!form.supplier_id) { toast('請選擇供應商', 'error'); return }
-    const validItems = form.items.filter(i => i.bom_id)
+    const validItems = form.items
+      .filter(i => i.bom_id)
+      .map(i => ({ ...i, currency: form.currency }))
     if (!validItems.length) { toast('請至少選擇一個 BOM 品項', 'error'); return }
     try {
       if (editingId) {
@@ -212,10 +214,10 @@ export default function PoPage() {
     const sup = rawSupplierId
       ? suppliers.find(s => String(s.id) === String(rawSupplierId))
       : suppliers.find(s => s.name === po.supplier_name)
-    setForm({
-      supplier_id: sup ? String(sup.id) : (rawSupplierId ? String(rawSupplierId) : ''),
-      supplier_name: po.supplier_name,
-      currency: po.currency,
+      setForm({
+        supplier_id: sup ? String(sup.id) : (rawSupplierId ? String(rawSupplierId) : ''),
+        supplier_name: po.supplier_name,
+        currency: po.currency,
       tax_rate: Math.min(25, Math.max(1, Number((data as any).tax_rate ?? (po as any).tax_rate ?? 8))),
       remark: po.remark || '',
       items: (data.items || []).map(i => {
@@ -229,7 +231,7 @@ export default function PoPage() {
           quantity: Number(i.quantity),
           unit_price: Number(i.unit_price),
           total_price: Number(i.total_price),
-          currency: i.currency,
+          currency: po.currency || i.currency,
           remark: i.remark,
           po_ref: i.po_ref,
           image_url: i.image_url || matchedBom?.image_url || '',
@@ -439,7 +441,7 @@ export default function PoPage() {
       {(creating || editingId !== null) && canWrite && (
         <div className="oms-card p-6 mb-5">
           <h2 className="text-sm font-semibold text-slate-800 mb-4">{editingId ? '編輯採購單（草稿）' : '建立採購單'}</h2>
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-4 gap-3 mb-4">
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">供應商 *</label>
               <select className={inp} value={form.supplier_id}
@@ -456,6 +458,15 @@ export default function PoPage() {
               </select>
             </div>
             <div>
+              <label className="block text-[11px] text-slate-500 mb-1.5">稅率</label>
+              <select className={inp} value={String(form.tax_rate)}
+                onChange={e=>setForm(p=>({...p, tax_rate: Math.min(25, Math.max(1, Number(e.target.value) || 8))}))}>
+                {Array.from({ length: 25 }, (_, idx) => idx + 1).map(v => (
+                  <option key={v} value={v}>{v}%</option>
+                ))}
+              </select>
+            </div>
+            <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">備註（交易條件、特殊要求等）</label>
               <textarea className={inp} rows={3} value={form.remark} onChange={e=>setForm(p=>({...p,remark:e.target.value}))} placeholder="可輸入交易條件、付款方式、交貨要求等資訊..." />
             </div>
@@ -465,9 +476,9 @@ export default function PoPage() {
             <button onClick={addItem} className="btn-ghost text-blue-600">+ 新增料號</button>
           </div>
           <div className="overflow-x-auto overscroll-x-contain rounded-lg border border-slate-200">
-            <table className="w-full text-xs" style={{ minWidth: 1760 }}>
+            <table className="w-full text-xs" style={{ minWidth: 1540 }}>
               <thead><tr className="border-b border-slate-200">
-                {['圖片','PO訂單編號','物料編號（BOM）','材料名稱','規格','單位','數量','單價','小計','稅率','幣別','備註',''].map(h=>(
+                {['圖片','PO訂單編號','物料編號（BOM）','材料名稱','規格','單位','數量','單價','小計','備註',''].map(h=>(
                   <th key={h} className="px-2 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">{h}</th>
                 ))}
               </tr></thead>
@@ -504,19 +515,6 @@ export default function PoPage() {
                     <td className="p-1"><input type="number" className={inp} style={{width:90}} value={item.quantity || ""} onChange={e=>updateItem(i,'quantity',Number(e.target.value))} /></td>
                     <td className="p-1"><input type="number" className={inp} style={{width:110}} value={item.unit_price || ""} onChange={e=>updateItem(i,'unit_price',Number(e.target.value))} /></td>
                     <td className="p-1 px-2 text-right text-slate-600 font-medium whitespace-nowrap">{Number(item.total_price).toLocaleString()}</td>
-                    <td className="p-1">
-                      <select className={inp} style={{width:80}} value={String(form.tax_rate)}
-                        onChange={e=>setForm(p=>({...p, tax_rate: Math.min(25, Math.max(1, Number(e.target.value) || 8))}))}>
-                        {Array.from({ length: 25 }, (_, idx) => idx + 1).map(v => (
-                          <option key={v} value={v}>{v}%</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="p-1">
-                      <select className={inp} style={{width:72}} value={item.currency} onChange={e=>updateItem(i,'currency',e.target.value)}>
-                        <option>VND</option><option>TWD</option><option>CNY</option><option>USD</option>
-                      </select>
-                    </td>
                     <td className="p-1"><input className={inp} style={{width:180}} value={item.remark} onChange={e=>updateItem(i,'remark',e.target.value)} /></td>
                     <td className="p-1 text-center"><button onClick={() => removeItem(i)} className="text-slate-300 hover:text-red-600 transition-colors">✕</button></td>
                   </tr>
@@ -526,10 +524,8 @@ export default function PoPage() {
                 <tr className="border-t border-slate-200">
                   <td colSpan={8} className="px-3 py-2 text-right text-[11px] text-slate-400 font-semibold uppercase">未稅合計</td>
                   <td className="px-2 py-2 text-right text-slate-600 font-bold">{formTotal.toLocaleString()}</td>
-                  <td className="px-2 py-2 text-slate-400 text-xs">{form.tax_rate}%</td>
-                  <td className="px-2 py-2 text-slate-400 text-xs">{form.currency}</td>
                   <td className="px-2 py-2 text-right text-slate-700 font-bold" colSpan={2}>
-                    含稅 {(formTotal * (1 + (form.tax_rate || 8) / 100)).toLocaleString()}
+                    稅率 {form.tax_rate}%　幣別 {form.currency}　含稅 {(formTotal * (1 + (form.tax_rate || 8) / 100)).toLocaleString()}
                   </td>
                 </tr>
               </tfoot>
@@ -633,7 +629,7 @@ export default function PoPage() {
                                         {['數量','單價','小計'].map(h=>(
                                           <th key={h} className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
                                         ))}
-                                        {['稅率','單位','幣別','備註'].map(h=>(
+                                        {['單位','備註'].map(h=>(
                                           <th key={h} className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
                                         ))}
                                       </tr>
@@ -648,19 +644,16 @@ export default function PoPage() {
                                           <td className="px-3 py-2 text-right text-slate-600 font-medium whitespace-nowrap">{Number(item.quantity).toLocaleString()}</td>
                                           <td className="px-3 py-2 text-right text-slate-600 whitespace-nowrap">{Number(item.unit_price).toLocaleString()}</td>
                                           <td className="px-3 py-2 text-right text-slate-800 font-semibold whitespace-nowrap">{Number(item.total_price).toLocaleString()}</td>
-                                          <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{Number((p as any).tax_rate || 8)}%</td>
                                           <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.unit}</td>
-                                          <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.currency}</td>
                                           <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.remark}</td>
                                         </tr>
                                       ))}
                                     </tbody>
                                     <tfoot>
                                       <tr className="border-t border-slate-200">
-                                        <td colSpan={7} className="px-3 py-2 text-right text-[10px] text-slate-300 font-semibold uppercase">未稅合計</td>
+                                        <td colSpan={6} className="px-3 py-2 text-right text-[10px] text-slate-300 font-semibold uppercase">未稅合計</td>
                                         <td className="px-3 py-2 text-right text-slate-600 font-bold">{items.reduce((s,i)=>s+Number(i.total_price),0).toLocaleString()}</td>
-                                        <td className="px-3 py-2 text-slate-400 text-xs">{Number((p as any).tax_rate || 8)}%</td>
-                                        <td colSpan={3} className="px-3 py-2 text-slate-400 text-xs">{items[0]?.currency}</td>
+                                        <td colSpan={2} className="px-3 py-2 text-slate-400 text-xs">稅率 {Number((p as any).tax_rate || 8)}%　幣別 {p.currency || items[0]?.currency || 'VND'}</td>
                                       </tr>
                                     </tfoot>
                                   </table>
