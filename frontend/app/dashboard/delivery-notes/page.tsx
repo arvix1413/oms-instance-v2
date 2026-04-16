@@ -38,7 +38,6 @@ export default function DeliveryNotesPage() {
 
   // Create form state
   const [selectedCustomerId, setSelectedCustomerId] = useState('')
-  const [poSearch, setPoSearch] = useState('')
   const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([])
   const [selectedOrderId, setSelectedOrderId] = useState('')
   const [orderItems, setOrderItems] = useState<OrderItem[]>([])
@@ -57,21 +56,8 @@ export default function DeliveryNotesPage() {
     setSelectedOrderId('')
     setOrderItems([])
     setShippedQtys({})
-    setPoSearch('')
     if (!customerId) { setPendingOrders([]); return }
     const orders = await apiFetch<PendingOrder[]>(`/api/customer-orders/pending?customer_id=${customerId}`)
-    setPendingOrders(orders)
-  }
-
-  // Search by PO number directly
-  const onSearchPO = async (val: string) => {
-    setPoSearch(val)
-    setSelectedOrderId('')
-    setOrderItems([])
-    setShippedQtys({})
-    if (!val.trim()) { if (!selectedCustomerId) setPendingOrders([]); return }
-    // Search all pending orders matching PO number
-    const orders = await apiFetch<PendingOrder[]>(`/api/customer-orders/pending?po_search=${encodeURIComponent(val)}`)
     setPendingOrders(orders)
   }
 
@@ -126,7 +112,7 @@ export default function DeliveryNotesPage() {
   const resetForm = () => {
     setSelectedCustomerId(''); setSelectedOrderId('')
     setPendingOrders([]); setOrderItems([]); setShippedQtys({})
-    setDeliveryDate(''); setRemark(''); setPoSearch('')
+    setDeliveryDate(''); setRemark('')
   }
 
   const toggleExpand = async (id: number) => {
@@ -224,7 +210,7 @@ export default function DeliveryNotesPage() {
         <div className="oms-card p-6 mb-5">
           <h2 className="font-semibold text-slate-800 mb-5">新增出貨單</h2>
 
-          {/* Step 1: Select customer or search by PO number */}
+          {/* Step 1: Select customer then order */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">客戶</label>
@@ -236,14 +222,9 @@ export default function DeliveryNotesPage() {
               </select>
             </div>
             <div>
-              <label className="block text-[11px] text-slate-500 mb-1.5">或直接搜尋客戶訂單號</label>
-              <input className="oms-input" placeholder="輸入客戶訂單號..." value={poSearch}
-                onChange={e => onSearchPO(e.target.value)} />
-            </div>
-            <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">
                 待出貨訂單 *
-                {(selectedCustomerId || poSearch) && pendingOrders.length === 0 && (
+                {selectedCustomerId && pendingOrders.length === 0 && (
                   <span className="text-orange-500 ml-1">（無待出貨訂單）</span>
                 )}
               </label>
