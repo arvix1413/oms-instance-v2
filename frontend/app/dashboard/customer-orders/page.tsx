@@ -128,13 +128,17 @@ export default function CustomerOrdersPage() {
     try {
       if (editingId) {
         await apiFetch(`/api/customer-orders/${editingId}`, { method:'PUT', body:JSON.stringify({ ...form, tax_rate: 0, items: validItems }) })
-        toast('訂單已更新'); setEditingId(null)
+        toast('訂單已更新，正在重新整理頁面...')
+        setEditingId(null)
       } else {
         await apiFetch('/api/customer-orders', { method:'POST', body:JSON.stringify({ ...form, tax_rate: 0, items: validItems }) })
-        toast('建立成功'); setCreating(false)
+        toast('建立成功，正在重新整理頁面...')
+        setCreating(false)
       }
       setForm({ po_date:'', po_number:'', customer_id:'', remark:'', currency:'VND', delivery_date:'', delivery_address:'', person_in_charge:'', payment_terms:'', items:[emptyItem()] })
-      await load()
+      setTimeout(() => {
+        window.location.reload()
+      }, 250)
     } catch(e:any){ toast('錯誤：'+e.message, 'error') }
   }
 
