@@ -227,11 +227,11 @@ export default function QuotationsPage() {
         <td style="font-size:11px">${txt(item.spec)}</td>
         <td style="text-align:center;font-size:11px">${txt(item.unit) || 'PCS'}</td>
         <td style="text-align:center;font-size:11px">${moqCell}</td>
-        <td style="text-align:right;font-size:11px">${priceCell}</td>
+        <td style="text-align:center;font-size:11px">${priceCell}</td>
         <td style="text-align:center;padding:2px">
           ${imgUrl ? `<img src="${imgUrl}" style="max-width:60px;max-height:50px;object-fit:contain" onerror="this.style.display='none'"/>` : ''}
         </td>
-        <td style="font-size:10px;color:#555">${txt(item.remark)}</td>
+        <td style="text-align:center;font-size:10px;color:#555">${txt(item.remark)}</td>
       </tr>`
     }).join('')
 
@@ -248,11 +248,11 @@ export default function QuotationsPage() {
       .doc-sub{font-size:10px;color:#666;text-align:right;margin-top:2px}
       .doc-no{font-size:12px;font-weight:600;text-align:right;margin-top:3px}
       .info-table{width:100%;border-collapse:collapse;margin-bottom:5mm}
-      .info-table td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;vertical-align:middle}
+      .info-table td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;vertical-align:middle;text-align:center}
       .info-table .lbl{font-weight:600;background:#f5f5f5;white-space:nowrap;width:120px;color:#333}
       table.items{width:100%;border-collapse:collapse;margin-bottom:5mm}
       table.items th{border:1px solid #555;background:#e8e8e8;padding:6px 8px;text-align:center;font-size:10px;font-weight:600;color:#000}
-      table.items td{border:1px solid #bbb;padding:5px 6px;font-size:11px;font-weight:400;color:#000;vertical-align:middle}
+      table.items td{border:1px solid #bbb;padding:5px 6px;font-size:11px;font-weight:400;color:#000;vertical-align:middle;text-align:center}
       table.items tbody tr:nth-child(even){background:#fafafa}
       .note-box{border:1px solid #bbb;padding:6px 10px;margin-bottom:5mm;font-size:10px;line-height:1.6}
       .note-title{font-weight:600;margin-bottom:4px}

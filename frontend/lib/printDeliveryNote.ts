@@ -33,7 +33,7 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
       '<td class="col-name">' + txt(item.item_name) + '</td>',
       '<td class="col-spec">' + txt(item.spec) + '</td>',
       '<td class="col-unit" style="text-align:center">' + (txt(item.unit) || 'PCS') + '</td>',
-      '<td class="col-qty" style="text-align:right">' + fmt(item.qty) + '</td>',
+      '<td class="col-qty">' + fmt(item.qty) + '</td>',
       '<td class="col-remark" style="color:#666;font-size:10px">' + txt(item.remark) + '</td>',
       '</tr>',
     ].join('')
@@ -53,11 +53,11 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
   parts.push('.doc-sub{font-size:10px;color:#666;text-align:right;margin-top:2px}')
   parts.push('.doc-no{font-size:12px;font-weight:600;text-align:right;margin-top:3px}')
   parts.push('.info-table{width:100%;border-collapse:collapse;margin-bottom:5mm}')
-  parts.push('.info-table td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;vertical-align:middle}')
+  parts.push('.info-table td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;vertical-align:middle;text-align:center}')
   parts.push('.info-table .lbl{font-weight:600;background:#f5f5f5;white-space:nowrap;width:110px;color:#333}')
   parts.push('table.items{width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:5mm}')
   parts.push('table.items th{border:1px solid #555;background:#e8e8e8;padding:6px 6px;text-align:center;font-size:10px;font-weight:600;color:#000;white-space:normal;overflow-wrap:anywhere;word-break:break-word}')
-  parts.push('table.items td{border:1px solid #bbb;padding:5px 6px;font-size:11px;font-weight:400;color:#000;white-space:normal;overflow-wrap:anywhere;word-break:break-word;vertical-align:top}')
+  parts.push('table.items td{border:1px solid #bbb;padding:5px 6px;font-size:11px;font-weight:400;color:#000;white-space:normal;overflow-wrap:anywhere;word-break:break-word;vertical-align:top;text-align:center}')
   parts.push('table.items tbody tr:nth-child(even){background:#fafafa}')
   parts.push('table.items .col-order{width:78px}')
   parts.push('table.items .col-material{width:78px}')
@@ -109,8 +109,8 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
   
   // Total row
   parts.push('<tr class="total-row">')
-  parts.push('<td colspan="6" style="text-align:right">總計 / Tổng cộng</td>')
-  parts.push('<td style="text-align:right;font-size:12px;color:#1a56db">' + fmt(totalQty) + '</td>')
+  parts.push('<td colspan="6">總計 / Tổng cộng</td>')
+  parts.push('<td style="font-size:12px;color:#1a56db">' + fmt(totalQty) + '</td>')
   parts.push('<td></td>')
   parts.push('</tr>')
   parts.push('</tbody></table>')

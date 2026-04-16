@@ -153,12 +153,12 @@ export default function ProductionPage() {
     const rows = mats.map((m, i) => `
       <tr>
         <td style="border:1px solid #bbb;padding:6px;text-align:center">${i + 1}</td>
-        <td style="border:1px solid #bbb;padding:6px;font-family:monospace">${txt(m.material_code)}</td>
-        <td style="border:1px solid #bbb;padding:6px">${txt(m.material_name)}</td>
-        <td style="border:1px solid #bbb;padding:6px">${txt(m.spec)}</td>
+        <td style="border:1px solid #bbb;padding:6px;text-align:center;font-family:monospace">${txt(m.material_code)}</td>
+        <td style="border:1px solid #bbb;padding:6px;text-align:center">${txt(m.material_name)}</td>
+        <td style="border:1px solid #bbb;padding:6px;text-align:center">${txt(m.spec)}</td>
         <td style="border:1px solid #bbb;padding:6px;text-align:center">${txt(m.unit) || 'PCS'}</td>
-        <td style="border:1px solid #bbb;padding:6px;text-align:right">${fmt(m.planned_qty)}</td>
-        <td style="border:1px solid #bbb;padding:6px;text-align:right">${fmt(m.issued_qty)}</td>
+        <td style="border:1px solid #bbb;padding:6px;text-align:center">${fmt(m.planned_qty)}</td>
+        <td style="border:1px solid #bbb;padding:6px;text-align:center">${fmt(m.issued_qty)}</td>
       </tr>
     `).join('')
     const html = `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="utf-8"/>
@@ -166,7 +166,7 @@ export default function ProductionPage() {
     <style>
       *{box-sizing:border-box} body{font-family:"Microsoft JhengHei","PingFang TC",Arial,sans-serif;font-size:12px;padding:12mm;color:#111}
       h1{font-size:24px;margin:0 0 4px} .sub{font-size:12px;color:#666;margin-bottom:10px}
-      table{width:100%;border-collapse:collapse} th{border:1px solid #555;background:#eee;padding:6px;font-size:11px}
+      table{width:100%;border-collapse:collapse} th{border:1px solid #555;background:#eee;padding:6px;font-size:11px;text-align:center}
       @media print{@page{size:A4;margin:10mm} body{padding:0}}
     </style></head><body>
     <h1>${txt(company.company_name) || 'FAN YONG CO., LTD'}</h1>

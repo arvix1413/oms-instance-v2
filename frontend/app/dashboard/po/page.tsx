@@ -275,10 +275,10 @@ export default function PoPage() {
         <td class="col-st" style="text-align:center">${idx + 1}</td>
         <td class="col-code" style="font-family:monospace;font-size:10px;color:#1a56db">${txt(item.material_code)}</td>
         <td class="col-name">${txt(item.material_name)}${txt(item.spec) ? `<span class="sub-spec-inline"> ${txt(item.spec)}</span>` : ''}</td>
-        <td class="col-qty" style="text-align:right">${fmt(item.quantity)}</td>
+        <td class="col-qty">${fmt(item.quantity)}</td>
         <td class="col-unit" style="text-align:center">${txt(item.unit) || 'PCS'}</td>
-        <td class="col-price" style="text-align:right">${fmt(item.unit_price)}</td>
-        <td class="col-total" style="text-align:right">${fmt(item.total_price)}</td>
+        <td class="col-price">${fmt(item.unit_price)}</td>
+        <td class="col-total">${fmt(item.total_price)}</td>
       </tr>`).join('')
 
     const html = `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="utf-8"/>
@@ -296,13 +296,13 @@ export default function PoPage() {
       .doc-no { font-size: 12px; font-weight: 600; text-align: right; margin-top: 3px; }
       /* Info table */
       .info-table { width: 100%; border-collapse: collapse; margin-bottom: 5mm; }
-      .info-table td { border: 1px solid #bbb; padding: 5px 8px; font-size: 11px; font-weight: 400; vertical-align: middle; }
+      .info-table td { border: 1px solid #bbb; padding: 5px 8px; font-size: 11px; font-weight: 400; vertical-align: middle; text-align: center; }
       .info-table .lbl { font-weight: 600; background: #f5f5f5; white-space: nowrap; width: 110px; color: #333; line-height: 1.4; }
       .info-table .val { color: #000; }
       /* Items table */
       table.items { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 4mm; }
       table.items th { border: 1px solid #555; background: #e8e8e8; padding: 5px 4px; text-align: center; font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: clip; color: #000; }
-      table.items td { border: 1px solid #bbb; padding: 5px 5px; font-size: 11px; font-weight: 400; color: #000; white-space: normal; overflow-wrap: anywhere; word-break: break-word; vertical-align: top; }
+      table.items td { border: 1px solid #bbb; padding: 5px 5px; font-size: 11px; font-weight: 400; color: #000; white-space: normal; overflow-wrap: anywhere; word-break: break-word; vertical-align: top; text-align: center; }
       table.items tbody tr:nth-child(even) { background: #fafafa; }
       table.items .col-st { width: 4%; }
       table.items .col-code { width: 14%; }
@@ -377,12 +377,12 @@ export default function PoPage() {
         <tbody>${itemRows}</tbody>
         <tfoot>
           <tr class="total-row">
-            <td colspan="6" style="text-align:right">未稅 / Trước thuế</td>
-            <td style="text-align:right;font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums">${fmt(subTotal)}</td>
+            <td colspan="6">未稅 / Trước thuế</td>
+            <td style="font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums">${fmt(subTotal)}</td>
           </tr>
           <tr class="total-row">
-            <td colspan="6" style="text-align:right">含稅合計 / Tổng cộng sau thuế</td>
-            <td style="text-align:right;font-size:12px;color:#1a56db;white-space:nowrap;font-variant-numeric:tabular-nums">${fmt(total)}</td>
+            <td colspan="6">含稅合計 / Tổng cộng sau thuế</td>
+            <td style="font-size:12px;color:#1a56db;white-space:nowrap;font-variant-numeric:tabular-nums">${fmt(total)}</td>
           </tr>
         </tfoot>
       </table>

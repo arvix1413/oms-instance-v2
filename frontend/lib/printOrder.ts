@@ -36,10 +36,10 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
       '<td style="text-align:center">' + (idx+1) + '</td>',
       '<td>' + nameText + skuText + '</td>',
       '<td>' + txt(item.spec) + '</td>',
-      '<td style="text-align:right">' + fmt(qty) + '</td>',
+      '<td>' + fmt(qty) + '</td>',
       '<td style="text-align:center">' + (txt(item.unit) || 'PCS') + '</td>',
-      '<td style="text-align:right">' + fmt(unitPrice) + '</td>',
-      '<td style="text-align:right">' + fmt(amt) + '</td>',
+      '<td>' + fmt(unitPrice) + '</td>',
+      '<td>' + fmt(amt) + '</td>',
       '</tr>',
     ].join('')
   }).join('')
@@ -54,11 +54,11 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
     .doc-sub{font-size:10px;color:#666;text-align:right;margin-top:2px}
     .doc-no{font-size:12px;font-weight:600;text-align:right;margin-top:3px}
     .info-table{width:100%;border-collapse:collapse;margin-bottom:5mm}
-    .info-table td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;vertical-align:middle}
+    .info-table td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;vertical-align:middle;text-align:center}
     .info-table .lbl{font-weight:600;background:#f5f5f5;white-space:nowrap;width:120px;color:#333}
     table.items{width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:5mm}
     table.items th{border:1px solid #555;background:#e8e8e8;padding:6px 8px;text-align:center;font-size:10px;font-weight:600;color:#000;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
-    table.items td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;color:#000;white-space:normal;overflow-wrap:anywhere;word-break:break-word;vertical-align:top}
+    table.items td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;color:#000;white-space:normal;overflow-wrap:anywhere;word-break:break-word;vertical-align:top;text-align:center}
     table.items tbody tr:nth-child(even){background:#fafafa}
     .total-row td{border:1px solid #555;background:#efefef;font-weight:600;font-size:11px;padding:6px 8px}
     .summary-right{width:260px;border:1px solid #bbb;padding:6px 10px;margin-left:auto;margin-bottom:5mm}
@@ -105,7 +105,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
   parts.push('<table class="items"><thead><tr>')
   parts.push('<th style="width:30px">ST</th><th>品名 / Tên hàng</th><th style="width:100px">規格</th><th style="width:65px">數量</th><th style="width:45px">單位</th><th style="width:80px">單價</th><th style="width:90px">金額</th>')
   parts.push('</tr></thead><tbody>' + itemRows + '</tbody>')
-  parts.push('<tfoot><tr class="total-row"><td colspan="6" style="text-align:right">小計 / Tổng chưa thuế</td><td style="text-align:right">' + fmt(subtotal) + '</td></tr></tfoot>')
+  parts.push('<tfoot><tr class="total-row"><td colspan="6">小計 / Tổng chưa thuế</td><td>' + fmt(subtotal) + '</td></tr></tfoot>')
   parts.push('</table>')
 
   // Summary

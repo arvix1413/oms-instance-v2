@@ -61,12 +61,12 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
     .cust{font-size:14px;font-weight:700;margin:4px 0}
     .addr{font-size:11px;margin-bottom:4px}
     table{width:100%;border-collapse:collapse;table-layout:fixed}
-    th,td{border:1px solid #555;padding:5px 6px;font-size:11px;vertical-align:top;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
+    th,td{border:1px solid #555;padding:5px 6px;font-size:11px;vertical-align:top;white-space:normal;overflow-wrap:anywhere;word-break:break-word;text-align:center}
     th{background:#f5f5f5;font-weight:700;text-align:center}
     .sub{display:block;font-size:10px;font-weight:500;color:#333;margin-top:1px}
     .qty{text-align:center;font-weight:400}
     .total td{font-weight:700;background:#fafafa}
-    .right{text-align:right}
+    .right{text-align:center}
     .col-order{width:112px}
     .col-material{width:112px}
     .col-spec{width:110px}
