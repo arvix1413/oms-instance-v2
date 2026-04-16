@@ -1,4 +1,6 @@
 export const API = process.env.NEXT_PUBLIC_API_URL || 'https://oms-backend.arvix1413.workers.dev'
+type ReloadMode = 'auto' | 'always' | 'never'
+type OmsRequestInit = RequestInit & { reloadOnSuccess?: ReloadMode }
 
 export function getToken() {
   if (typeof window === 'undefined') return null
@@ -65,11 +67,29 @@ export function getSignatureUrl(): string | null {
   } catch { return null }
 }
 
-export async function apiFetch<T>(path: string, opts: RequestInit = {}): Promise<T> {
+function shouldReloadOnSuccess(path: string, method: string, mode: ReloadMode): boolean {
+  if (mode === 'never') return false
+  if (mode === 'always') return true
+  if (!['POST', 'PUT'].includes(method)) return false
+  if (path.startsWith('/api/auth/')) return false
+  if (path.startsWith('/api/upload')) return false
+  if (path.includes('/status')) return false
+  if (path.includes('/approve')) return false
+  if (path.includes('/receive')) return false
+  if (path.includes('/apply-rates')) return false
+  if (path.includes('/entries')) return false
+  if (path.includes('/reset-password')) return false
+  if (path.includes('/bulk')) return false
+  return true
+}
+
+export async function apiFetch<T>(path: string, opts: OmsRequestInit = {}): Promise<T> {
   const token = getToken()
   // Don't set Content-Type for FormData (let browser set multipart boundary)
   const isFormData = opts.body instanceof FormData
   try {
+    const method = String(opts.method || 'GET').toUpperCase()
+    const reloadOnSuccess = opts.reloadOnSuccess || 'auto'
     const res = await fetch(`${API}${path}`, {
       ...opts,
       headers: {
@@ -83,7 +103,11 @@ export async function apiFetch<T>(path: string, opts: RequestInit = {}): Promise
       const raw = (err as any).error || res.statusText
       throw new Error(mapApiErrorMessage(raw, res.status))
     }
-    return res.json()
+    const data = await res.json().catch(() => ({} as T))
+    if (typeof window !== 'undefined' && shouldReloadOnSuccess(path, method, reloadOnSuccess)) {
+      setTimeout(() => window.location.reload(), 180)
+    }
+    return data as T
   } catch (e: any) {
     // Network/CORS/timeout
     if (e?.name === 'TypeError' && String(e.message || '').toLowerCase().includes('fetch')) {
