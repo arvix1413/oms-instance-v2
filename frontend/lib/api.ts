@@ -67,20 +67,12 @@ export function getSignatureUrl(): string | null {
   } catch { return null }
 }
 
-function shouldReloadOnSuccess(path: string, method: string, mode: ReloadMode): boolean {
+function shouldReloadOnSuccess(_path: string, _method: string, mode: ReloadMode): boolean {
   if (mode === 'never') return false
   if (mode === 'always') return true
-  if (!['POST', 'PUT'].includes(method)) return false
-  if (path.startsWith('/api/auth/')) return false
-  if (path.startsWith('/api/upload')) return false
-  if (path.includes('/status')) return false
-  if (path.includes('/approve')) return false
-  if (path.includes('/receive')) return false
-  if (path.includes('/apply-rates')) return false
-  if (path.includes('/entries')) return false
-  if (path.includes('/reset-password')) return false
-  if (path.includes('/bulk')) return false
-  return true
+  // Default mode: no hard refresh. Each page should refresh its own local data
+  // by calling load()/refetch after mutation for better UX.
+  return false
 }
 
 export async function apiFetch<T>(path: string, opts: OmsRequestInit = {}): Promise<T> {
