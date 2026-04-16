@@ -82,10 +82,13 @@ export async function apiFetch<T>(path: string, opts: OmsRequestInit = {}): Prom
   try {
     const method = String(opts.method || 'GET').toUpperCase()
     const reloadOnSuccess = opts.reloadOnSuccess || 'auto'
+    const isGet = method === 'GET'
     const res = await fetch(`${API}${path}`, {
       ...opts,
+      cache: isGet ? 'no-store' : opts.cache,
       headers: {
         ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+        ...(isGet ? { 'Cache-Control': 'no-cache' } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(opts.headers || {}),
       },

@@ -126,6 +126,7 @@ export default function CustomerOrdersPage() {
     const validItems = form.items.filter(i => i.bom_id)
     if (!validItems.length) { toast('請至少選擇一個 BOM 品項', 'error'); return }
     try {
+      const savedOrderId = editingId
       if (editingId) {
         await apiFetch(`/api/customer-orders/${editingId}`, { method:'PUT', body:JSON.stringify({ ...form, tax_rate: 0, items: validItems }) })
         toast('訂單已更新')
@@ -137,6 +138,13 @@ export default function CustomerOrdersPage() {
       }
       setForm({ po_date:'', po_number:'', customer_id:'', remark:'', currency:'VND', delivery_date:'', delivery_address:'', person_in_charge:'', payment_terms:'', items:[emptyItem()] })
       await load()
+      // Invalidate expanded-row item cache so user doesn't see stale item list.
+      setLoadedItems({})
+      if (savedOrderId !== null) {
+        setExpanded(new Set([savedOrderId]))
+        const refreshed = await apiFetch<Order>(`/api/customer-orders/${savedOrderId}`)
+        setLoadedItems(p => ({ ...p, [savedOrderId]: refreshed.items || [] }))
+      }
     } catch(e:any){ toast('錯誤：'+e.message, 'error') }
   }
 
