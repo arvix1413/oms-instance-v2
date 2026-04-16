@@ -36,10 +36,10 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
       '<td style="text-align:center">' + (idx+1) + '</td>',
       '<td>' + nameText + skuText + '</td>',
       '<td style="color:#555">' + txt(item.spec) + '</td>',
-      '<td style="text-align:right;font-weight:600">' + fmt(qty) + '</td>',
+      '<td style="text-align:right">' + fmt(qty) + '</td>',
       '<td style="text-align:center">' + (txt(item.unit) || 'PCS') + '</td>',
       '<td style="text-align:right">' + fmt(unitPrice) + '</td>',
-      '<td style="text-align:right;font-weight:600">' + fmt(amt) + '</td>',
+      '<td style="text-align:right">' + fmt(amt) + '</td>',
       '</tr>',
     ].join('')
   }).join('')

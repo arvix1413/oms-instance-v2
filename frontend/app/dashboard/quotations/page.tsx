@@ -218,7 +218,7 @@ export default function QuotationsPage() {
       if (tiers.length === 0 && num(item.unit_price) > 0) tiers = [{moq:0, price: num(item.unit_price)}]
 
       const moqCell = tiers.map(t => `<div style="line-height:1.6">${t.moq > 0 ? fmt(t.moq) : ''}</div>`).join('')
-      const priceCell = tiers.map(t => `<div style="line-height:1.6;font-weight:600">${t.price > 0 ? fmt(t.price) : ''}</div>`).join('')
+      const priceCell = tiers.map(t => `<div style="line-height:1.6">${t.price > 0 ? fmt(t.price) : ''}</div>`).join('')
 
       return `
       <tr>

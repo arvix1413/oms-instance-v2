@@ -33,7 +33,7 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
       '<td class="col-name">' + txt(item.item_name) + '</td>',
       '<td class="col-spec" style="color:#555;font-size:10px">' + txt(item.spec) + '</td>',
       '<td class="col-unit" style="text-align:center">' + (txt(item.unit) || 'PCS') + '</td>',
-      '<td class="col-qty" style="text-align:right;font-weight:600">' + fmt(item.qty) + '</td>',
+      '<td class="col-qty" style="text-align:right">' + fmt(item.qty) + '</td>',
       '<td class="col-remark" style="color:#666;font-size:10px">' + txt(item.remark) + '</td>',
       '</tr>',
     ].join('')

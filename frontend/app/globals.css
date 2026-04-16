@@ -17,6 +17,14 @@ input[type="number"] { -moz-appearance: textfield; }
 .oms-table thead th { @apply px-4 py-2.5 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider bg-slate-50; }
 .oms-table tbody tr { @apply border-b border-slate-100 hover:bg-blue-50/40 transition-colors; }
 .oms-table tbody td { @apply px-4 py-2.5 text-sm text-slate-700; }
+/* Detail cells in business tables: keep consistent regular weight */
+.oms-table tbody td,
+.oms-card table tbody td {
+  font-weight: 400;
+}
+.dashboard-content table tbody td {
+  font-weight: 400;
+}
 
 /* Card */
 .oms-card { @apply bg-white border border-slate-200 rounded-2xl shadow-sm shadow-slate-200/50; }
