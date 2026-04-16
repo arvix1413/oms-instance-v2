@@ -417,9 +417,12 @@ export default function DeliveryNotesPage() {
                                 <div className="overflow-x-auto">
                                   <table className="w-full text-xs" style={{minWidth:500}}>
                                     <thead><tr className="border-b border-slate-100">
-                                      {['品名','物料編號','規格','單位','數量','備註'].map(h => (
-                                        <th key={h} className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
-                                      ))}
+                                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">品名</th>
+                                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">物料編號</th>
+                                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">規格</th>
+                                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">單位</th>
+                                      <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">數量</th>
+                                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">備註</th>
                                     </tr></thead>
                                     <tbody>
                                       {items.map((item, i) => (
