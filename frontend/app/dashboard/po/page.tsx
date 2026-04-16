@@ -288,7 +288,7 @@ export default function PoPage() {
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
       body { font-family: "Microsoft JhengHei", "PingFang TC", Arial, sans-serif; font-size: 11px; font-weight: 400; color: #000; background: #fff; }
-      .page { padding: 12mm 15mm; max-width: 210mm; margin: 0 auto; }
+      .page { padding: 8mm 6mm; max-width: 210mm; margin: 0 auto; }
       /* Header */
       .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 5mm; margin-bottom: 5mm; }
       .company { font-size: 18px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
@@ -303,21 +303,21 @@ export default function PoPage() {
       .info-table .val { color: #000; }
       /* Items table */
       table.items { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 4mm; }
-      table.items th { border: 1px solid #555; background: #e8e8e8; padding: 5px 4px; text-align: center; font-size: 10px; font-weight: 600; white-space: nowrap; color: #000; }
+      table.items th { border: 1px solid #555; background: #e8e8e8; padding: 5px 4px; text-align: center; font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: clip; color: #000; }
       table.items td { border: 1px solid #bbb; padding: 5px 5px; font-size: 11px; font-weight: 400; color: #000; white-space: normal; overflow-wrap: anywhere; word-break: break-word; vertical-align: top; }
       table.items tbody tr:nth-child(even) { background: #fafafa; }
       table.items .col-st { width: 4%; }
-      table.items .col-poref { width: 8%; }
+      table.items .col-poref { width: 11%; font-size: 9px; }
       table.items .col-code { width: 9%; }
-      table.items .col-name { width: 30%; word-break: break-word; line-height: 1.35; }
+      table.items .col-name { width: 25.5%; word-break: break-word; line-height: 1.35; }
       table.items .col-unit { width: 5%; }
       table.items .col-qty { width: 7%; white-space: nowrap; font-variant-numeric: tabular-nums; }
-      table.items .col-price { width: 9%; white-space: nowrap; font-variant-numeric: tabular-nums; }
-      table.items .col-total { width: 10%; white-space: nowrap; font-variant-numeric: tabular-nums; }
+      table.items .col-price { width: 8.5%; white-space: nowrap; font-variant-numeric: tabular-nums; }
+      table.items .col-total { width: 10.5%; white-space: nowrap; font-variant-numeric: tabular-nums; }
       table.items .col-tax { width: 6%; white-space: nowrap; }
-      table.items .col-cur { width: 5%; white-space: nowrap; }
-      table.items .col-remark { width: 9%; }
-      .total-row td { border: 1px solid #555; background: #efefef; font-weight: 600; font-size: 11px; padding: 6px 8px; white-space: nowrap; overflow-wrap: normal; word-break: keep-all; }
+      table.items .col-cur { width: 6%; white-space: nowrap; }
+      table.items .col-remark { width: 8%; }
+      .total-row td { border: 1px solid #555; background: #efefef; font-weight: 600; font-size: 11px; padding: 6px 8px; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; }
       /* Remark */
       .remark-box { border: 1px solid #bbb; padding: 6px 10px; min-height: 18mm; font-size: 10px; font-weight: 400; margin-top: 5mm; }
       .remark-title { font-weight: 600; margin-bottom: 4px; font-size: 10px; }
@@ -387,16 +387,16 @@ export default function PoPage() {
         <tfoot>
           <tr class="total-row">
             <td colspan="7" style="text-align:right">未稅 / Trước thuế</td>
-            <td style="text-align:right;font-size:12px">${fmt(subTotal)}</td>
+            <td style="text-align:right;font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums">${fmt(subTotal)}</td>
             <td style="text-align:center">${taxRate}%</td>
-            <td style="text-align:center">${currency}</td>
+            <td style="text-align:center;white-space:nowrap">${currency}</td>
             <td></td>
           </tr>
           <tr class="total-row">
             <td colspan="7" style="text-align:right">含稅合計 / Tổng cộng sau thuế</td>
-            <td style="text-align:right;font-size:12px;color:#1a56db">${fmt(total)}</td>
+            <td style="text-align:right;font-size:12px;color:#1a56db;white-space:nowrap;font-variant-numeric:tabular-nums">${fmt(total)}</td>
             <td style="text-align:center">${taxRate}%</td>
-            <td style="text-align:center">${currency}</td>
+            <td style="text-align:center;white-space:nowrap">${currency}</td>
             <td></td>
           </tr>
         </tfoot>
