@@ -361,7 +361,7 @@ export default function PoPage() {
 
       <table class="party-table">
         <tr>
-          <td class="section" colspan="4">我方公司 / Company Name</td>
+          <td class="section" colspan="4">本公司 / Company Name</td>
           <td class="section" colspan="4">供應商公司 / Supplier Name</td>
         </tr>
         <tr>

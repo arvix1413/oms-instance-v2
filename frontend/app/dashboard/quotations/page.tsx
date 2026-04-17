@@ -297,7 +297,7 @@ export default function QuotationsPage() {
 
       <table class="party-table">
         <tr>
-          <td class="section" colspan="4">我方公司 / Company Name</td>
+          <td class="section" colspan="4">本公司 / Company Name</td>
           <td class="section" colspan="4">客戶公司 / Customer Name</td>
         </tr>
         <tr>

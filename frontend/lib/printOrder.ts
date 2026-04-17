@@ -97,7 +97,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
 
   // Party table
   parts.push('<table class="party-table">')
-  parts.push('<tr><td class="section" colspan="4">我方公司 / Company Name</td><td class="section" colspan="4">客戶公司 / Customer Name</td></tr>')
+  parts.push('<tr><td class="section" colspan="4">本公司 / Company Name</td><td class="section" colspan="4">客戶公司 / Customer Name</td></tr>')
   parts.push('<tr><td class="label">公司名</td><td colspan="3">' + txt(co.company_name) + '</td><td class="label">公司名</td><td colspan="3">' + customerName + '</td></tr>')
   parts.push('<tr><td class="label">地址</td><td colspan="3">' + txt(co.address) + '</td><td class="label">地址</td><td colspan="3">' + customerAddress + '</td></tr>')
   parts.push('<tr><td class="label">電話</td><td colspan="3">' + txt(co.phone) + '</td><td class="label">電話</td><td colspan="3">' + customerPhone + '</td></tr>')
