@@ -28,8 +28,8 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
     return [
       '<tr>',
       '<td style="text-align:center">' + (i+1) + '</td>',
-      '<td class="col-order" style="font-family:monospace;font-size:10px;color:#1a56db">' + txt(item.po_ref || orderRef) + '</td>',
-      '<td class="col-material" style="font-family:monospace;font-size:10px;color:#1a56db">' + txt(item.material_code) + '</td>',
+      '<td class="col-order">' + txt(item.po_ref || orderRef) + '</td>',
+      '<td class="col-material">' + txt(item.material_code) + '</td>',
       '<td class="col-name">' + txt(item.item_name) + '</td>',
       '<td class="col-spec">' + txt(item.spec) + '</td>',
       '<td class="col-unit" style="text-align:center">' + (txt(item.unit) || 'PCS') + '</td>',
