@@ -273,7 +273,7 @@ export default function PoPage() {
     const itemRows = items.map((item, idx) => `
       <tr>
         <td class="col-st" style="text-align:center">${idx + 1}</td>
-        <td class="col-code" style="font-family:monospace;font-size:10px;color:#1a56db">${txt(item.material_code)}</td>
+        <td class="col-code">${txt(item.material_code)}</td>
         <td class="col-name">${txt(item.material_name)}${txt(item.spec) ? `<span class="sub-spec-inline"> ${txt(item.spec)}</span>` : ''}</td>
         <td class="col-qty">${fmt(item.quantity)}</td>
         <td class="col-unit" style="text-align:center">${txt(item.unit) || 'PCS'}</td>
