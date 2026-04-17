@@ -10,7 +10,14 @@ import { normalizeMoqTiers, resolveTierPrice } from '@/lib/moqPricing'
 type MoqTier = { moq: number; price: number }
 type QItem = { bom_id?:number|null; item_name:string; material_code:string; spec:string; unit:string; qty:number; unit_price:number; total_price:number; remark:string; moq_tiers:MoqTier[]; image_url?:string }
 type Q = { id:number; quotation_number:string; customer_name:string; customer_id?:number; status:string; total_amount:number; currency:string; valid_until:string; remark:string; created_at:string; items?:QItem[] }
-type Customer = { id:number; customer_name:string; customer_code:string }
+type Customer = {
+  id:number
+  customer_name:string
+  customer_code:string
+  contact?: string
+  phone?: string
+  address?: string
+}
 type BOM = { id:number; product_sku:string; product_name:string; spec:string; unit:string; company_price:number; image_url?:string; moq_tiers?: MoqTier[] }
 
 const emptyTiers = (): MoqTier[] => Array.from({length:5}, () => ({ moq: 0, price: 0 }))
@@ -200,6 +207,13 @@ export default function QuotationsPage() {
     const signUrl = getSignatureUrl()
     const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://43.133.56.234'
     const logoUrl = company.logo_url ? (company.logo_url.startsWith('http') ? company.logo_url : `${apiBase}${company.logo_url}`) : null
+    const rawCustomerId = (data as any).customer_id ?? q.customer_id
+    const customerDetail = rawCustomerId
+      ? customers.find(c => String(c.id) === String(rawCustomerId))
+      : customers.find(c => c.customer_name === q.customer_name)
+    const customerAddress = txt(customerDetail?.address)
+    const customerPhone = txt(customerDetail?.phone)
+    const customerContact = txt(customerDetail?.contact)
 
     const itemRows = items.map((item: any, idx: number) => {
       const imgUrl = item.image_url
@@ -247,6 +261,10 @@ export default function QuotationsPage() {
       .doc-title{font-size:22px;font-weight:700;color:#1a56db;text-align:right}
       .doc-sub{font-size:10px;color:#666;text-align:right;margin-top:2px}
       .doc-no{font-size:12px;font-weight:600;text-align:right;margin-top:3px}
+      .party-table{width:100%;border-collapse:collapse;margin-bottom:5mm}
+      .party-table td{border:1px solid #bbb;padding:4px 7px;font-size:10px;vertical-align:middle;text-align:left}
+      .party-table .section{background:#d9edf7;font-weight:700;white-space:nowrap;width:160px}
+      .party-table .label{background:#f5f5f5;font-weight:600;white-space:nowrap;width:90px}
       .info-table{width:100%;border-collapse:collapse;margin-bottom:5mm}
       .info-table td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;vertical-align:middle;text-align:center}
       .info-table .lbl{font-weight:600;background:#f5f5f5;white-space:nowrap;width:120px;color:#333}
@@ -276,6 +294,37 @@ export default function QuotationsPage() {
           <div class="doc-no">No. ${txt(q.quotation_number)}</div>
         </div>
       </div>
+
+      <table class="party-table">
+        <tr>
+          <td class="section" colspan="4">我方公司 / Company Name</td>
+          <td class="section" colspan="4">客戶公司 / Customer Name</td>
+        </tr>
+        <tr>
+          <td class="label">公司名</td>
+          <td colspan="3">${txt(company.company_name)}</td>
+          <td class="label">公司名</td>
+          <td colspan="3">${txt(q.customer_name)}</td>
+        </tr>
+        <tr>
+          <td class="label">地址</td>
+          <td colspan="3">${txt(company.address)}</td>
+          <td class="label">地址</td>
+          <td colspan="3">${customerAddress}</td>
+        </tr>
+        <tr>
+          <td class="label">電話</td>
+          <td colspan="3">${txt(company.phone)}</td>
+          <td class="label">電話</td>
+          <td colspan="3">${customerPhone}</td>
+        </tr>
+        <tr>
+          <td class="label">聯絡人</td>
+          <td colspan="3">${txt(company.contact_person)}</td>
+          <td class="label">聯絡人</td>
+          <td colspan="3">${customerContact}</td>
+        </tr>
+      </table>
 
       <table class="info-table">
         <tr>

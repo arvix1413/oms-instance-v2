@@ -11,7 +11,15 @@ import { resolveTierPrice, type MoqTier } from '@/lib/moqPricing'
 
 type PoItem = { material_code:string; material_name:string; spec:string; unit:string; quantity:number; unit_price:number; total_price:number; currency:string; remark:string; po_ref:string; thickness?:number|string; image_url?:string; bom_id?:number }
 type Po = { id:number; po_number:string; supplier_name:string; status:string; total_amount:number; tax_rate?:number; currency:string; remark:string; created_at:string; approved_at?:string; items?:PoItem[] }
-type Supplier = { id: number; name: string; currency: string; supplier_code: string }
+type Supplier = {
+  id: number
+  name: string
+  currency: string
+  supplier_code: string
+  contact?: string
+  phone?: string
+  address?: string
+}
 type BOM = { id: number; product_sku: string; product_name: string; spec: string; unit: string; supplier_price: number; company_price: number; currency: string; image_url?: string; material_name?: string; supplier_id?: number; moq_tiers?: MoqTier[] }
 
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
@@ -269,6 +277,13 @@ export default function PoPage() {
     const signatureUrl = getSignatureUrl()
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://43.133.56.234'
     const logoUrl = company.logo_url ? (company.logo_url.startsWith('http') ? company.logo_url : `${API_BASE}${company.logo_url}`) : null
+    const supplierId = (data as any).supplier_id
+    const supplierDetail = suppliers.find(s =>
+      (supplierId && String(s.id) === String(supplierId)) || s.name === supplierName,
+    )
+    const supplierContact = txt(supplierDetail?.contact)
+    const supplierPhone = txt(supplierDetail?.phone)
+    const supplierAddress = txt(supplierDetail?.address)
 
     const itemRows = items.map((item, idx) => `
       <tr>
@@ -294,6 +309,10 @@ export default function PoPage() {
       .doc-title { font-size: 22px; font-weight: 700; color: #1a56db; letter-spacing: 2px; text-align: right; }
       .doc-sub { font-size: 10px; color: #666; text-align: right; margin-top: 2px; }
       .doc-no { font-size: 12px; font-weight: 600; text-align: right; margin-top: 3px; }
+      .party-table { width: 100%; border-collapse: collapse; margin-bottom: 5mm; }
+      .party-table td { border: 1px solid #bbb; padding: 4px 7px; font-size: 10px; vertical-align: middle; text-align: left; }
+      .party-table .section { background: #d9edf7; font-weight: 700; white-space: nowrap; width: 160px; }
+      .party-table .label { background: #f5f5f5; font-weight: 600; white-space: nowrap; width: 90px; }
       /* Info table */
       .info-table { width: 100%; border-collapse: collapse; margin-bottom: 5mm; }
       .info-table td { border: 1px solid #bbb; padding: 5px 8px; font-size: 11px; font-weight: 400; vertical-align: middle; text-align: center; }
@@ -339,6 +358,37 @@ export default function PoPage() {
           <div class="doc-no">No. ${txt(poNumber)}</div>
         </div>
       </div>
+
+      <table class="party-table">
+        <tr>
+          <td class="section" colspan="4">我方公司 / Company Name</td>
+          <td class="section" colspan="4">供應商公司 / Supplier Name</td>
+        </tr>
+        <tr>
+          <td class="label">公司名</td>
+          <td colspan="3">${txt(company.company_name)}</td>
+          <td class="label">公司名</td>
+          <td colspan="3">${txt(supplierName)}</td>
+        </tr>
+        <tr>
+          <td class="label">地址</td>
+          <td colspan="3">${txt(company.address)}</td>
+          <td class="label">地址</td>
+          <td colspan="3">${supplierAddress}</td>
+        </tr>
+        <tr>
+          <td class="label">電話</td>
+          <td colspan="3">${txt(company.phone)}</td>
+          <td class="label">電話</td>
+          <td colspan="3">${supplierPhone}</td>
+        </tr>
+        <tr>
+          <td class="label">聯絡人</td>
+          <td colspan="3">${txt(company.contact_person)}</td>
+          <td class="label">聯絡人</td>
+          <td colspan="3">${supplierContact}</td>
+        </tr>
+      </table>
 
       <table class="info-table">
         <tr>
