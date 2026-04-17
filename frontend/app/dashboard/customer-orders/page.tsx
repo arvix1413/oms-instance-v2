@@ -28,7 +28,14 @@ function getCOActions(status: string) {
 type OrderItem = { id?:number; bom_id:number|null; qty:number; unit_price:number; remark:string; arrived_qty?:number; arrived_date?:string; balance?:number; status?:string; product_sku?:string; product_name?:string; spec?:string; unit?:string; image_url?:string }
 type Order = { id:number; po_date:string; po_number:string; customer_id:number; customer_name:string; customer_code:string; status:string; remark:string; created_at:string; items?:OrderItem[]; tax_rate?:number; tax_amount?:number; total_amount?:number; delivery_date?:string; person_in_charge?:string; payment_terms?:string }
 type BOM = { id:number; product_sku:string; product_name:string; company_price?:number; unit?:string; spec?:string; image_url?:string }
-type Customer = { id:number; customer_code:string; customer_name:string }
+type Customer = {
+  id:number
+  customer_code:string
+  customer_name:string
+  contact?: string
+  phone?: string
+  address?: string
+}
 type ProfitOrderSummary = {
   id: number
   revenue: number
@@ -187,7 +194,16 @@ export default function CustomerOrdersPage() {
       apiFetch<any>(`/api/customer-orders/${orderId}`),
       getCompany(),
     ])
-    const html = generateOrderHTML(data, getSignatureUrl() || undefined, company)
+    const customerDetail = customers.find(c =>
+      (data.customer_id && String(c.id) === String(data.customer_id)) || c.customer_name === data.customer_name,
+    )
+    const printData = {
+      ...data,
+      customer_contact: customerDetail?.contact || data.customer_contact || '',
+      customer_phone: customerDetail?.phone || data.customer_phone || '',
+      customer_address: customerDetail?.address || data.customer_address || '',
+    }
+    const html = generateOrderHTML(printData, getSignatureUrl() || undefined, company)
     const w = window.open('', '_blank', 'width=800,height=1000')
     if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500) }
   }

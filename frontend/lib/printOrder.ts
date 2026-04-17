@@ -20,6 +20,10 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
   }
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://43.133.56.234'
   const logoUrl = co.logo_url ? (co.logo_url.startsWith('http') ? co.logo_url : `${API_BASE}${co.logo_url}`) : null
+  const customerName = txt(data.customer_name)
+  const customerAddress = txt(data.customer_address || data.address || data.delivery_address)
+  const customerPhone = txt(data.customer_phone)
+  const customerContact = txt(data.customer_contact || data.person_in_charge)
   const items: any[] = data.items || []
   const subtotal = items.reduce((s: number, i: any) => s + (Number(i.qty)||0) * (Number(i.unit_price)||0), 0)
   const total = subtotal
@@ -53,6 +57,10 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
     .doc-title{font-size:22px;font-weight:700;color:#1a56db;text-align:right}
     .doc-sub{font-size:10px;color:#666;text-align:right;margin-top:2px}
     .doc-no{font-size:12px;font-weight:600;text-align:right;margin-top:3px}
+    .party-table{width:100%;border-collapse:collapse;margin-bottom:5mm}
+    .party-table td{border:1px solid #bbb;padding:4px 7px;font-size:10px;vertical-align:middle;text-align:left}
+    .party-table .section{background:#d9edf7;font-weight:700;white-space:nowrap;width:160px}
+    .party-table .label{background:#f5f5f5;font-weight:600;white-space:nowrap;width:90px}
     .info-table{width:100%;border-collapse:collapse;margin-bottom:5mm}
     .info-table td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;vertical-align:middle;text-align:center}
     .info-table .lbl{font-weight:600;background:#f5f5f5;white-space:nowrap;width:120px;color:#333}
@@ -87,9 +95,18 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
   parts.push('<div><div class="doc-title">客戶訂單</div><div class="doc-sub">CUSTOMER ORDER / ĐƠN HÀNG KHÁCH</div><div class="doc-no">No. ' + txt(data.po_number) + '</div></div>')
   parts.push('</div>')
 
+  // Party table
+  parts.push('<table class="party-table">')
+  parts.push('<tr><td class="section" colspan="4">我方公司 / Company Name</td><td class="section" colspan="4">客戶公司 / Customer Name</td></tr>')
+  parts.push('<tr><td class="label">公司名</td><td colspan="3">' + txt(co.company_name) + '</td><td class="label">公司名</td><td colspan="3">' + customerName + '</td></tr>')
+  parts.push('<tr><td class="label">地址</td><td colspan="3">' + txt(co.address) + '</td><td class="label">地址</td><td colspan="3">' + customerAddress + '</td></tr>')
+  parts.push('<tr><td class="label">電話</td><td colspan="3">' + txt(co.phone) + '</td><td class="label">電話</td><td colspan="3">' + customerPhone + '</td></tr>')
+  parts.push('<tr><td class="label">聯絡人</td><td colspan="3">' + txt(co.contact_person) + '</td><td class="label">聯絡人</td><td colspan="3">' + customerContact + '</td></tr>')
+  parts.push('</table>')
+
   // Info table
   parts.push('<table class="info-table">')
-  parts.push('<tr><td class="lbl">客戶<br/>Khách hàng</td><td style="font-weight:600;font-size:12px" colspan="3">' + txt(data.customer_name) + '</td><td class="lbl">訂單號<br/>Số đơn</td><td style="font-family:monospace;font-weight:600">' + txt(data.po_number) + '</td></tr>')
+  parts.push('<tr><td class="lbl">客戶<br/>Khách hàng</td><td style="font-weight:600;font-size:12px" colspan="3">' + customerName + '</td><td class="lbl">訂單號<br/>Số đơn</td><td style="font-family:monospace;font-weight:600">' + txt(data.po_number) + '</td></tr>')
   parts.push('<tr><td class="lbl">採購日期<br/>Ngày đặt</td><td>' + txt(data.po_date) + '</td><td class="lbl">交貨日<br/>Ngày giao</td><td>' + txt(data.delivery_date) + '</td><td class="lbl">幣種<br/>Loại tiền</td><td>' + (txt(data.currency) || 'VND') + '</td></tr>')
   if (data.payment_terms) {
     parts.push('<tr><td class="lbl">付款方式<br/>Thanh toán</td><td colspan="5">' + data.payment_terms + '</td></tr>')
@@ -128,7 +145,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
     parts.push('<img src="' + signatureUrl + '" style="max-height:44px;max-width:150px;object-fit:contain" />')
   }
   parts.push('</div><div class="sign-line">' + txt(co.company_name) + '</div></div>')
-  parts.push('<div class="sign-box"><div class="sign-label">客戶簽章 / Khách hàng ký</div><div class="sign-area"></div><div class="sign-line">' + txt(data.customer_name) + '</div></div>')
+  parts.push('<div class="sign-box"><div class="sign-label">客戶簽章 / Khách hàng ký</div><div class="sign-area"></div><div class="sign-line">' + customerName + '</div></div>')
   parts.push('</div>')
 
   parts.push('</body></html>')

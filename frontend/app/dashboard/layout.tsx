@@ -49,11 +49,11 @@ const NAV_ADMIN: NavEntry[] = [
   {
     label: '使用者帳號與權限管理', icon: <IconUserCog />,
     children: [
-      { href: '/dashboard/company', label: '公司設定', icon: <IconBuilding /> },
       { href: '/dashboard/roles', label: '角色管理', icon: <IconShield /> },
       { href: '/dashboard/users', label: '使用者管理', icon: <IconUserCog /> },
     ]
   },
+  { href: '/dashboard/company', label: '公司設定', icon: <IconBuilding /> },
   { href: '/dashboard/audit-logs', label: '操作日誌', icon: <IconAudit /> },
 ]
 
