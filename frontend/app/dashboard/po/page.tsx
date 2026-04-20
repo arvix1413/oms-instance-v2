@@ -264,6 +264,7 @@ export default function PoPage() {
       return Number.isFinite(n) ? n : 0
     }
     const fmt = (v: any) => num(v).toLocaleString()
+    const fmtText = (v: any) => txt(v).replace(/\n/g, '<br/>')
 
     const [data, company] = await Promise.all([
       apiFetch<Po>(`/api/po/${id}`),
@@ -294,6 +295,7 @@ export default function PoPage() {
         <td class="col-unit" style="text-align:center">${txt(item.unit) || 'PCS'}</td>
         <td class="col-price">${fmt(item.unit_price)}</td>
         <td class="col-total">${fmt(item.total_price)}</td>
+        <td class="col-remark">${fmtText(item.remark)}</td>
       </tr>`).join('')
 
     const html = `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="utf-8"/>
@@ -325,11 +327,12 @@ export default function PoPage() {
       table.items tbody tr:nth-child(even) { background: #fafafa; }
       table.items .col-st { width: 4%; }
       table.items .col-code { width: 17%; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; }
-      table.items .col-name { width: 40%; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; line-height: 1.35; }
-      table.items .col-qty { width: 10%; white-space: nowrap; font-variant-numeric: tabular-nums; }
-      table.items .col-unit { width: 8%; white-space: nowrap; }
-      table.items .col-price { width: 11%; white-space: nowrap; font-variant-numeric: tabular-nums; }
-      table.items .col-total { width: 12%; white-space: nowrap; font-variant-numeric: tabular-nums; }
+      table.items .col-name { width: 28%; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; line-height: 1.35; }
+      table.items .col-qty { width: 8%; white-space: nowrap; font-variant-numeric: tabular-nums; }
+      table.items .col-unit { width: 7%; white-space: nowrap; }
+      table.items .col-price { width: 10%; white-space: nowrap; font-variant-numeric: tabular-nums; }
+      table.items .col-total { width: 10%; white-space: nowrap; font-variant-numeric: tabular-nums; }
+      table.items .col-remark { width: 16%; white-space: normal !important; overflow-wrap: anywhere !important; word-break: break-word !important; }
       table.items .sub-spec-inline { color: #000; font-size: 11px; font-weight: 400; white-space: nowrap; margin-left: 4px; }
       .total-row td { border: 1px solid #555; background: #efefef; font-weight: 600; font-size: 11px; padding: 6px 8px; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; }
       /* Remark */
@@ -411,7 +414,7 @@ export default function PoPage() {
           <td class="lbl"></td>
           <td class="val"></td>
         </tr>
-        ${txt(data.remark) ? `<tr><td class="lbl">備註<br/>Ghi chú</td><td class="val" colspan="5">${txt(data.remark)}</td></tr>` : ''}
+        ${txt(data.remark) ? `<tr><td class="lbl">備註<br/>Ghi chú</td><td class="val" colspan="5">${fmtText(data.remark)}</td></tr>` : ''}
       </table>
 
       <table class="items">
@@ -423,21 +426,22 @@ export default function PoPage() {
           <th class="col-unit">單位</th>
           <th class="col-price">單價</th>
           <th class="col-total">小計</th>
+          <th class="col-remark">備註</th>
         </tr></thead>
         <tbody>${itemRows}</tbody>
         <tfoot>
           <tr class="total-row">
-            <td colspan="6">未稅 / Trước thuế</td>
+            <td colspan="7">未稅 / Trước thuế</td>
             <td style="font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums">${fmt(subTotal)}</td>
           </tr>
           <tr class="total-row">
-            <td colspan="6">含稅合計 / Tổng cộng sau thuế</td>
+            <td colspan="7">含稅合計 / Tổng cộng sau thuế</td>
             <td style="font-size:12px;color:#1a56db;white-space:nowrap;font-variant-numeric:tabular-nums">${fmt(total)}</td>
           </tr>
         </tfoot>
       </table>
 
-      ${txt(data.remark) ? `<div class="remark-box"><div class="remark-title">備註 / Ghi chú：</div><div>${txt(data.remark)}</div></div>` : ''}
+      ${txt(data.remark) ? `<div class="remark-box"><div class="remark-title">備註 / Ghi chú：</div><div>${fmtText(data.remark)}</div></div>` : ''}
 
       <div class="terms">
         <strong>注意事項 / Lưu ý：</strong>

@@ -174,6 +174,7 @@ export default function ProductionPage() {
     <h2 style="font-size:20px;margin:8px 0 10px">生產單</h2>
     <div style="margin-bottom:10px">單號：<b>${txt(prod.prod_number)}</b>　產品：<b>${txt(prod.product_name)}</b>　狀態：<b>${txt(STATUS_MAP[prod.status]?.label || prod.status)}</b></div>
     <div style="margin-bottom:10px">計畫數量：${fmt(prod.planned_qty)}　已完成：${fmt(prod.produced_qty)}　期間：${prod.planned_start ? String(prod.planned_start).slice(0,10) : ''} ~ ${prod.planned_end ? String(prod.planned_end).slice(0,10) : ''}</div>
+    <div style="margin-bottom:10px">備註：${txt(prod.remark) || '—'}</div>
     <table>
       <thead><tr><th style="width:40px">序</th><th>料號</th><th>材料名稱</th><th>規格</th><th style="width:60px">單位</th><th style="width:90px">計劃用量</th><th style="width:90px">實際領料</th></tr></thead>
       <tbody>${rows || '<tr><td colspan="7" style="border:1px solid #bbb;padding:8px;text-align:center;color:#666">無材料明細</td></tr>'}</tbody>

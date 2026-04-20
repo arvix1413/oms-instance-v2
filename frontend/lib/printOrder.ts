@@ -12,6 +12,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
     return Number.isFinite(n) ? n : 0
   }
   const fmt = (v: any) => num(v).toLocaleString()
+  const fmtText = (v: any) => txt(v).replace(/\n/g, '<br/>')
 
   const co = company || {
     company_name: 'FAN YONG CO., LTD',
@@ -44,6 +45,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
       '<td style="text-align:center">' + (txt(item.unit) || 'PCS') + '</td>',
       '<td>' + fmt(unitPrice) + '</td>',
       '<td>' + fmt(amt) + '</td>',
+      '<td class="col-remark">' + fmtText(item.remark) + '</td>',
       '</tr>',
     ].join('')
   }).join('')
@@ -70,6 +72,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
     table.items tbody tr:nth-child(even){background:#fafafa}
     table.items .col-code{white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
     table.items .col-name{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important}
+    table.items .col-remark{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important}
     .total-row td{border:1px solid #555;background:#efefef;font-weight:600;font-size:11px;padding:6px 8px}
     .summary-right{width:260px;border:1px solid #bbb;padding:6px 10px;margin-left:auto;margin-bottom:5mm}
     .sum-row{display:flex;justify-content:space-between;padding:4px 0;font-size:11px;font-weight:400;border-bottom:1px solid #eee}
@@ -122,9 +125,9 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
 
   // Items table
   parts.push('<table class="items"><thead><tr>')
-  parts.push('<th style="width:30px">ST</th><th class="col-code" style="width:120px">物料編號</th><th class="col-name">品名 / 規格</th><th style="width:65px">數量</th><th style="width:45px">單位</th><th style="width:80px">單價</th><th style="width:90px">金額</th>')
+  parts.push('<th style="width:30px">ST</th><th class="col-code" style="width:120px">物料編號</th><th class="col-name">品名 / 規格</th><th style="width:65px">數量</th><th style="width:45px">單位</th><th style="width:80px">單價</th><th style="width:90px">金額</th><th style="width:120px">備註</th>')
   parts.push('</tr></thead><tbody>' + itemRows + '</tbody>')
-  parts.push('<tfoot><tr class="total-row"><td colspan="6">小計 / Tổng chưa thuế</td><td>' + fmt(subtotal) + '</td></tr></tfoot>')
+  parts.push('<tfoot><tr class="total-row"><td colspan="7">小計 / Tổng chưa thuế</td><td>' + fmt(subtotal) + '</td></tr></tfoot>')
   parts.push('</table>')
 
   // Summary
@@ -134,7 +137,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
   parts.push('</div>')
 
   // Notes
-  parts.push('<div class="notes"><div class="notes-title">備註 / Ghi chú：</div><div>' + txt(data.remark) + '</div></div>')
+  parts.push('<div class="notes"><div class="notes-title">備註 / Ghi chú：</div><div>' + fmtText(data.remark) + '</div></div>')
 
   // Terms
   parts.push('<div class="terms"><strong>注意事項：</strong> 訂單確認後不得擅自更改，如需更改須經本公司書面同意。收到本訂單後，請簽名並蓋章回傳。</div>')
