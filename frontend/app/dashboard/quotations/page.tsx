@@ -272,7 +272,7 @@ export default function QuotationsPage() {
     }).join('')
 
     const html = `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="utf-8"/>
-    <title>報價單 ${q.quotation_number}</title>
+    <title>報價單 ${txt((data as any).quotation_number || q.quotation_number)}</title>
     <style>
       *{box-sizing:border-box;margin:0;padding:0}
       body{font-family:"Microsoft JhengHei","PingFang TC",Arial,sans-serif;font-size:11px;font-weight:400;color:#000;background:#fff}
@@ -319,7 +319,7 @@ export default function QuotationsPage() {
         <div>
           <div class="doc-title">報價單</div>
           <div class="doc-sub">QUOTATION / BẢNG BÁO GIÁ</div>
-          <div class="doc-no">No. ${txt(q.quotation_number)}</div>
+          <div class="doc-no">No. ${txt((data as any).quotation_number || q.quotation_number)}</div>
         </div>
       </div>
 
