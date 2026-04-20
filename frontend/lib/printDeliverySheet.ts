@@ -34,7 +34,7 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
   const rows = items.map((item, idx) => `
     <tr>
       <td style="text-align:center">${idx + 1}</td>
-      <td class="col-material" style="font-family:monospace;color:#1847b8">${txt(item.material_code)}</td>
+      <td class="col-material" style="font-family:monospace">${txt(item.material_code)}</td>
       <td class="col-name">${txt(item.item_name)}</td>
       <td class="col-spec">${txt(item.spec)}</td>
       <td class="col-unit" style="text-align:center">${txt(item.unit) || 'PCS'}</td>

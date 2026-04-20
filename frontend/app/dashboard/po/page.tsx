@@ -414,9 +414,7 @@ export default function PoPage() {
           <td class="lbl">建立日期<br/>Ngày lập</td>
           <td class="val">${data.created_at ? String(data.created_at).slice(0,10) : ''}</td>
           <td class="lbl">狀態<br/>Trạng thái</td>
-          <td class="val">${txt(data.status)}</td>
-          <td class="lbl"></td>
-          <td class="val"></td>
+          <td class="val" colspan="3">${txt(data.status)}</td>
         </tr>
         ${txt(data.remark) ? `<tr><td class="lbl">備註<br/>Ghi chú</td><td class="val" colspan="5">${fmtText(data.remark)}</td></tr>` : ''}
       </table>

@@ -73,7 +73,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
     .info-table td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;vertical-align:middle;text-align:center}
     .info-table .lbl{font-weight:600;background:#f5f5f5;white-space:nowrap;width:120px;color:#333}
     ${SHARED_PRINT_ITEM_TABLE_CSS}
-    table.items .col-remark{width:110px;min-width:110px}
+    table.items .col-remark{width:140px;min-width:140px}
     .summary-right{width:260px;border:1px solid #bbb;padding:6px 10px;margin-left:auto;margin-bottom:5mm}
     .sum-row{display:flex;justify-content:space-between;padding:4px 0;font-size:11px;font-weight:400;border-bottom:1px solid #eee}
     .sum-row span:last-child{white-space:nowrap !important}
