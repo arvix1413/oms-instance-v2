@@ -261,10 +261,10 @@ export default function QuotationsPage() {
         <td style="text-align:center;font-size:11px">${idx+1}</td>
         <td style="font-size:11px">${txt(item.item_name)}</td>
         <td class="col-spec" style="font-size:11px">${txt(item.spec)}</td>
-        <td style="text-align:center;font-size:11px">${txt(item.unit) || 'PCS'}</td>
-        <td style="text-align:center;font-size:11px">${moqCell}</td>
-        <td style="text-align:center;font-size:11px">${priceCell}</td>
-        <td style="text-align:center;padding:2px">
+        <td class="col-unit" style="text-align:center;font-size:11px">${txt(item.unit) || 'PCS'}</td>
+        <td class="col-moq" style="text-align:center;font-size:11px">${moqCell}</td>
+        <td class="col-price" style="text-align:center;font-size:11px">${priceCell}</td>
+        <td class="col-image" style="text-align:center;padding:2px">
           ${imgUrl ? `<img src="${imgUrl}" style="max-width:60px;max-height:50px;object-fit:contain" onerror="this.style.display='none'"/>` : ''}
         </td>
         <td class="col-remark" style="text-align:center;font-size:10px;color:#555">${txt(item.remark)}</td>
@@ -294,7 +294,11 @@ export default function QuotationsPage() {
       table.items th{border:1px solid #555;background:#e8e8e8;padding:6px 8px;text-align:center;font-size:10px;font-weight:600;color:#000}
       table.items td{border:1px solid #bbb;padding:5px 6px;font-size:11px;font-weight:400;color:#000;vertical-align:middle;text-align:center}
       table.items tbody tr:nth-child(even){background:#fafafa}
-      table.items .col-spec{white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
+      table.items .col-spec{width:1%;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
+      table.items .col-unit{width:1%;white-space:nowrap !important}
+      table.items .col-moq{width:1%;white-space:nowrap !important}
+      table.items .col-price{width:1%;white-space:nowrap !important}
+      table.items .col-image{width:1%}
       table.items .col-remark{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important}
       .note-box{border:1px solid #bbb;padding:6px 10px;margin-bottom:5mm;font-size:10px;line-height:1.6}
       .note-title{font-weight:600;margin-bottom:4px}
@@ -373,14 +377,14 @@ export default function QuotationsPage() {
 
       <table class="items">
         <thead><tr>
-          <th style="width:30px">ST</th>
+          <th style="width:1%">ST</th>
           <th>品名 / Products</th>
-          <th style="width:90px">規格</th>
-          <th style="width:45px">單位</th>
-          <th style="width:80px">MOQ</th>
-          <th style="width:90px">單價</th>
-          <th style="width:70px">圖片</th>
-          <th style="width:90px">備註</th>
+          <th class="col-spec">規格</th>
+          <th class="col-unit">單位</th>
+          <th class="col-moq">MOQ</th>
+          <th class="col-price">單價</th>
+          <th class="col-image">圖片</th>
+          <th style="width:1%">備註</th>
         </tr></thead>
         <tbody>${itemRows}</tbody>
       </table>

@@ -60,19 +60,19 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
     .meta b{display:inline-block;width:92px}
     .cust{font-size:14px;font-weight:700;margin:4px 0}
     .addr{font-size:11px;margin-bottom:4px}
-    table{width:100%;border-collapse:collapse;table-layout:fixed}
+    table{width:100%;border-collapse:collapse;table-layout:auto}
     th,td{border:1px solid #555;padding:5px 6px;font-size:11px;vertical-align:top;white-space:normal;overflow-wrap:anywhere;word-break:break-word;text-align:center}
     th{background:#f5f5f5;font-weight:700;text-align:center}
     .sub{display:block;font-size:10px;font-weight:500;color:#333;margin-top:1px}
     .qty{text-align:center;font-weight:400}
     .total td{font-weight:700;background:#fafafa}
     .right{text-align:center}
-    .col-order{width:128px;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
-    .col-material{width:128px;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
-    .col-spec{width:120px;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
-    .col-unit{width:72px}
-    .col-qty{width:88px}
-    .col-remark{width:108px}
+    .col-order{width:1%;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
+    .col-material{width:1%;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
+    .col-spec{width:1%;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
+    .col-unit{width:1%;white-space:nowrap !important}
+    .col-qty{width:1%;white-space:nowrap !important}
+    .col-remark{width:1%}
     .col-name{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important;line-height:1.35}
     @media print{body{padding:0}@page{size:A4;margin:4mm}}
   </style></head><body><div class="wrap">

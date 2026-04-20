@@ -341,18 +341,18 @@ export default function PoPage() {
       .info-table .lbl { font-weight: 600; background: #f5f5f5; white-space: nowrap; width: 110px; color: #333; line-height: 1.4; }
       .info-table .val { color: #000; }
       /* Items table */
-      table.items { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 4mm; }
+      table.items { width: 100%; border-collapse: collapse; table-layout: auto; margin-bottom: 4mm; }
       table.items th { border: 1px solid #555; background: #e8e8e8; padding: 5px 4px; text-align: center; font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: clip; color: #000; }
       table.items td { border: 1px solid #bbb; padding: 5px 5px; font-size: 11px; font-weight: 400; color: #000; white-space: normal; overflow-wrap: anywhere; word-break: break-word; vertical-align: top; text-align: center; }
       table.items tbody tr:nth-child(even) { background: #fafafa; }
-      table.items .col-st { width: 4%; }
-      table.items .col-code { width: 17%; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; }
-      table.items .col-name { width: 28%; white-space: normal !important; overflow-wrap: anywhere !important; word-break: break-word !important; line-height: 1.35; }
-      table.items .col-qty { width: 8%; white-space: nowrap; font-variant-numeric: tabular-nums; }
-      table.items .col-unit { width: 7%; white-space: nowrap; }
-      table.items .col-price { width: 10%; white-space: nowrap; font-variant-numeric: tabular-nums; }
-      table.items .col-total { width: 10%; white-space: nowrap; font-variant-numeric: tabular-nums; }
-      table.items .col-remark { width: 16%; white-space: normal !important; overflow-wrap: anywhere !important; word-break: break-word !important; }
+      table.items .col-st { width: 1%; white-space: nowrap !important; }
+      table.items .col-code { width: 1%; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; }
+      table.items .col-name { white-space: normal !important; overflow-wrap: anywhere !important; word-break: break-word !important; line-height: 1.35; }
+      table.items .col-qty { width: 1%; white-space: nowrap !important; font-variant-numeric: tabular-nums; }
+      table.items .col-unit { width: 1%; white-space: nowrap !important; }
+      table.items .col-price { width: 1%; white-space: nowrap !important; font-variant-numeric: tabular-nums; }
+      table.items .col-total { width: 1%; white-space: nowrap !important; font-variant-numeric: tabular-nums; }
+      table.items .col-remark { white-space: normal !important; overflow-wrap: anywhere !important; word-break: break-word !important; }
       table.items .name-text { white-space: normal !important; overflow-wrap: anywhere !important; word-break: break-word !important; }
       table.items .spec-text { color: #000; font-size: 11px; font-weight: 400; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; }
       .total-row td { border: 1px solid #555; background: #efefef; font-weight: 600; font-size: 11px; padding: 6px 8px; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; }
