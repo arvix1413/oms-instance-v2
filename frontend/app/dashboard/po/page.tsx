@@ -324,7 +324,7 @@ export default function PoPage() {
       table.items td { border: 1px solid #bbb; padding: 5px 5px; font-size: 11px; font-weight: 400; color: #000; white-space: normal; overflow-wrap: anywhere; word-break: break-word; vertical-align: top; text-align: center; }
       table.items tbody tr:nth-child(even) { background: #fafafa; }
       table.items .col-st { width: 4%; }
-      table.items .col-code { width: 14%; }
+      table.items .col-code { width: 17%; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; }
       table.items .col-name { width: 40%; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; line-height: 1.35; }
       table.items .col-qty { width: 10%; white-space: nowrap; font-variant-numeric: tabular-nums; }
       table.items .col-unit { width: 8%; white-space: nowrap; }

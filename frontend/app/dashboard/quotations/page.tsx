@@ -238,7 +238,7 @@ export default function QuotationsPage() {
       <tr>
         <td style="text-align:center;font-size:11px">${idx+1}</td>
         <td style="font-size:11px">${txt(item.item_name)}</td>
-        <td style="font-size:11px">${txt(item.spec)}</td>
+        <td class="col-spec" style="font-size:11px">${txt(item.spec)}</td>
         <td style="text-align:center;font-size:11px">${txt(item.unit) || 'PCS'}</td>
         <td style="text-align:center;font-size:11px">${moqCell}</td>
         <td style="text-align:center;font-size:11px">${priceCell}</td>
@@ -272,6 +272,7 @@ export default function QuotationsPage() {
       table.items th{border:1px solid #555;background:#e8e8e8;padding:6px 8px;text-align:center;font-size:10px;font-weight:600;color:#000}
       table.items td{border:1px solid #bbb;padding:5px 6px;font-size:11px;font-weight:400;color:#000;vertical-align:middle;text-align:center}
       table.items tbody tr:nth-child(even){background:#fafafa}
+      table.items .col-spec{white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
       .note-box{border:1px solid #bbb;padding:6px 10px;margin-bottom:5mm;font-size:10px;line-height:1.6}
       .note-title{font-weight:600;margin-bottom:4px}
       .sign-row{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:8mm}

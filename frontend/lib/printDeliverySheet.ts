@@ -67,13 +67,13 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
     .qty{text-align:center;font-weight:400}
     .total td{font-weight:700;background:#fafafa}
     .right{text-align:center}
-    .col-order{width:112px}
-    .col-material{width:112px}
-    .col-spec{width:110px}
+    .col-order{width:128px;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
+    .col-material{width:128px;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
+    .col-spec{width:120px;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
     .col-unit{width:72px}
     .col-qty{width:88px}
     .col-remark{width:108px}
-    .col-name{word-break:break-word;line-height:1.35}
+    .col-name{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important;line-height:1.35}
     @media print{body{padding:0}@page{size:A4;margin:4mm}}
   </style></head><body><div class="wrap">
     <div class="head">
