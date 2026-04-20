@@ -15,6 +15,12 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
   }
   const fmt = (v: any) => num(v).toLocaleString()
   const fmtText = (v: any) => txt(v).replace(/\n/g, '<br/>')
+  const fmtDate = (v: any) => {
+    const s = txt(v)
+    if (!s) return ''
+    const m = /^(\d{4}-\d{2}-\d{2})/.exec(s)
+    return m ? m[1] : s
+  }
 
   const co = company || {
     company_name: 'FAN YONG CO., LTD',
@@ -67,6 +73,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
     .info-table td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;vertical-align:middle;text-align:center}
     .info-table .lbl{font-weight:600;background:#f5f5f5;white-space:nowrap;width:120px;color:#333}
     ${SHARED_PRINT_ITEM_TABLE_CSS}
+    table.items .col-remark{width:110px;min-width:110px}
     .summary-right{width:260px;border:1px solid #bbb;padding:6px 10px;margin-left:auto;margin-bottom:5mm}
     .sum-row{display:flex;justify-content:space-between;padding:4px 0;font-size:11px;font-weight:400;border-bottom:1px solid #eee}
     .sum-row span:last-child{white-space:nowrap !important}
@@ -105,7 +112,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
   // Info table
   parts.push('<table class="info-table">')
   parts.push('<tr><td class="lbl">客戶<br/>Khách hàng</td><td style="font-weight:600;font-size:12px" colspan="3">' + customerName + '</td><td class="lbl">訂單號<br/>Số đơn</td><td style="font-family:monospace;font-weight:600">' + txt(data.po_number) + '</td></tr>')
-  parts.push('<tr><td class="lbl">採購日期<br/>Ngày đặt</td><td>' + txt(data.po_date) + '</td><td class="lbl">交貨日<br/>Ngày giao</td><td>' + txt(data.delivery_date) + '</td><td class="lbl">幣種<br/>Loại tiền</td><td>' + (txt(data.currency) || 'VND') + '</td></tr>')
+  parts.push('<tr><td class="lbl">採購日期<br/>Ngày đặt</td><td>' + fmtDate(data.po_date) + '</td><td class="lbl">交貨日<br/>Ngày giao</td><td>' + fmtDate(data.delivery_date) + '</td><td class="lbl">幣種<br/>Loại tiền</td><td>' + (txt(data.currency) || 'VND') + '</td></tr>')
   if (data.payment_terms) {
     parts.push('<tr><td class="lbl">付款方式<br/>Thanh toán</td><td colspan="5">' + data.payment_terms + '</td></tr>')
   }
@@ -119,7 +126,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
 
   // Items table
   parts.push('<table class="items"><thead><tr>')
-  parts.push('<th style="width:1%">ST</th><th class="col-code">物料編號</th><th class="col-name">品名</th><th class="col-spec">規格</th><th class="col-qty">數量</th><th class="col-unit">單位</th><th class="col-price">單價</th><th class="col-amt">金額</th><th style="width:1%">備註</th>')
+  parts.push('<th style="width:1%">ST</th><th class="col-code">物料編號</th><th class="col-name">品名</th><th class="col-spec">規格</th><th class="col-qty">數量</th><th class="col-unit">單位</th><th class="col-price">單價</th><th class="col-amt">金額</th><th class="col-remark">備註</th>')
   parts.push('</tr></thead><tbody>' + itemRows + '</tbody>')
   parts.push('<tfoot><tr class="total-row"><td colspan="7">小計 / Tổng chưa thuế</td><td>' + fmt(subtotal) + '</td><td></td></tr></tfoot>')
   parts.push('</table>')
