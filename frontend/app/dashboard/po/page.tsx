@@ -718,7 +718,7 @@ export default function PoPage() {
                                           <td className="px-3 py-2 text-right text-slate-600 whitespace-nowrap">{Number(item.unit_price).toLocaleString()}</td>
                                           <td className="px-3 py-2 text-right text-slate-800 font-semibold whitespace-nowrap">{Number(item.total_price).toLocaleString()}</td>
                                           <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.unit}</td>
-                                          <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{item.remark}</td>
+                                          <td className="px-3 py-2 text-slate-400 whitespace-normal break-words max-w-[220px]">{item.remark}</td>
                                         </tr>
                                       ))}
                                     </tbody>

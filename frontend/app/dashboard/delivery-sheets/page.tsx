@@ -384,7 +384,7 @@ export default function DeliverySheetsPage() {
                             <td className="px-3 py-2.5 font-medium whitespace-nowrap max-w-[200px] truncate" title={sheet.customer_name}>{sheet.customer_name}</td>
                             <td className="px-3 py-2.5 text-slate-400 text-xs whitespace-nowrap">{sheet.order_po_number || '—'}</td>
                             <td className="px-3 py-2.5 text-slate-400 whitespace-nowrap">{sheet.delivery_date ? String(sheet.delivery_date).slice(0,10) : '—'}</td>
-                            <td className="px-3 py-2.5 text-slate-400 whitespace-nowrap max-w-[120px] truncate" title={sheet.remark}>{sheet.remark||'—'}</td>
+                            <td className="px-3 py-2.5 text-slate-400 whitespace-normal break-words max-w-[220px]" title={sheet.remark}>{sheet.remark||'—'}</td>
                             <td className="px-3 py-2.5 whitespace-nowrap"><span className={STATUS_MAP[sheet.status]?.badge || 'badge-gray'}>{STATUS_MAP[sheet.status]?.label || sheet.status || '草稿'}</span></td>
                             <td className="px-3 py-2.5 whitespace-nowrap" onClick={e => e.stopPropagation()}>
                               <div className="flex gap-1 items-center">

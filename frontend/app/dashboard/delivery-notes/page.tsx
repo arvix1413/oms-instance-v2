@@ -394,7 +394,7 @@ export default function DeliveryNotesPage() {
                         <td className="px-3 py-2.5 font-medium whitespace-nowrap max-w-[200px] truncate" title={dn.customer_name}>{dn.customer_name}</td>
                         <td className="px-3 py-2.5 text-slate-400 text-xs whitespace-nowrap">{dn.order_po_number || '—'}</td>
                         <td className="px-3 py-2.5 text-slate-400 whitespace-nowrap">{dn.delivery_date ? String(dn.delivery_date).slice(0,10) : '—'}</td>
-                        <td className="px-3 py-2.5 text-slate-400 whitespace-nowrap max-w-[120px] truncate" title={dn.remark}>{dn.remark||'—'}</td>
+                        <td className="px-3 py-2.5 text-slate-400 whitespace-normal break-words max-w-[220px]" title={dn.remark}>{dn.remark||'—'}</td>
                         <td className="px-3 py-2.5 whitespace-nowrap"><span className={STATUS_MAP[dn.status]?.badge}>{STATUS_MAP[dn.status]?.label}</span></td>
                         <td className="px-3 py-2.5 whitespace-nowrap" onClick={e => e.stopPropagation()}>
                           <div className="flex gap-1 items-center">

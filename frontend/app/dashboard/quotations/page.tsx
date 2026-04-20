@@ -267,7 +267,7 @@ export default function QuotationsPage() {
         <td style="text-align:center;padding:2px">
           ${imgUrl ? `<img src="${imgUrl}" style="max-width:60px;max-height:50px;object-fit:contain" onerror="this.style.display='none'"/>` : ''}
         </td>
-        <td style="text-align:center;font-size:10px;color:#555">${txt(item.remark)}</td>
+        <td class="col-remark" style="text-align:center;font-size:10px;color:#555">${txt(item.remark)}</td>
       </tr>`
     }).join('')
 
@@ -295,6 +295,7 @@ export default function QuotationsPage() {
       table.items td{border:1px solid #bbb;padding:5px 6px;font-size:11px;font-weight:400;color:#000;vertical-align:middle;text-align:center}
       table.items tbody tr:nth-child(even){background:#fafafa}
       table.items .col-spec{white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
+      table.items .col-remark{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important}
       .note-box{border:1px solid #bbb;padding:6px 10px;margin-bottom:5mm;font-size:10px;line-height:1.6}
       .note-title{font-weight:600;margin-bottom:4px}
       .sign-row{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:8mm}

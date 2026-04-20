@@ -85,7 +85,7 @@ export default function StockLedgerPage() {
                       <td className="text-right text-slate-400">{l.qty_before}</td>
                       <td className="text-right font-medium text-slate-700">{l.qty_after}</td>
                       <td className="text-xs text-slate-400">{l.batch_no}</td>
-                      <td className="text-xs text-slate-400 max-w-[150px] truncate" title={l.remark}>{l.remark}</td>
+                      <td className="text-xs text-slate-400 max-w-[220px] whitespace-normal break-words" title={l.remark}>{l.remark}</td>
                     </tr>
                   )
                 })}
