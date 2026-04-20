@@ -79,9 +79,10 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
     table.items .name-text{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important}
     table.items .spec-text{white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
     table.items .col-remark{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important}
-    .total-row td{border:1px solid #555;background:#efefef;font-weight:600;font-size:11px;padding:6px 8px}
+    .total-row td{border:1px solid #555;background:#efefef;font-weight:600;font-size:11px;padding:6px 8px;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
     .summary-right{width:260px;border:1px solid #bbb;padding:6px 10px;margin-left:auto;margin-bottom:5mm}
     .sum-row{display:flex;justify-content:space-between;padding:4px 0;font-size:11px;font-weight:400;border-bottom:1px solid #eee}
+    .sum-row span:last-child{white-space:nowrap !important}
     .sum-row:last-child{border-bottom:none;border-top:2px solid #555;padding-top:6px;margin-top:2px;font-weight:600}
     .notes{border:1px solid #bbb;padding:6px 10px;margin-bottom:5mm;min-height:30px;font-size:10px;font-weight:400}
     .notes-title{font-weight:600;margin-bottom:3px;font-size:10px}
@@ -133,7 +134,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
   parts.push('<table class="items"><thead><tr>')
   parts.push('<th style="width:1%">ST</th><th class="col-code">物料編號</th><th class="col-name">品名 / 規格</th><th class="col-qty">數量</th><th class="col-unit">單位</th><th class="col-price">單價</th><th class="col-amt">金額</th><th style="width:1%">備註</th>')
   parts.push('</tr></thead><tbody>' + itemRows + '</tbody>')
-  parts.push('<tfoot><tr class="total-row"><td colspan="7">小計 / Tổng chưa thuế</td><td>' + fmt(subtotal) + '</td></tr></tfoot>')
+  parts.push('<tfoot><tr class="total-row"><td colspan="6">小計 / Tổng chưa thuế</td><td>' + fmt(subtotal) + '</td><td></td></tr></tfoot>')
   parts.push('</table>')
 
   // Summary

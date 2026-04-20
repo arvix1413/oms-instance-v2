@@ -452,12 +452,14 @@ export default function PoPage() {
         <tbody>${itemRows}</tbody>
         <tfoot>
           <tr class="total-row">
-            <td colspan="7">未稅 / Trước thuế</td>
+            <td colspan="6">未稅 / Trước thuế</td>
             <td style="font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums">${fmt(subTotal)}</td>
+            <td></td>
           </tr>
           <tr class="total-row">
-            <td colspan="7">含稅合計 / Tổng cộng sau thuế</td>
+            <td colspan="6">含稅合計 / Tổng cộng sau thuế</td>
             <td style="font-size:12px;color:#1a56db;white-space:nowrap;font-variant-numeric:tabular-nums">${fmt(total)}</td>
+            <td></td>
           </tr>
         </tfoot>
       </table>
