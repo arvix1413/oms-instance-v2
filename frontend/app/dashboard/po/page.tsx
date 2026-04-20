@@ -307,10 +307,8 @@ export default function PoPage() {
       <tr>
         <td class="col-st" style="text-align:center">${idx + 1}</td>
         <td class="col-code">${txt(item.material_code)}</td>
-        <td class="col-name">
-          <div class="name-text">${txt(item.material_name)}</div>
-          ${txt(item.spec) ? `<div class="spec-text">${txt(item.spec)}</div>` : ''}
-        </td>
+        <td class="col-name">${txt(item.material_name)}</td>
+        <td class="col-spec">${txt(item.spec)}</td>
         <td class="col-qty">${fmt(item.quantity)}</td>
         <td class="col-unit" style="text-align:center">${txt(item.unit) || 'PCS'}</td>
         <td class="col-price">${fmt(item.unit_price)}</td>
@@ -348,13 +346,12 @@ export default function PoPage() {
       table.items .col-st { width: 1%; white-space: nowrap !important; }
       table.items .col-code { width: 1%; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; }
       table.items .col-name { white-space: normal !important; overflow-wrap: anywhere !important; word-break: break-word !important; line-height: 1.35; }
+      table.items .col-spec { width: 1%; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; }
       table.items .col-qty { width: 1%; white-space: nowrap !important; font-variant-numeric: tabular-nums; }
       table.items .col-unit { width: 1%; white-space: nowrap !important; }
       table.items .col-price { width: 1%; white-space: nowrap !important; font-variant-numeric: tabular-nums; }
       table.items .col-total { width: 1%; white-space: nowrap !important; font-variant-numeric: tabular-nums; }
       table.items .col-remark { white-space: normal !important; overflow-wrap: anywhere !important; word-break: break-word !important; }
-      table.items .name-text { white-space: normal !important; overflow-wrap: anywhere !important; word-break: break-word !important; }
-      table.items .spec-text { color: #000; font-size: 11px; font-weight: 400; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; }
       .total-row td { border: 1px solid #555; background: #efefef; font-weight: 600; font-size: 11px; padding: 6px 8px; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; }
       /* Remark */
       .remark-box { border: 1px solid #bbb; padding: 6px 10px; min-height: 18mm; font-size: 10px; font-weight: 400; margin-top: 5mm; }
@@ -442,7 +439,8 @@ export default function PoPage() {
         <thead><tr>
           <th class="col-st">ST</th>
           <th class="col-code">物料編號</th>
-          <th class="col-name">材料名稱 / 規格</th>
+          <th class="col-name">材料名稱</th>
+          <th class="col-spec">規格</th>
           <th class="col-qty">數量</th>
           <th class="col-unit">單位</th>
           <th class="col-price">單價</th>
@@ -452,12 +450,12 @@ export default function PoPage() {
         <tbody>${itemRows}</tbody>
         <tfoot>
           <tr class="total-row">
-            <td colspan="6">未稅 / Trước thuế</td>
+            <td colspan="7">未稅 / Trước thuế</td>
             <td style="font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums">${fmt(subTotal)}</td>
             <td></td>
           </tr>
           <tr class="total-row">
-            <td colspan="6">含稅合計 / Tổng cộng sau thuế</td>
+            <td colspan="7">含稅合計 / Tổng cộng sau thuế</td>
             <td style="font-size:12px;color:#1a56db;white-space:nowrap;font-variant-numeric:tabular-nums">${fmt(total)}</td>
             <td></td>
           </tr>

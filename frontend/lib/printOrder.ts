@@ -40,7 +40,8 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
       '<tr>',
       '<td style="text-align:center">' + (idx+1) + '</td>',
       '<td class="col-code">' + skuVal + '</td>',
-      '<td class="col-name"><div class="name-text">' + nameText + '</div>' + (specText ? '<div class="spec-text">' + specText + '</div>' : '') + '</td>',
+      '<td class="col-name">' + nameText + '</td>',
+      '<td class="col-spec">' + specText + '</td>',
       '<td class="col-qty">' + fmt(qty) + '</td>',
       '<td class="col-unit" style="text-align:center">' + (txt(item.unit) || 'PCS') + '</td>',
       '<td class="col-price">' + fmt(unitPrice) + '</td>',
@@ -76,8 +77,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
     table.items .col-price{width:1%;white-space:nowrap !important}
     table.items .col-amt{width:1%;white-space:nowrap !important}
     table.items .col-name{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important}
-    table.items .name-text{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important}
-    table.items .spec-text{white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
+    table.items .col-spec{width:1%;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
     table.items .col-remark{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important}
     .total-row td{border:1px solid #555;background:#efefef;font-weight:600;font-size:11px;padding:6px 8px;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
     .summary-right{width:260px;border:1px solid #bbb;padding:6px 10px;margin-left:auto;margin-bottom:5mm}
@@ -132,9 +132,9 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
 
   // Items table
   parts.push('<table class="items"><thead><tr>')
-  parts.push('<th style="width:1%">ST</th><th class="col-code">物料編號</th><th class="col-name">品名 / 規格</th><th class="col-qty">數量</th><th class="col-unit">單位</th><th class="col-price">單價</th><th class="col-amt">金額</th><th style="width:1%">備註</th>')
+  parts.push('<th style="width:1%">ST</th><th class="col-code">物料編號</th><th class="col-name">品名</th><th class="col-spec">規格</th><th class="col-qty">數量</th><th class="col-unit">單位</th><th class="col-price">單價</th><th class="col-amt">金額</th><th style="width:1%">備註</th>')
   parts.push('</tr></thead><tbody>' + itemRows + '</tbody>')
-  parts.push('<tfoot><tr class="total-row"><td colspan="6">小計 / Tổng chưa thuế</td><td>' + fmt(subtotal) + '</td><td></td></tr></tfoot>')
+  parts.push('<tfoot><tr class="total-row"><td colspan="7">小計 / Tổng chưa thuế</td><td>' + fmt(subtotal) + '</td><td></td></tr></tfoot>')
   parts.push('</table>')
 
   // Summary
