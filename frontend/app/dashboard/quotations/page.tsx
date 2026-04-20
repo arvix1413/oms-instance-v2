@@ -7,6 +7,7 @@ import { usePagination, Pagination } from '@/lib/usePagination'
 import { getCompany } from '@/lib/useCompany'
 import { normalizeMoqTiers, resolveTierPrice } from '@/lib/moqPricing'
 import { SHARED_PRINT_ITEM_TABLE_CSS } from '@/lib/printItemTableStyles'
+import { SHARED_PRINT_PARTY_TABLE_CSS } from '@/lib/printPartyTableStyles'
 
 type MoqTier = { moq: number; price: number }
 type QItem = { bom_id?:number|null; item_name:string; material_code:string; spec:string; unit:string; qty:number; unit_price:number; total_price:number; remark:string; moq_tiers:MoqTier[]; image_url?:string }
@@ -284,10 +285,7 @@ export default function QuotationsPage() {
       .doc-title{font-size:22px;font-weight:700;color:#1a56db;text-align:right}
       .doc-sub{font-size:10px;color:#666;text-align:right;margin-top:2px}
       .doc-no{font-size:12px;font-weight:600;text-align:right;margin-top:3px}
-      .party-table{width:100%;border-collapse:collapse;margin-bottom:5mm}
-      .party-table td{border:1px solid #bbb;padding:4px 7px;font-size:10px;vertical-align:middle;text-align:left}
-      .party-table .section{background:#d9edf7;font-weight:700;white-space:nowrap;width:160px}
-      .party-table .label{background:#f5f5f5;font-weight:600;white-space:nowrap;width:90px}
+      ${SHARED_PRINT_PARTY_TABLE_CSS}
       .info-table{width:100%;border-collapse:collapse;margin-bottom:5mm}
       .info-table td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;vertical-align:middle;text-align:center}
       .info-table .lbl{font-weight:600;background:#f5f5f5;white-space:nowrap;width:120px;color:#333}
@@ -322,27 +320,27 @@ export default function QuotationsPage() {
         </tr>
         <tr>
           <td class="label">公司名</td>
-          <td colspan="3">${txt(company.company_name)}</td>
+          <td class="value" colspan="3">${txt(company.company_name)}</td>
           <td class="label">公司名</td>
-          <td colspan="3">${txt(q.customer_name)}</td>
+          <td class="value" colspan="3">${txt(q.customer_name)}</td>
         </tr>
         <tr>
           <td class="label">地址</td>
-          <td colspan="3">${txt(company.address)}</td>
+          <td class="value" colspan="3">${txt(company.address)}</td>
           <td class="label">地址</td>
-          <td colspan="3">${customerAddress}</td>
+          <td class="value" colspan="3">${customerAddress}</td>
         </tr>
         <tr>
           <td class="label">電話</td>
-          <td colspan="3">${txt(company.phone)}</td>
+          <td class="value" colspan="3">${txt(company.phone)}</td>
           <td class="label">電話</td>
-          <td colspan="3">${customerPhone}</td>
+          <td class="value" colspan="3">${customerPhone}</td>
         </tr>
         <tr>
           <td class="label">聯絡人</td>
-          <td colspan="3">${txt(company.contact_person)}</td>
+          <td class="value" colspan="3">${txt(company.contact_person)}</td>
           <td class="label">聯絡人</td>
-          <td colspan="3">${customerContact}</td>
+          <td class="value" colspan="3">${customerContact}</td>
         </tr>
       </table>
 

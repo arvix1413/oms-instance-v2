@@ -1,5 +1,6 @@
 import { type CompanySettings } from './useCompany'
 import { SHARED_PRINT_ITEM_TABLE_CSS } from './printItemTableStyles'
+import { SHARED_PRINT_PARTY_TABLE_CSS } from './printPartyTableStyles'
 
 export function generateOrderHTML(data: any, signatureUrl?: string, company?: CompanySettings): string {
   const txt = (v: any) => {
@@ -61,10 +62,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
     .doc-title{font-size:22px;font-weight:700;color:#1a56db;text-align:right}
     .doc-sub{font-size:10px;color:#666;text-align:right;margin-top:2px}
     .doc-no{font-size:12px;font-weight:600;text-align:right;margin-top:3px}
-    .party-table{width:100%;border-collapse:collapse;margin-bottom:5mm}
-    .party-table td{border:1px solid #bbb;padding:4px 7px;font-size:10px;vertical-align:middle;text-align:left}
-    .party-table .section{background:#d9edf7;font-weight:700;white-space:nowrap;width:160px}
-    .party-table .label{background:#f5f5f5;font-weight:600;white-space:nowrap;width:90px}
+    ${SHARED_PRINT_PARTY_TABLE_CSS}
     .info-table{width:100%;border-collapse:collapse;margin-bottom:5mm}
     .info-table td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;vertical-align:middle;text-align:center}
     .info-table .lbl{font-weight:600;background:#f5f5f5;white-space:nowrap;width:120px;color:#333}
@@ -98,10 +96,10 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
   // Party table
   parts.push('<table class="party-table">')
   parts.push('<tr><td class="section" colspan="4">本公司 / Company Name</td><td class="section" colspan="4">客戶公司 / Customer Name</td></tr>')
-  parts.push('<tr><td class="label">公司名</td><td colspan="3">' + txt(co.company_name) + '</td><td class="label">公司名</td><td colspan="3">' + customerName + '</td></tr>')
-  parts.push('<tr><td class="label">地址</td><td colspan="3">' + txt(co.address) + '</td><td class="label">地址</td><td colspan="3">' + customerAddress + '</td></tr>')
-  parts.push('<tr><td class="label">電話</td><td colspan="3">' + txt(co.phone) + '</td><td class="label">電話</td><td colspan="3">' + customerPhone + '</td></tr>')
-  parts.push('<tr><td class="label">聯絡人</td><td colspan="3">' + txt(co.contact_person) + '</td><td class="label">聯絡人</td><td colspan="3">' + customerContact + '</td></tr>')
+  parts.push('<tr><td class="label">公司名</td><td class="value" colspan="3">' + txt(co.company_name) + '</td><td class="label">公司名</td><td class="value" colspan="3">' + customerName + '</td></tr>')
+  parts.push('<tr><td class="label">地址</td><td class="value" colspan="3">' + txt(co.address) + '</td><td class="label">地址</td><td class="value" colspan="3">' + customerAddress + '</td></tr>')
+  parts.push('<tr><td class="label">電話</td><td class="value" colspan="3">' + txt(co.phone) + '</td><td class="label">電話</td><td class="value" colspan="3">' + customerPhone + '</td></tr>')
+  parts.push('<tr><td class="label">聯絡人</td><td class="value" colspan="3">' + txt(co.contact_person) + '</td><td class="label">聯絡人</td><td class="value" colspan="3">' + customerContact + '</td></tr>')
   parts.push('</table>')
 
   // Info table

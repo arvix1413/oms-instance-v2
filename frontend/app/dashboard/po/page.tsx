@@ -9,6 +9,7 @@ import { can } from '@/lib/usePermissions'
 import { getCompany } from '@/lib/useCompany'
 import { resolveTierPrice, type MoqTier } from '@/lib/moqPricing'
 import { SHARED_PRINT_ITEM_TABLE_CSS } from '@/lib/printItemTableStyles'
+import { SHARED_PRINT_PARTY_TABLE_CSS } from '@/lib/printPartyTableStyles'
 
 type PoItem = { material_code:string; material_name:string; spec:string; unit:string; quantity:number; unit_price:number; total_price:number; currency:string; remark:string; po_ref:string; thickness?:number|string; image_url?:string; bom_id?:number }
 type Po = { id:number; po_number:string; supplier_name:string; status:string; total_amount:number; tax_rate?:number; currency:string; remark:string; created_at:string; approved_at?:string; items?:PoItem[] }
@@ -330,10 +331,7 @@ export default function PoPage() {
       .doc-title { font-size: 22px; font-weight: 700; color: #1a56db; letter-spacing: 2px; text-align: right; }
       .doc-sub { font-size: 10px; color: #666; text-align: right; margin-top: 2px; }
       .doc-no { font-size: 12px; font-weight: 600; text-align: right; margin-top: 3px; }
-      .party-table { width: 100%; border-collapse: collapse; margin-bottom: 5mm; }
-      .party-table td { border: 1px solid #bbb; padding: 4px 7px; font-size: 10px; vertical-align: middle; text-align: left; }
-      .party-table .section { background: #d9edf7; font-weight: 700; white-space: nowrap; width: 160px; }
-      .party-table .label { background: #f5f5f5; font-weight: 600; white-space: nowrap; width: 90px; }
+      ${SHARED_PRINT_PARTY_TABLE_CSS}
       /* Info table */
       .info-table { width: 100%; border-collapse: collapse; margin-bottom: 5mm; }
       .info-table td { border: 1px solid #bbb; padding: 5px 8px; font-size: 11px; font-weight: 400; vertical-align: middle; text-align: center; }
@@ -375,27 +373,27 @@ export default function PoPage() {
         </tr>
         <tr>
           <td class="label">公司名</td>
-          <td colspan="3">${txt(company.company_name)}</td>
+          <td class="value" colspan="3">${txt(company.company_name)}</td>
           <td class="label">公司名</td>
-          <td colspan="3">${txt(supplierName)}</td>
+          <td class="value" colspan="3">${txt(supplierName)}</td>
         </tr>
         <tr>
           <td class="label">地址</td>
-          <td colspan="3">${txt(company.address)}</td>
+          <td class="value" colspan="3">${txt(company.address)}</td>
           <td class="label">地址</td>
-          <td colspan="3">${supplierAddress}</td>
+          <td class="value" colspan="3">${supplierAddress}</td>
         </tr>
         <tr>
           <td class="label">電話</td>
-          <td colspan="3">${txt(company.phone)}</td>
+          <td class="value" colspan="3">${txt(company.phone)}</td>
           <td class="label">電話</td>
-          <td colspan="3">${supplierPhone}</td>
+          <td class="value" colspan="3">${supplierPhone}</td>
         </tr>
         <tr>
           <td class="label">聯絡人</td>
-          <td colspan="3">${txt(company.contact_person)}</td>
+          <td class="value" colspan="3">${txt(company.contact_person)}</td>
           <td class="label">聯絡人</td>
-          <td colspan="3">${supplierContact}</td>
+          <td class="value" colspan="3">${supplierContact}</td>
         </tr>
       </table>
 
