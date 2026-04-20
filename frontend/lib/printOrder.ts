@@ -40,7 +40,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
       '<tr>',
       '<td style="text-align:center">' + (idx+1) + '</td>',
       '<td class="col-code">' + skuVal + '</td>',
-      '<td class="col-name">' + nameText + (specText ? ' ' + specText : '') + '</td>',
+      '<td class="col-name"><div class="name-text">' + nameText + '</div>' + (specText ? '<div class="spec-text">' + specText + '</div>' : '') + '</td>',
       '<td>' + fmt(qty) + '</td>',
       '<td style="text-align:center">' + (txt(item.unit) || 'PCS') + '</td>',
       '<td>' + fmt(unitPrice) + '</td>',
@@ -72,6 +72,8 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
     table.items tbody tr:nth-child(even){background:#fafafa}
     table.items .col-code{white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
     table.items .col-name{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important}
+    table.items .name-text{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important}
+    table.items .spec-text{white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
     table.items .col-remark{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important}
     .total-row td{border:1px solid #555;background:#efefef;font-weight:600;font-size:11px;padding:6px 8px}
     .summary-right{width:260px;border:1px solid #bbb;padding:6px 10px;margin-left:auto;margin-bottom:5mm}

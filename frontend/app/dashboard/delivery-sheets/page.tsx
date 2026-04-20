@@ -113,7 +113,8 @@ export default function DeliverySheetsPage() {
       toast('送貨單建立成功')
       setCreating(false)
       resetForm()
-      load()
+      await load()
+      setLoadedItems({})
     } catch (e: any) { toast('錯誤：' + e.message, 'error') }
   }
 
@@ -150,8 +151,14 @@ export default function DeliverySheetsPage() {
     try {
       await apiFetch(`/api/delivery-sheets/${editing.id}`, { method: 'PUT', body: JSON.stringify(editForm) })
       toast('送貨單已更新')
+      const editedId = editing.id
       setEditing(null)
-      load()
+      await load()
+      setLoadedItems({})
+      if (expanded.has(editedId)) {
+        const d = await apiFetch<DS>(`/api/delivery-sheets/${editedId}`)
+        setLoadedItems(p => ({ ...p, [editedId]: d.items || [] }))
+      }
     } catch (e: any) { toast('更新失敗：' + e.message, 'error') }
   }
 
@@ -160,6 +167,16 @@ export default function DeliverySheetsPage() {
     try {
       await apiFetch(`/api/delivery-sheets/${id}`, { method: 'DELETE' })
       await load()
+      setExpanded(prev => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+      setLoadedItems(p => {
+        const next = { ...p }
+        delete next[id]
+        return next
+      })
     } catch (e: any) { toast('刪除失敗：' + e.message, 'error') }
   }
 

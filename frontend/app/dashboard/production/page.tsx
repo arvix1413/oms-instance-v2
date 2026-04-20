@@ -102,7 +102,8 @@ export default function ProductionPage() {
       setCreating(false); setStep(1)
       setForm({ customer_order_id: '', bom_id: '', product_sku: '', product_name: '', planned_qty: 1, planned_start: '', planned_end: '', remark: '' })
       setStockCheck(null)
-      load()
+      await load()
+      setLoadedProds({})
     } catch (e: any) { toast('錯誤：' + e.message, 'error') }
   }
 
@@ -124,13 +125,29 @@ export default function ProductionPage() {
       await apiFetch(`/api/production/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, produced_qty: producedQty }) })
       toast('狀態已更新')
       await load()
+      setLoadedProds({})
+      if (expanded.has(id)) {
+        const refreshed = await apiFetch<Prod>(`/api/production/${id}`)
+        setLoadedProds(p => ({ ...p, [id]: refreshed }))
+      }
     } catch (e: any) { toast(e.message, 'error') }
   }
 
   const del = async (id: number, prodNumber?: string) => {
     if (!await confirmDialog('確定刪除此生產單？', prodNumber ? `單號：${prodNumber}` : '')) return
     try { await apiFetch(`/api/production/${id}`, { method: 'DELETE' })
-      await load() }
+      await load()
+      setExpanded(prev => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+      setLoadedProds(p => {
+        const next = { ...p }
+        delete next[id]
+        return next
+      })
+    }
     catch (e: any) { toast(e.message, 'error') }
   }
 
@@ -207,8 +224,14 @@ export default function ProductionPage() {
     try {
       await apiFetch(`/api/production/${editing.id}`, { method: 'PUT', body: JSON.stringify(editForm) })
       toast('生產單已更新')
+      const editedId = editing.id
       setEditing(null)
-      load()
+      await load()
+      setLoadedProds({})
+      if (expanded.has(editedId)) {
+        const refreshed = await apiFetch<Prod>(`/api/production/${editedId}`)
+        setLoadedProds(p => ({ ...p, [editedId]: refreshed }))
+      }
     } catch (e: any) { toast('更新失敗：' + e.message, 'error') }
   }
 

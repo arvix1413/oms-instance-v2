@@ -100,7 +100,12 @@ export default function QuotationsPage() {
     e.stopPropagation()
     await apiFetch(`/api/quotations/${id}/status`,{method:'PATCH',body:JSON.stringify({status})})
     toast('狀態已更新')
-      await load()
+    await load()
+    setLoadedItems({})
+    if (expanded.has(id)) {
+      const d = await apiFetch<Q>(`/api/quotations/${id}`)
+      setLoadedItems(p => ({ ...p, [id]: d.items || [] }))
+    }
   }
   const del = async (id:number, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -109,6 +114,16 @@ export default function QuotationsPage() {
       await apiFetch(`/api/quotations/${id}`,{method:'DELETE'})
       toast('已刪除')
       await load()
+      setExpanded(prev => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+      setLoadedItems(p => {
+        const next = { ...p }
+        delete next[id]
+        return next
+      })
     } catch(e:any){ toast('刪除失敗：'+e.message, 'error') }
   }
   const save = async () => {
@@ -127,6 +142,7 @@ export default function QuotationsPage() {
       }
     })
     try {
+      const savedId = editingId
       if (editingId) {
         await apiFetch(`/api/quotations/${editingId}`,{method:'PUT',body:JSON.stringify({...form, items: itemsToSave})})
         toast('報價單已更新')
@@ -136,6 +152,12 @@ export default function QuotationsPage() {
       }
       resetForm()
       await load()
+      setLoadedItems({})
+      if (savedId !== null) {
+        setExpanded(new Set([savedId]))
+        const refreshed = await apiFetch<Q>(`/api/quotations/${savedId}`)
+        setLoadedItems(p => ({ ...p, [savedId]: refreshed.items || [] }))
+      }
     } catch(e:any){ toast('錯誤：'+e.message, 'error') }
   }
 

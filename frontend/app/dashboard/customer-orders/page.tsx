@@ -214,6 +214,16 @@ export default function CustomerOrdersPage() {
       await apiFetch(`/api/customer-orders/${id}`, { method:'DELETE' })
       toast('已刪除')
       await load()
+      setExpanded(prev => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+      setLoadedItems(p => {
+        const next = { ...p }
+        delete next[id]
+        return next
+      })
     } catch(e:any){ toast('刪除失敗：'+e.message, 'error') }
   }
 
@@ -232,6 +242,11 @@ export default function CustomerOrdersPage() {
       await apiFetch(`/api/customer-orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
       toast('狀態已更新')
       await load()
+      setLoadedItems({})
+      if (expanded.has(id)) {
+        const refreshed = await apiFetch<Order>(`/api/customer-orders/${id}`)
+        setLoadedItems(p => ({ ...p, [id]: refreshed.items || [] }))
+      }
     } catch (e: any) { toast('錯誤：' + e.message, 'error') }
   }
 

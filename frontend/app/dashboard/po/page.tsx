@@ -173,6 +173,16 @@ export default function PoPage() {
     try {
       await apiFetch(`/api/po/${id}`, { method: 'DELETE' })
       await load()
+      setExpanded(prev => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+      setLoadedItems(p => {
+        const next = { ...p }
+        delete next[id]
+        return next
+      })
     } catch (e: any) { toast('刪除失敗：' + e.message, 'error') }
   }
 
@@ -201,6 +211,7 @@ export default function PoPage() {
       .map(i => ({ ...i, currency: form.currency }))
     if (!validItems.length) { toast('請至少選擇一個 BOM 品項', 'error'); return }
     try {
+      const savedId = editingId
       if (editingId) {
         await apiFetch(`/api/po/${editingId}`, { method: 'PUT', body: JSON.stringify({ ...form, items: validItems }) })
         toast('採購單已更新')
@@ -212,6 +223,12 @@ export default function PoPage() {
       }
       setForm({ supplier_id: '', supplier_name:'', currency:'VND', tax_rate: 8, remark:'', items:[emptyItem()] })
       await load()
+      setLoadedItems({})
+      if (savedId !== null) {
+        setExpanded(new Set([savedId]))
+        const refreshed = await apiFetch<Po>(`/api/po/${savedId}`)
+        setLoadedItems(p => ({ ...p, [savedId]: refreshed.items || [] }))
+      }
     } catch (e: any) { toast('錯誤：' + e.message, 'error') }
   }
 
@@ -290,7 +307,10 @@ export default function PoPage() {
       <tr>
         <td class="col-st" style="text-align:center">${idx + 1}</td>
         <td class="col-code">${txt(item.material_code)}</td>
-        <td class="col-name">${txt(item.material_name)}${txt(item.spec) ? `<span class="sub-spec-inline"> ${txt(item.spec)}</span>` : ''}</td>
+        <td class="col-name">
+          <div class="name-text">${txt(item.material_name)}</div>
+          ${txt(item.spec) ? `<div class="spec-text">${txt(item.spec)}</div>` : ''}
+        </td>
         <td class="col-qty">${fmt(item.quantity)}</td>
         <td class="col-unit" style="text-align:center">${txt(item.unit) || 'PCS'}</td>
         <td class="col-price">${fmt(item.unit_price)}</td>
@@ -327,13 +347,14 @@ export default function PoPage() {
       table.items tbody tr:nth-child(even) { background: #fafafa; }
       table.items .col-st { width: 4%; }
       table.items .col-code { width: 17%; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; }
-      table.items .col-name { width: 28%; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; line-height: 1.35; }
+      table.items .col-name { width: 28%; white-space: normal !important; overflow-wrap: anywhere !important; word-break: break-word !important; line-height: 1.35; }
       table.items .col-qty { width: 8%; white-space: nowrap; font-variant-numeric: tabular-nums; }
       table.items .col-unit { width: 7%; white-space: nowrap; }
       table.items .col-price { width: 10%; white-space: nowrap; font-variant-numeric: tabular-nums; }
       table.items .col-total { width: 10%; white-space: nowrap; font-variant-numeric: tabular-nums; }
       table.items .col-remark { width: 16%; white-space: normal !important; overflow-wrap: anywhere !important; word-break: break-word !important; }
-      table.items .sub-spec-inline { color: #000; font-size: 11px; font-weight: 400; white-space: nowrap; margin-left: 4px; }
+      table.items .name-text { white-space: normal !important; overflow-wrap: anywhere !important; word-break: break-word !important; }
+      table.items .spec-text { color: #000; font-size: 11px; font-weight: 400; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; }
       .total-row td { border: 1px solid #555; background: #efefef; font-weight: 600; font-size: 11px; padding: 6px 8px; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; }
       /* Remark */
       .remark-box { border: 1px solid #bbb; padding: 6px 10px; min-height: 18mm; font-size: 10px; font-weight: 400; margin-top: 5mm; }

@@ -105,7 +105,8 @@ export default function DeliveryNotesPage() {
       toast('出貨單建立成功')
       setCreating(false)
       resetForm()
-      load()
+      await load()
+      setLoadedItems({})
     } catch (e: any) { toast('錯誤：' + e.message, 'error') }
   }
 
@@ -142,8 +143,14 @@ export default function DeliveryNotesPage() {
     try {
       await apiFetch(`/api/delivery-notes/${editing.id}`, { method: 'PUT', body: JSON.stringify(editForm) })
       toast('出貨單已更新')
+      const editedId = editing.id
       setEditing(null)
-      load()
+      await load()
+      setLoadedItems({})
+      if (expanded.has(editedId)) {
+        const d = await apiFetch<DN>(`/api/delivery-notes/${editedId}`)
+        setLoadedItems(p => ({ ...p, [editedId]: d.items || [] }))
+      }
     } catch (e: any) { toast('更新失敗：' + e.message, 'error') }
   }
 
@@ -159,6 +166,11 @@ export default function DeliveryNotesPage() {
       await apiFetch(`/api/delivery-notes/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
       toast('狀態已更新')
       await load()
+      setLoadedItems({})
+      if (expanded.has(id)) {
+        const d = await apiFetch<DN>(`/api/delivery-notes/${id}`)
+        setLoadedItems(p => ({ ...p, [id]: d.items || [] }))
+      }
     } catch (e: any) { toast('操作失敗：' + e.message, 'error') }
     finally { setActionLoading(null) }
   }
@@ -168,6 +180,16 @@ export default function DeliveryNotesPage() {
     try {
       await apiFetch(`/api/delivery-notes/${id}`, { method: 'DELETE' })
       await load()
+      setExpanded(prev => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+      setLoadedItems(p => {
+        const next = { ...p }
+        delete next[id]
+        return next
+      })
     } catch (e: any) { toast('刪除失敗：' + e.message, 'error') }
   }
 
