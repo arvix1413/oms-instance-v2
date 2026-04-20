@@ -8,6 +8,7 @@ import { SearchableSelect } from '@/components/SearchableSelect'
 import { can } from '@/lib/usePermissions'
 import { getCompany } from '@/lib/useCompany'
 import { resolveTierPrice, type MoqTier } from '@/lib/moqPricing'
+import { SHARED_PRINT_ITEM_TABLE_CSS } from '@/lib/printItemTableStyles'
 
 type PoItem = { material_code:string; material_name:string; spec:string; unit:string; quantity:number; unit_price:number; total_price:number; currency:string; remark:string; po_ref:string; thickness?:number|string; image_url?:string; bom_id?:number }
 type Po = { id:number; po_number:string; supplier_name:string; status:string; total_amount:number; tax_rate?:number; currency:string; remark:string; created_at:string; approved_at?:string; items?:PoItem[] }
@@ -339,20 +340,7 @@ export default function PoPage() {
       .info-table .lbl { font-weight: 600; background: #f5f5f5; white-space: nowrap; width: 110px; color: #333; line-height: 1.4; }
       .info-table .val { color: #000; }
       /* Items table */
-      table.items { width: 100%; border-collapse: collapse; table-layout: auto; margin-bottom: 4mm; }
-      table.items th { border: 1px solid #555; background: #e8e8e8; padding: 5px 4px; text-align: center; font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: clip; color: #000; }
-      table.items td { border: 1px solid #bbb; padding: 5px 5px; font-size: 11px; font-weight: 400; color: #000; white-space: normal; overflow-wrap: anywhere; word-break: break-word; vertical-align: top; text-align: center; }
-      table.items tbody tr:nth-child(even) { background: #fafafa; }
-      table.items .col-st { width: 1%; white-space: nowrap !important; }
-      table.items .col-code { width: 1%; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; }
-      table.items .col-name { white-space: normal !important; overflow-wrap: anywhere !important; word-break: break-word !important; line-height: 1.35; }
-      table.items .col-spec { width: 1%; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; }
-      table.items .col-qty { width: 1%; white-space: nowrap !important; font-variant-numeric: tabular-nums; }
-      table.items .col-unit { width: 1%; white-space: nowrap !important; }
-      table.items .col-price { width: 1%; white-space: nowrap !important; font-variant-numeric: tabular-nums; }
-      table.items .col-total { width: 1%; white-space: nowrap !important; font-variant-numeric: tabular-nums; }
-      table.items .col-remark { white-space: normal !important; overflow-wrap: anywhere !important; word-break: break-word !important; }
-      .total-row td { border: 1px solid #555; background: #efefef; font-weight: 600; font-size: 11px; padding: 6px 8px; white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; }
+      ${SHARED_PRINT_ITEM_TABLE_CSS}
       /* Remark */
       .remark-box { border: 1px solid #bbb; padding: 6px 10px; min-height: 18mm; font-size: 10px; font-weight: 400; margin-top: 5mm; }
       .remark-title { font-weight: 600; margin-bottom: 4px; font-size: 10px; }

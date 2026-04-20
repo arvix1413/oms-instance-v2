@@ -1,4 +1,5 @@
 import { type CompanySettings } from './useCompany'
+import { SHARED_PRINT_ITEM_TABLE_CSS } from './printItemTableStyles'
 
 export function generateDeliverySheetHTML(data: any, company?: CompanySettings): string {
   const txt = (v: any) => {
@@ -59,19 +60,12 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
     .meta b{display:inline-block;width:92px}
     .cust{font-size:14px;font-weight:700;margin:4px 0}
     .addr{font-size:11px;margin-bottom:4px}
-    table{width:100%;border-collapse:collapse;table-layout:auto}
-    th,td{border:1px solid #555;padding:5px 6px;font-size:11px;vertical-align:top;white-space:normal;overflow-wrap:anywhere;word-break:break-word;text-align:center}
-    th{background:#f5f5f5;font-weight:700;text-align:center}
+    ${SHARED_PRINT_ITEM_TABLE_CSS}
+    table.items th{background:#f5f5f5;font-weight:700}
     .sub{display:block;font-size:10px;font-weight:500;color:#333;margin-top:1px}
-    .qty{text-align:center;font-weight:400;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
-    .total td{font-weight:700;background:#fafafa;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
+    .qty{text-align:center;font-weight:400}
     .right{text-align:center}
-    .col-material{width:1%;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
-    .col-spec{width:1%;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
-    .col-unit{width:1%;white-space:nowrap !important}
-    .col-qty{width:1%;white-space:nowrap !important}
     .col-remark{width:1%}
-    .col-name{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important;line-height:1.35}
     @media print{body{padding:0}@page{size:A4;margin:4mm}}
   </style></head><body><div class="wrap">
     <div class="head">
@@ -96,7 +90,7 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
     <div class="cust">客戶 Khách hàng：${txt(data.customer_name)}</div>
     <div class="addr">${txt(data.address)}</div>
 
-    <table>
+    <table class="items">
       <thead>
         <tr>
           <th style="width:48px">序號<span class="sub">SỐ TT</span></th>
@@ -110,7 +104,7 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
       </thead>
       <tbody>
         ${rows}
-        <tr class="total">
+        <tr class="total-row">
           <td colspan="5" class="right">Total</td>
           <td class="qty">${fmt(totalQty)}</td>
           <td></td>

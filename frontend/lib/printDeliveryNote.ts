@@ -1,4 +1,5 @@
 import { type CompanySettings } from './useCompany'
+import { SHARED_PRINT_ITEM_TABLE_CSS } from './printItemTableStyles'
 
 export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, company?: CompanySettings): string {
   const txt = (v: any) => {
@@ -54,17 +55,7 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
   parts.push('.info-table{width:100%;border-collapse:collapse;margin-bottom:5mm}')
   parts.push('.info-table td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;vertical-align:middle;text-align:center}')
   parts.push('.info-table .lbl{font-weight:600;background:#f5f5f5;white-space:nowrap;width:110px;color:#333}')
-  parts.push('table.items{width:100%;border-collapse:collapse;table-layout:auto;margin-bottom:5mm}')
-  parts.push('table.items th{border:1px solid #555;background:#e8e8e8;padding:6px 6px;text-align:center;font-size:10px;font-weight:600;color:#000;white-space:normal;overflow-wrap:anywhere;word-break:break-word}')
-  parts.push('table.items td{border:1px solid #bbb;padding:5px 6px;font-size:11px;font-weight:400;color:#000;white-space:normal;overflow-wrap:anywhere;word-break:break-word;vertical-align:top;text-align:center}')
-  parts.push('table.items tbody tr:nth-child(even){background:#fafafa}')
-  parts.push('table.items .col-material{width:1%;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}')
-  parts.push('table.items .col-spec{width:1%;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}')
-  parts.push('table.items .col-unit{width:1%;white-space:nowrap !important}')
-  parts.push('table.items .col-qty{width:1%;white-space:nowrap !important}')
-  parts.push('table.items .col-remark{width:1%}')
-  parts.push('table.items .col-name{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important;line-height:1.35}')
-  parts.push('.total-row td{border:1px solid #555;background:#efefef;font-weight:600;font-size:11px;padding:6px 8px;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}')
+  parts.push(SHARED_PRINT_ITEM_TABLE_CSS)
   parts.push('.notes-box{border:1px solid #bbb;padding:6px 10px;margin-bottom:5mm;font-size:10px;font-weight:400}')
   parts.push('.notes-title{font-weight:600;margin-bottom:3px;font-size:10px}')
   parts.push('.footer{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:8mm}')

@@ -1,4 +1,5 @@
 import { type CompanySettings } from './useCompany'
+import { SHARED_PRINT_ITEM_TABLE_CSS } from './printItemTableStyles'
 
 export function generateOrderHTML(data: any, signatureUrl?: string, company?: CompanySettings): string {
   const txt = (v: any) => {
@@ -67,19 +68,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
     .info-table{width:100%;border-collapse:collapse;margin-bottom:5mm}
     .info-table td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;vertical-align:middle;text-align:center}
     .info-table .lbl{font-weight:600;background:#f5f5f5;white-space:nowrap;width:120px;color:#333}
-    table.items{width:100%;border-collapse:collapse;table-layout:auto;margin-bottom:5mm}
-    table.items th{border:1px solid #555;background:#e8e8e8;padding:6px 8px;text-align:center;font-size:10px;font-weight:600;color:#000;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
-    table.items td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;color:#000;white-space:normal;overflow-wrap:anywhere;word-break:break-word;vertical-align:top;text-align:center}
-    table.items tbody tr:nth-child(even){background:#fafafa}
-    table.items .col-code{width:1%;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
-    table.items .col-qty{width:1%;white-space:nowrap !important}
-    table.items .col-unit{width:1%;white-space:nowrap !important}
-    table.items .col-price{width:1%;white-space:nowrap !important}
-    table.items .col-amt{width:1%;white-space:nowrap !important}
-    table.items .col-name{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important}
-    table.items .col-spec{width:1%;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
-    table.items .col-remark{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important}
-    .total-row td{border:1px solid #555;background:#efefef;font-weight:600;font-size:11px;padding:6px 8px;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
+    ${SHARED_PRINT_ITEM_TABLE_CSS}
     .summary-right{width:260px;border:1px solid #bbb;padding:6px 10px;margin-left:auto;margin-bottom:5mm}
     .sum-row{display:flex;justify-content:space-between;padding:4px 0;font-size:11px;font-weight:400;border-bottom:1px solid #eee}
     .sum-row span:last-child{white-space:nowrap !important}

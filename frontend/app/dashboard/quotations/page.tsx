@@ -6,6 +6,7 @@ import { apiFetch, getSignatureUrl } from '@/lib/api'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { getCompany } from '@/lib/useCompany'
 import { normalizeMoqTiers, resolveTierPrice } from '@/lib/moqPricing'
+import { SHARED_PRINT_ITEM_TABLE_CSS } from '@/lib/printItemTableStyles'
 
 type MoqTier = { moq: number; price: number }
 type QItem = { bom_id?:number|null; item_name:string; material_code:string; spec:string; unit:string; qty:number; unit_price:number; total_price:number; remark:string; moq_tiers:MoqTier[]; image_url?:string }
@@ -290,17 +291,7 @@ export default function QuotationsPage() {
       .info-table{width:100%;border-collapse:collapse;margin-bottom:5mm}
       .info-table td{border:1px solid #bbb;padding:5px 8px;font-size:11px;font-weight:400;vertical-align:middle;text-align:center}
       .info-table .lbl{font-weight:600;background:#f5f5f5;white-space:nowrap;width:120px;color:#333}
-      table.items{width:100%;border-collapse:collapse;margin-bottom:5mm}
-      table.items th{border:1px solid #555;background:#e8e8e8;padding:6px 8px;text-align:center;font-size:10px;font-weight:600;color:#000}
-      table.items td{border:1px solid #bbb;padding:5px 6px;font-size:11px;font-weight:400;color:#000;vertical-align:middle;text-align:center}
-      table.items tbody tr:nth-child(even){background:#fafafa}
-      table.items .col-name{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important;line-height:1.35}
-      table.items .col-spec{width:1%;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
-      table.items .col-unit{width:1%;white-space:nowrap !important}
-      table.items .col-moq{width:1%;white-space:nowrap !important}
-      table.items .col-price{width:1%;white-space:nowrap !important}
-      table.items .col-image{width:1%}
-      table.items .col-remark{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important}
+      ${SHARED_PRINT_ITEM_TABLE_CSS}
       .note-box{border:1px solid #bbb;padding:6px 10px;margin-bottom:5mm;font-size:10px;line-height:1.6}
       .note-title{font-weight:600;margin-bottom:4px}
       .sign-row{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:8mm}
