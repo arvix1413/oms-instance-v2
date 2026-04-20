@@ -63,8 +63,8 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
     th,td{border:1px solid #555;padding:5px 6px;font-size:11px;vertical-align:top;white-space:normal;overflow-wrap:anywhere;word-break:break-word;text-align:center}
     th{background:#f5f5f5;font-weight:700;text-align:center}
     .sub{display:block;font-size:10px;font-weight:500;color:#333;margin-top:1px}
-    .qty{text-align:center;font-weight:400}
-    .total td{font-weight:700;background:#fafafa}
+    .qty{text-align:center;font-weight:400;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
+    .total td{font-weight:700;background:#fafafa;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
     .right{text-align:center}
     .col-material{width:1%;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
     .col-spec{width:1%;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}

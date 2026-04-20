@@ -64,7 +64,7 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
   parts.push('table.items .col-qty{width:1%;white-space:nowrap !important}')
   parts.push('table.items .col-remark{width:1%}')
   parts.push('table.items .col-name{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important;line-height:1.35}')
-  parts.push('.total-row td{border:1px solid #555;background:#efefef;font-weight:600;font-size:11px;padding:6px 8px}')
+  parts.push('.total-row td{border:1px solid #555;background:#efefef;font-weight:600;font-size:11px;padding:6px 8px;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}')
   parts.push('.notes-box{border:1px solid #bbb;padding:6px 10px;margin-bottom:5mm;font-size:10px;font-weight:400}')
   parts.push('.notes-title{font-weight:600;margin-bottom:3px;font-size:10px}')
   parts.push('.footer{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:8mm}')
@@ -107,7 +107,7 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
   // Total row
   parts.push('<tr class="total-row">')
   parts.push('<td colspan="5">總計 / Tổng cộng</td>')
-  parts.push('<td style="font-size:12px;color:#1a56db">' + fmt(totalQty) + '</td>')
+  parts.push('<td style="font-size:12px;color:#1a56db;white-space:nowrap;font-variant-numeric:tabular-nums">' + fmt(totalQty) + '</td>')
   parts.push('<td></td>')
   parts.push('</tr>')
   parts.push('</tbody></table>')

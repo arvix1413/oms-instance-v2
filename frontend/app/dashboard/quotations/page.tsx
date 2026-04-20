@@ -253,8 +253,8 @@ export default function QuotationsPage() {
       }
       if (tiers.length === 0 && num(item.unit_price) > 0) tiers = [{moq:0, price: num(item.unit_price)}]
 
-      const moqCell = tiers.map(t => `<div style="line-height:1.6">${t.moq > 0 ? fmt(t.moq) : ''}</div>`).join('')
-      const priceCell = tiers.map(t => `<div style="line-height:1.6">${t.price > 0 ? fmt(t.price) : ''}</div>`).join('')
+      const moqCell = tiers.map(t => `<div style="line-height:1.6;white-space:nowrap">${t.moq > 0 ? fmt(t.moq) : ''}</div>`).join('')
+      const priceCell = tiers.map(t => `<div style="line-height:1.6;white-space:nowrap">${t.price > 0 ? fmt(t.price) : ''}</div>`).join('')
 
       return `
       <tr>
@@ -294,6 +294,7 @@ export default function QuotationsPage() {
       table.items th{border:1px solid #555;background:#e8e8e8;padding:6px 8px;text-align:center;font-size:10px;font-weight:600;color:#000}
       table.items td{border:1px solid #bbb;padding:5px 6px;font-size:11px;font-weight:400;color:#000;vertical-align:middle;text-align:center}
       table.items tbody tr:nth-child(even){background:#fafafa}
+      table.items .col-name{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important;line-height:1.35}
       table.items .col-spec{width:1%;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
       table.items .col-unit{width:1%;white-space:nowrap !important}
       table.items .col-moq{width:1%;white-space:nowrap !important}
@@ -378,7 +379,7 @@ export default function QuotationsPage() {
       <table class="items">
         <thead><tr>
           <th style="width:1%">ST</th>
-          <th>品名 / Products</th>
+          <th class="col-name">品名 / Products</th>
           <th class="col-spec">規格</th>
           <th class="col-unit">單位</th>
           <th class="col-moq">MOQ</th>
