@@ -81,6 +81,33 @@ function dispatchMutationEvent(phase: MutationPhase, detail: Record<string, any>
   window.dispatchEvent(new CustomEvent('oms:mutation', { detail: { phase, ...detail } }))
 }
 
+function normalizeDateString(value: string): string {
+  const s = String(value).trim()
+  // 2026-05-06T00:00:00.000Z / 2026-05-06T00:00:00Z / 2026-05-06 00:00:00
+  const midnightDate =
+    /^(\d{4}-\d{2}-\d{2})[T\s]00:00:00(?:\.000)?(?:Z|[+-]00:00)?$/.exec(s)
+  if (midnightDate) return midnightDate[1]
+  return s
+}
+
+function normalizeApiDates<T>(input: T): T {
+  if (input === null || input === undefined) return input
+  if (Array.isArray(input)) {
+    return input.map((v) => normalizeApiDates(v)) as T
+  }
+  if (typeof input === 'string') {
+    return normalizeDateString(input) as T
+  }
+  if (typeof input === 'object') {
+    const out: Record<string, any> = {}
+    for (const [k, v] of Object.entries(input as Record<string, any>)) {
+      out[k] = normalizeApiDates(v)
+    }
+    return out as T
+  }
+  return input
+}
+
 export async function apiFetch<T>(path: string, opts: OmsRequestInit = {}): Promise<T> {
   const token = getToken()
   // Don't set Content-Type for FormData (let browser set multipart boundary)
@@ -107,11 +134,12 @@ export async function apiFetch<T>(path: string, opts: OmsRequestInit = {}): Prom
       throw new Error(mapApiErrorMessage(raw, res.status))
     }
     const data = await res.json().catch(() => ({} as T))
+    const normalized = normalizeApiDates(data)
     if (isMutation) dispatchMutationEvent('end', { path, method, ok: true })
     if (typeof window !== 'undefined' && shouldReloadOnSuccess(path, method, reloadOnSuccess)) {
       setTimeout(() => window.location.reload(), 180)
     }
-    return data as T
+    return normalized as T
   } catch (e: any) {
     const method = String(opts.method || 'GET').toUpperCase()
     const isMutation = !['GET', 'HEAD', 'OPTIONS'].includes(method)
