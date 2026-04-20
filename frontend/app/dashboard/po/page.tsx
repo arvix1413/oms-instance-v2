@@ -698,7 +698,7 @@ export default function PoPage() {
                                   <table className="w-full text-xs" style={{minWidth:700}}>
                                     <thead>
                                       <tr className="border-b border-slate-100">
-                                        {['PO訂單編號','料號','材料名稱','規格'].map(h=>(
+                                        {['料號','材料名稱','規格'].map(h=>(
                                           <th key={h} className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
                                         ))}
                                         {['數量','單價','小計'].map(h=>(
@@ -712,7 +712,6 @@ export default function PoPage() {
                                     <tbody>
                                       {items.map((item, i) => (
                                         <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                                          <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.po_ref}</td>
                                           <td className="px-3 py-2 font-mono text-blue-600 whitespace-nowrap">{item.material_code}</td>
                                           <td className="px-3 py-2 text-slate-600 whitespace-nowrap max-w-[160px] truncate" title={item.material_name}>{item.material_name}</td>
                                           <td className="px-3 py-2 text-slate-400 whitespace-nowrap max-w-[120px] truncate" title={item.spec}>{item.spec}</td>

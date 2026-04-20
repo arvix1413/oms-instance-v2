@@ -33,7 +33,6 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
   const rows = items.map((item, idx) => `
     <tr>
       <td style="text-align:center">${idx + 1}</td>
-      <td class="col-order" style="font-family:monospace">${txt(item.po_ref || orderRef)}</td>
       <td class="col-material" style="font-family:monospace;color:#1847b8">${txt(item.material_code)}</td>
       <td class="col-name">${txt(item.item_name)}</td>
       <td class="col-spec">${txt(item.spec)}</td>
@@ -67,7 +66,6 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
     .qty{text-align:center;font-weight:400}
     .total td{font-weight:700;background:#fafafa}
     .right{text-align:center}
-    .col-order{width:1%;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
     .col-material{width:1%;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
     .col-spec{width:1%;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}
     .col-unit{width:1%;white-space:nowrap !important}
@@ -102,7 +100,6 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
       <thead>
         <tr>
           <th style="width:48px">序號<span class="sub">SỐ TT</span></th>
-          <th class="col-order">訂單編號<span class="sub">Mã đơn đặt</span></th>
           <th class="col-material">物料編號<span class="sub">Mã vật liệu</span></th>
           <th>品名<span class="sub">Tên hàng</span></th>
           <th class="col-spec">規格<span class="sub">Qui cách</span></th>
@@ -114,7 +111,7 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
       <tbody>
         ${rows}
         <tr class="total">
-          <td colspan="6" class="right">Total</td>
+          <td colspan="5" class="right">Total</td>
           <td class="qty">${fmt(totalQty)}</td>
           <td></td>
         </tr>

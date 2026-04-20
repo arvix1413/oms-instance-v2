@@ -28,7 +28,6 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
     return [
       '<tr>',
       '<td style="text-align:center">' + (i+1) + '</td>',
-      '<td class="col-order">' + txt(item.po_ref || orderRef) + '</td>',
       '<td class="col-material">' + txt(item.material_code) + '</td>',
       '<td class="col-name">' + txt(item.item_name) + '</td>',
       '<td class="col-spec">' + txt(item.spec) + '</td>',
@@ -59,7 +58,6 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
   parts.push('table.items th{border:1px solid #555;background:#e8e8e8;padding:6px 6px;text-align:center;font-size:10px;font-weight:600;color:#000;white-space:normal;overflow-wrap:anywhere;word-break:break-word}')
   parts.push('table.items td{border:1px solid #bbb;padding:5px 6px;font-size:11px;font-weight:400;color:#000;white-space:normal;overflow-wrap:anywhere;word-break:break-word;vertical-align:top;text-align:center}')
   parts.push('table.items tbody tr:nth-child(even){background:#fafafa}')
-  parts.push('table.items .col-order{width:1%;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}')
   parts.push('table.items .col-material{width:1%;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}')
   parts.push('table.items .col-spec{width:1%;white-space:nowrap !important;overflow-wrap:normal !important;word-break:keep-all !important}')
   parts.push('table.items .col-unit{width:1%;white-space:nowrap !important}')
@@ -96,7 +94,6 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
   parts.push('<table class="items">')
   parts.push('<thead><tr>')
   parts.push('<th style="width:28px">ST</th>')
-  parts.push('<th class="col-order">訂單編號</th>')
   parts.push('<th class="col-material">物料編號</th>')
   parts.push('<th class="col-name">品名</th>')
   parts.push('<th class="col-spec">規格</th>')
@@ -109,7 +106,7 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
   
   // Total row
   parts.push('<tr class="total-row">')
-  parts.push('<td colspan="6">總計 / Tổng cộng</td>')
+  parts.push('<td colspan="5">總計 / Tổng cộng</td>')
   parts.push('<td style="font-size:12px;color:#1a56db">' + fmt(totalQty) + '</td>')
   parts.push('<td></td>')
   parts.push('</tr>')
