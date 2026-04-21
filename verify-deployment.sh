@@ -1,8 +1,10 @@
 #!/bin/bash
 # Verify deployment and database migration
 
-SERVER="ubuntu@43.133.56.234"
-SERVER_PASS="Www.950pp.com"
+SERVER_HOST="${SERVER_HOST:-43.160.199.226}"
+SERVER_USER="${SERVER_USER:-ubuntu}"
+SERVER="${SERVER_USER}@${SERVER_HOST}"
+SERVER_PASS="${SERVER_PASS:-Www.950pp.com}"
 
 echo "🔍 Verifying OMS Deployment..."
 echo ""
@@ -44,7 +46,7 @@ sshpass -p "$SERVER_PASS" ssh -o StrictHostKeyChecking=no $SERVER "docker ps --f
 
 echo ""
 echo "4. Testing frontend..."
-FRONTEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://43.133.56.234)
+FRONTEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://${SERVER_HOST})
 if [ "$FRONTEND_STATUS" = "200" ]; then
   echo "✅ Frontend is accessible (HTTP $FRONTEND_STATUS)"
 else
@@ -53,7 +55,7 @@ fi
 
 echo ""
 echo "5. Testing backend..."
-BACKEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://43.133.56.234:3001)
+BACKEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://${SERVER_HOST}:3001)
 if [ "$BACKEND_STATUS" = "404" ] || [ "$BACKEND_STATUS" = "401" ]; then
   echo "✅ Backend is running (HTTP $BACKEND_STATUS - expected for root path)"
 else
@@ -62,4 +64,4 @@ fi
 
 echo ""
 echo "✅ Verification complete!"
-echo "Visit: http://43.133.56.234"
+echo "Visit: http://${SERVER_HOST}"
