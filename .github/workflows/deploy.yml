@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DEPLOY_ENV: ${{ github.ref_name }}
-      TARGET_HOST: ${{ github.ref_name == 'prd' && (secrets.OMS_PRD_SERVER_HOST || secrets.SERVER_HOST) || (secrets.OMS_STG_SERVER_HOST || secrets.SERVER_HOST) }}
+      TARGET_HOST: ${{ github.ref_name == 'prd' && '43.160.199.226' || '43.133.56.234' }}
       TARGET_PORT: ${{ github.ref_name == 'prd' && (secrets.OMS_PRD_SERVER_PORT || secrets.SERVER_PORT) || (secrets.OMS_STG_SERVER_PORT || secrets.SERVER_PORT) }}
       TARGET_USER: ${{ github.ref_name == 'prd' && (secrets.OMS_PRD_SERVER_USER || secrets.SERVER_USER) || (secrets.OMS_STG_SERVER_USER || secrets.SERVER_USER) }}
       TARGET_PASSWORD: ${{ github.ref_name == 'prd' && (secrets.OMS_PRD_SERVER_PASSWORD || secrets.SERVER_PASSWORD) || (secrets.OMS_STG_SERVER_PASSWORD || secrets.SERVER_PASSWORD) }}
