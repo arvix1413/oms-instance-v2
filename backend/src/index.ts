@@ -1543,6 +1543,84 @@ app.delete('/api/quotations/:id', authMiddleware, requirePerm('customer_order.de
 })
 
 // ── Delivery Notes ────────────────────────────────────────────────────────────
+app.get('/api/delivery-notes/overview', authMiddleware, async c => {
+  const orders = await query<any>(`
+    SELECT
+      co.id as customer_order_id,
+      co.customer_id,
+      co.po_number as order_po_number,
+      COALESCE(c.customer_name, co.customer_name, '') as customer_name,
+      co.status as order_status,
+      co.created_at,
+      COALESCE(SUM(ci.qty), 0) as order_qty
+    FROM customer_orders co
+    LEFT JOIN customers c ON c.id = co.customer_id AND c.deleted_at IS NULL
+    LEFT JOIN customer_order_items ci ON ci.order_id = co.id
+    WHERE co.deleted_at IS NULL
+    GROUP BY co.id, co.customer_id, co.po_number, c.customer_name, co.customer_name, co.status, co.created_at
+    ORDER BY co.created_at DESC
+  `)
+
+  const notes = await query<any>(`
+    SELECT
+      dn.id,
+      dn.dn_number,
+      dn.customer_order_id,
+      dn.customer_name,
+      dn.delivery_date,
+      dn.status,
+      dn.remark,
+      dn.created_at,
+      COALESCE(SUM(dni.qty), 0) as batch_qty
+    FROM delivery_notes dn
+    LEFT JOIN delivery_note_items dni ON dni.dn_id = dn.id
+    WHERE dn.deleted_at IS NULL AND dn.customer_order_id IS NOT NULL
+    GROUP BY dn.id, dn.dn_number, dn.customer_order_id, dn.customer_name, dn.delivery_date, dn.status, dn.remark, dn.created_at
+    ORDER BY dn.created_at DESC
+  `)
+
+  const notesByOrder = new Map<number, any[]>()
+  for (const n of notes) {
+    const key = Number(n.customer_order_id || 0)
+    if (!notesByOrder.has(key)) notesByOrder.set(key, [])
+    notesByOrder.get(key)!.push(n)
+  }
+
+  const shippedByOrder = new Map<number, number>()
+  const shippedRows = await query<any>(`
+    SELECT dn.customer_order_id, COALESCE(SUM(dni.qty),0) as shipped_qty
+    FROM delivery_notes dn
+    JOIN delivery_note_items dni ON dni.dn_id = dn.id
+    WHERE dn.deleted_at IS NULL AND dn.status='shipped' AND dn.customer_order_id IS NOT NULL
+    GROUP BY dn.customer_order_id
+  `)
+  for (const row of shippedRows) {
+    shippedByOrder.set(Number(row.customer_order_id || 0), Number(row.shipped_qty || 0))
+  }
+
+  const data = orders.map((o: any) => {
+    const orderQty = Number(o.order_qty || 0)
+    const shippedQty = Number(shippedByOrder.get(Number(o.customer_order_id || 0)) || 0)
+    const ratio = orderQty > 0 ? Math.min(100, Math.max(0, (shippedQty / orderQty) * 100)) : 0
+    const progressStatus = shippedQty <= 0 ? 'pending' : shippedQty >= orderQty ? 'completed' : 'partial'
+    return {
+      customer_order_id: Number(o.customer_order_id),
+      customer_id: o.customer_id ? Number(o.customer_id) : null,
+      order_po_number: o.order_po_number || '',
+      customer_name: o.customer_name || '',
+      order_status: o.order_status || 'pending',
+      order_qty: orderQty,
+      shipped_qty: shippedQty,
+      remaining_qty: Math.max(0, orderQty - shippedQty),
+      shipping_ratio: Math.round(ratio * 100) / 100,
+      progress_status: progressStatus,
+      notes: notesByOrder.get(Number(o.customer_order_id || 0)) || [],
+    }
+  })
+
+  return c.json(data)
+})
+
 app.get('/api/delivery-notes', authMiddleware, async c => c.json(await query(`
   SELECT dn.*, c.customer_name, c.customer_code,
          co.po_number as order_po_number

@@ -12,18 +12,37 @@ type DNItem = { bom_id?:number|null; item_name:string; material_code:string; qty
 type DN = { id:number; dn_number:string; customer_name:string; delivery_date:string; status:string; remark:string; created_at:string; items?:DNItem[]; order_po_number?:string }
 type Customer = { id:number; customer_name:string; customer_code:string }
 type PendingOrder = { id:number; po_number:string; po_date:string; items_summary:string }
-type OrderItem = { id:number; bom_id:number|null; qty:number; unit_price:number; product_name:string; product_sku:string }
+type OrderItem = { id:number; bom_id:number|null; qty:number; arrived_qty:number; remaining_qty:number; unit_price:number; product_name:string; product_sku:string }
+type DNBatch = { id:number; dn_number:string; customer_name:string; delivery_date:string; status:string; remark:string; created_at:string; batch_qty:number }
+type OrderDeliveryRow = {
+  customer_order_id:number
+  customer_id:number|null
+  order_po_number:string
+  customer_name:string
+  order_status:string
+  order_qty:number
+  shipped_qty:number
+  remaining_qty:number
+  shipping_ratio:number
+  progress_status:'pending'|'partial'|'completed'
+  notes: DNBatch[]
+}
 
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
   draft:     { label:'草稿',   badge:'badge-gray'  },
   confirmed: { label:'已確認', badge:'badge-blue'  },
   shipped:   { label:'已出貨', badge:'badge-green' },
 }
+const ORDER_PROGRESS_MAP: Record<string, { label: string; badge: string }> = {
+  pending: { label: '未出貨', badge: 'badge-gray' },
+  partial: { label: '部分出貨', badge: 'badge-yellow' },
+  completed: { label: '已完成', badge: 'badge-green' },
+}
 
 export default function DeliveryNotesPage() {
   const { toast, confirm: confirmDialog } = useDialog()
 
-  const [dns, setDns] = useState<DN[]>([])
+  const [orderRows, setOrderRows] = useState<OrderDeliveryRow[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<DN|null>(null)
@@ -31,7 +50,8 @@ export default function DeliveryNotesPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [actionLoading, setActionLoading] = useState<number | null>(null)
-  const [expanded, setExpanded] = useState<Set<number>>(new Set())
+  const [expandedOrders, setExpandedOrders] = useState<Set<number>>(new Set())
+  const [expandedDns, setExpandedDns] = useState<Set<number>>(new Set())
   const [loadedItems, setLoadedItems] = useState<Record<number, DNItem[]>>({})
   const canWrite = can('delivery.create')
   const canDel = can('delivery.delete')
@@ -45,7 +65,7 @@ export default function DeliveryNotesPage() {
   const [deliveryDate, setDeliveryDate] = useState('')
   const [remark, setRemark] = useState('')
 
-  const load = () => apiFetch<DN[]>('/api/delivery-notes').then(setDns).finally(() => setLoading(false))
+  const load = () => apiFetch<OrderDeliveryRow[]>('/api/delivery-notes/overview').then(setOrderRows).finally(() => setLoading(false))
   useEffect(() => {
     load()
     apiFetch<Customer[]>('/api/customers').then(setCustomers).catch(() => {})
@@ -69,14 +89,16 @@ export default function DeliveryNotesPage() {
     const data = await apiFetch<any>(`/api/customer-orders/${orderId}`)
     const items: OrderItem[] = (data.items || []).map((i: any) => ({
       id: i.id, bom_id: i.bom_id, qty: Number(i.qty),
+      arrived_qty: Number(i.arrived_qty || 0),
+      remaining_qty: Math.max(0, Number(i.qty || 0) - Number(i.arrived_qty || 0)),
       unit_price: Number(i.unit_price),
       product_name: i.product_name || '',
       product_sku: i.product_sku || '',
     }))
     setOrderItems(items)
-    // Default shipped qty = ordered qty
+    // Default shipped qty = remaining qty
     const qtys: Record<number, number> = {}
-    items.forEach(i => { qtys[i.id] = i.qty })
+    items.forEach(i => { qtys[i.id] = i.remaining_qty })
     setShippedQtys(qtys)
   }
 
@@ -87,10 +109,10 @@ export default function DeliveryNotesPage() {
       bom_id: i.bom_id,
       item_name: i.product_name,
       material_code: i.product_sku,
-      qty: shippedQtys[i.id] || 0,
+      qty: Math.min(i.remaining_qty, Math.max(0, Number(shippedQtys[i.id] || 0))),
       remark: '',
     })).filter(i => i.qty > 0)
-    if (!items.length) { toast('請填寫出貨數量', 'error'); return }
+    if (!items.length) { toast('請填寫本次出貨數量', 'error'); return }
     try {
       await apiFetch('/api/delivery-notes', {
         method: 'POST',
@@ -116,19 +138,29 @@ export default function DeliveryNotesPage() {
     setDeliveryDate(''); setRemark('')
   }
 
-  const toggleExpand = async (id: number) => {
-    const next = new Set(expanded)
-    if (next.has(id)) { next.delete(id); setExpanded(next) }
-    else {
-      next.add(id); setExpanded(next)
-      if (!loadedItems[id]) {
-        const d = await apiFetch<DN>(`/api/delivery-notes/${id}`)
-        setLoadedItems(p => ({ ...p, [id]: d.items || [] }))
-      }
+  const toggleOrderExpand = (orderId: number) => {
+    setExpandedOrders(prev => {
+      const next = new Set(prev)
+      if (next.has(orderId)) next.delete(orderId)
+      else next.add(orderId)
+      return next
+    })
+  }
+
+  const toggleDnExpand = async (dnId: number) => {
+    setExpandedDns(prev => {
+      const next = new Set(prev)
+      if (next.has(dnId)) next.delete(dnId)
+      else next.add(dnId)
+      return next
+    })
+    if (!loadedItems[dnId]) {
+      const d = await apiFetch<DN>(`/api/delivery-notes/${dnId}`)
+      setLoadedItems(p => ({ ...p, [dnId]: d.items || [] }))
     }
   }
 
-  const startEditDN = async (dn: DN) => {
+  const startEditDN = async (dn: Pick<DN, 'id' | 'delivery_date' | 'remark'>) => {
     const d = await apiFetch<DN>(`/api/delivery-notes/${dn.id}`)
     setEditForm({
       delivery_date: dn.delivery_date ? String(dn.delivery_date).slice(0,10) : '',
@@ -147,7 +179,7 @@ export default function DeliveryNotesPage() {
       setEditing(null)
       await load()
       setLoadedItems({})
-      if (expanded.has(editedId)) {
+      if (expandedDns.has(editedId)) {
         const d = await apiFetch<DN>(`/api/delivery-notes/${editedId}`)
         setLoadedItems(p => ({ ...p, [editedId]: d.items || [] }))
       }
@@ -167,7 +199,7 @@ export default function DeliveryNotesPage() {
       toast('狀態已更新')
       await load()
       setLoadedItems({})
-      if (expanded.has(id)) {
+      if (expandedDns.has(id)) {
         const d = await apiFetch<DN>(`/api/delivery-notes/${id}`)
         setLoadedItems(p => ({ ...p, [id]: d.items || [] }))
       }
@@ -180,7 +212,7 @@ export default function DeliveryNotesPage() {
     try {
       await apiFetch(`/api/delivery-notes/${id}`, { method: 'DELETE' })
       await load()
-      setExpanded(prev => {
+      setExpandedDns(prev => {
         const next = new Set(prev)
         next.delete(id)
         return next
@@ -193,7 +225,7 @@ export default function DeliveryNotesPage() {
     } catch (e: any) { toast('刪除失敗：' + e.message, 'error') }
   }
 
-  const printDN = async (dn: DN) => {
+  const printDN = async (dn: Pick<DN, 'id' | 'dn_number' | 'customer_name' | 'delivery_date' | 'remark' | 'order_po_number'>) => {
     const detail = await apiFetch<DN & { po_ref?: string; address?: string }>(`/api/delivery-notes/${dn.id}`)
     const company = await getCompany()
     const html = generateDeliveryNoteHTML({
@@ -203,7 +235,7 @@ export default function DeliveryNotesPage() {
       po_ref: detail.po_ref || dn.order_po_number || '',
       address: detail.address || '',
       remark: dn.remark,
-      items: detail.items || dn.items || []
+      items: detail.items || []
     }, getSignatureUrl() || undefined, company)
     const w = window.open('', '_blank', 'width=800,height=1000')
     if (!w) {
@@ -215,9 +247,13 @@ export default function DeliveryNotesPage() {
     setTimeout(() => w.print(), 500)
   }
 
-  const filtered = dns.filter(d => !search ||
-    d.dn_number.toLowerCase().includes(search.toLowerCase()) ||
-    (d.customer_name||'').toLowerCase().includes(search.toLowerCase()))
+  const filtered = orderRows.filter(o => {
+    if (!search) return true
+    const key = search.toLowerCase()
+    const hitOrder = (o.order_po_number || '').toLowerCase().includes(key) || (o.customer_name || '').toLowerCase().includes(key)
+    const hitBatch = (o.notes || []).some(n => (n.dn_number || '').toLowerCase().includes(key))
+    return hitOrder || hitBatch
+  })
   const { page, setPage, totalPages, paged, total } = usePagination(filtered, 20)
   const inp = 'oms-input text-xs py-1.5'
 
@@ -278,6 +314,8 @@ export default function DeliveryNotesPage() {
                     <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">品名</th>
                     <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">物料編號</th>
                     <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase">訂單數量</th>
+                    <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase">已出數量</th>
+                    <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase">剩餘可出</th>
                     <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase">本次出貨</th>
                   </tr></thead>
                   <tbody>
@@ -286,10 +324,12 @@ export default function DeliveryNotesPage() {
                         <td className="px-3 py-2 text-slate-700 font-medium">{item.product_name}</td>
                         <td className="px-3 py-2 font-mono text-blue-600">{item.product_sku}</td>
                         <td className="px-3 py-2 text-right text-slate-500">{item.qty.toLocaleString()}</td>
+                        <td className="px-3 py-2 text-right text-slate-500">{item.arrived_qty.toLocaleString()}</td>
+                        <td className="px-3 py-2 text-right text-slate-700 font-semibold">{item.remaining_qty.toLocaleString()}</td>
                         <td className="px-3 py-2 text-right">
                           <input type="number" className={`${inp} w-24 text-right`}
-                            min={0} max={item.qty}
-                            value={shippedQtys[item.id] ?? item.qty}
+                            min={0} max={item.remaining_qty}
+                            value={shippedQtys[item.id] ?? item.remaining_qty}
                             onChange={e => setShippedQtys(p => ({ ...p, [item.id]: Number(e.target.value) }))} />
                         </td>
                       </tr>
@@ -360,7 +400,7 @@ export default function DeliveryNotesPage() {
       {!creating && !editing && (
         <>
           <div className="mb-4">
-            <input className="oms-input w-64" placeholder="搜尋出貨單號或客戶..." value={search} onChange={e => setSearch(e.target.value)} />
+            <input className="oms-input w-72" placeholder="搜尋訂單號、客戶、出貨單號..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
 
           <div className="oms-card overflow-hidden">
@@ -370,74 +410,149 @@ export default function DeliveryNotesPage() {
               <thead>
                 <tr className="border-b border-slate-200">
                   <th className="w-8" />
-                  {['出貨單號','客戶名稱','關聯訂單','出貨日期','備註','狀態','操作'].map(h => (
+                  {['訂單號','客戶名稱','訂單總量','已出貨','剩餘','出貨比率','進度'].map(h => (
                     <th key={h} className="px-3 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {paged.map(dn => {
-                  const isOpen = expanded.has(dn.id)
-                  const items = loadedItems[dn.id] || []
+                {paged.map(order => {
+                  const isOrderOpen = expandedOrders.has(order.customer_order_id)
+                  const progress = ORDER_PROGRESS_MAP[order.progress_status] || ORDER_PROGRESS_MAP.pending
                   return (
                     <>
-                      <tr key={dn.id}
-                        className={`border-b border-slate-100 cursor-pointer transition-colors ${isOpen ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
-                        onClick={() => toggleExpand(dn.id)}>
+                      <tr key={order.customer_order_id}
+                        className={`border-b border-slate-100 cursor-pointer transition-colors ${isOrderOpen ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
+                        onClick={() => toggleOrderExpand(order.customer_order_id)}>
                         <td className="pl-3 py-2.5">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                            className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}>
+                            className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isOrderOpen ? 'rotate-90' : ''}`}>
                             <polyline points="9 18 15 12 9 6" />
                           </svg>
                         </td>
-                        <td className="px-3 py-2.5 font-mono text-xs text-blue-600 whitespace-nowrap">{dn.dn_number}</td>
-                        <td className="px-3 py-2.5 font-medium whitespace-nowrap max-w-[200px] truncate" title={dn.customer_name}>{dn.customer_name}</td>
-                        <td className="px-3 py-2.5 text-slate-400 text-xs whitespace-nowrap">{dn.order_po_number || '—'}</td>
-                        <td className="px-3 py-2.5 text-slate-400 whitespace-nowrap">{dn.delivery_date ? String(dn.delivery_date).slice(0,10) : '—'}</td>
-                        <td className="px-3 py-2.5 text-slate-400 whitespace-normal break-words max-w-[220px]" title={dn.remark}>{dn.remark||'—'}</td>
-                        <td className="px-3 py-2.5 whitespace-nowrap"><span className={STATUS_MAP[dn.status]?.badge}>{STATUS_MAP[dn.status]?.label}</span></td>
-                        <td className="px-3 py-2.5 whitespace-nowrap" onClick={e => e.stopPropagation()}>
-                          <div className="flex gap-1 items-center">
-                            <StatusFlow compact steps={DN_STEPS} current={dn.status}
-                              actions={actionLoading === dn.id ? [] : getDNActions(dn.status)}
-                              onAction={(toStatus) => changeStatus(dn.id, toStatus)} />
-                            {actionLoading === dn.id && <span className="text-xs text-slate-400 px-1">處理中...</span>}
-                            <button onClick={e => { e.stopPropagation(); printDN(dn) }} className="btn-ghost" title="列印">🖨 列印</button>
-                            {canWrite && dn.status === 'draft' && <button onClick={e => { e.stopPropagation(); startEditDN(dn) }} className="btn-ghost text-blue-600">✏ 編輯</button>}
-                            {canDel && <button onClick={e => { e.stopPropagation(); del(dn.id) }} className="btn-danger">刪除</button>}
+                        <td className="px-3 py-2.5 font-mono text-xs text-blue-600 whitespace-nowrap">{order.order_po_number || '—'}</td>
+                        <td className="px-3 py-2.5 font-medium whitespace-nowrap max-w-[240px] truncate" title={order.customer_name}>{order.customer_name || '—'}</td>
+                        <td className="px-3 py-2.5 text-right text-slate-600">{Number(order.order_qty).toLocaleString()}</td>
+                        <td className="px-3 py-2.5 text-right text-emerald-700 font-medium">{Number(order.shipped_qty).toLocaleString()}</td>
+                        <td className="px-3 py-2.5 text-right text-amber-700 font-medium">{Number(order.remaining_qty).toLocaleString()}</td>
+                        <td className="px-3 py-2.5 min-w-[200px]">
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 flex-1 bg-slate-100 rounded-full overflow-hidden">
+                              <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, Math.max(0, order.shipping_ratio || 0))}%` }} />
+                            </div>
+                            <span className="text-xs text-slate-500 w-12 text-right">{(order.shipping_ratio || 0).toFixed(1)}%</span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <span className={progress.badge}>{progress.label}</span>
+                            {canWrite && (
+                              <button
+                                onClick={e => {
+                                  e.stopPropagation()
+                                  setCreating(true)
+                                  setSelectedCustomerId(order.customer_id ? String(order.customer_id) : '')
+                                  if (order.customer_id) onSelectCustomer(String(order.customer_id))
+                                  setTimeout(() => {
+                                    setSelectedOrderId(String(order.customer_order_id))
+                                    onSelectOrder(String(order.customer_order_id))
+                                  }, 0)
+                                }}
+                                className="btn-ghost text-blue-600"
+                              >
+                                + 建立批次
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
-                      {isOpen && (
-                        <tr key={`${dn.id}-items`} className="border-b border-slate-100">
+                      {isOrderOpen && (
+                        <tr key={`${order.customer_order_id}-items`} className="border-b border-slate-100">
                           <td colSpan={8} className="px-0 py-0">
                             <div className="expand-row-wrap">
-                              {items.length === 0 ? (
-                                <div className="expand-row-loading">
-                                  <div className="w-3 h-3 border border-slate-300 border-t-slate-500 rounded-full animate-spin"/>載入中...
-                                </div>
+                              {(order.notes || []).length === 0 ? (
+                                <div className="px-5 py-6 text-xs text-slate-400">此訂單尚無出貨批次</div>
                               ) : (
                                 <div className="overflow-x-auto">
-                                  <table className="w-full text-xs" style={{minWidth:500}}>
+                                  <table className="w-full text-xs" style={{minWidth:900}}>
                                     <thead><tr className="border-b border-slate-100">
-                                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">品名</th>
-                                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">物料編號</th>
-                                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">規格</th>
-                                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">單位</th>
-                                      <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">數量</th>
+                                      <th className="w-8" />
+                                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">出貨單號</th>
+                                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">出貨日期</th>
+                                      <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">批次數量</th>
                                       <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">備註</th>
+                                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">狀態</th>
+                                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">操作</th>
                                     </tr></thead>
                                     <tbody>
-                                      {items.map((item, i) => (
-                                        <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                                          <td className="px-3 py-2 text-slate-700">{item.item_name}</td>
-                                          <td className="px-3 py-2 font-mono text-xs text-blue-600 whitespace-nowrap">{item.material_code}</td>
-                                          <td className="px-3 py-2 text-slate-400">{(item as any).spec || '—'}</td>
-                                          <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.unit || 'PCS'}</td>
-                                          <td className="px-3 py-2 text-right font-medium">{Number(item.qty).toLocaleString()}</td>
-                                          <td className="px-3 py-2 text-slate-400">{item.remark}</td>
-                                        </tr>
-                                      ))}
+                                      {(order.notes || []).map((dn) => {
+                                        const isDnOpen = expandedDns.has(dn.id)
+                                        const items = loadedItems[dn.id] || []
+                                        return (
+                                          <>
+                                            <tr key={dn.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 cursor-pointer" onClick={() => toggleDnExpand(dn.id)}>
+                                              <td className="pl-3 py-2">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                                                  className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isDnOpen ? 'rotate-90' : ''}`}>
+                                                  <polyline points="9 18 15 12 9 6" />
+                                                </svg>
+                                              </td>
+                                              <td className="px-3 py-2 font-mono text-xs text-blue-600 whitespace-nowrap">{dn.dn_number}</td>
+                                              <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{dn.delivery_date ? String(dn.delivery_date).slice(0, 10) : '—'}</td>
+                                              <td className="px-3 py-2 text-right text-slate-700 font-medium">{Number(dn.batch_qty || 0).toLocaleString()}</td>
+                                              <td className="px-3 py-2 text-slate-400 max-w-[220px] truncate" title={dn.remark || ''}>{dn.remark || '—'}</td>
+                                              <td className="px-3 py-2 whitespace-nowrap"><span className={STATUS_MAP[dn.status]?.badge}>{STATUS_MAP[dn.status]?.label || dn.status}</span></td>
+                                              <td className="px-3 py-2 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                                                <div className="flex gap-1 items-center">
+                                                  <StatusFlow compact steps={DN_STEPS} current={dn.status}
+                                                    actions={actionLoading === dn.id ? [] : getDNActions(dn.status)}
+                                                    onAction={(toStatus) => changeStatus(dn.id, toStatus)} />
+                                                  {actionLoading === dn.id && <span className="text-xs text-slate-400 px-1">處理中...</span>}
+                                                  <button onClick={e => { e.stopPropagation(); printDN(dn) }} className="btn-ghost" title="列印">🖨 列印</button>
+                                                  {canWrite && dn.status === 'draft' && <button onClick={e => { e.stopPropagation(); startEditDN(dn) }} className="btn-ghost text-blue-600">✏ 編輯</button>}
+                                                  {canDel && <button onClick={e => { e.stopPropagation(); del(dn.id) }} className="btn-danger">刪除</button>}
+                                                </div>
+                                              </td>
+                                            </tr>
+                                            {isDnOpen && (
+                                              <tr key={`${dn.id}-items`} className="border-b border-slate-100">
+                                                <td colSpan={7} className="px-0 py-0 bg-slate-50/50">
+                                                  {items.length === 0 ? (
+                                                    <div className="expand-row-loading">
+                                                      <div className="w-3 h-3 border border-slate-300 border-t-slate-500 rounded-full animate-spin"/>載入中...
+                                                    </div>
+                                                  ) : (
+                                                    <div className="overflow-x-auto">
+                                                      <table className="w-full text-xs" style={{minWidth:600}}>
+                                                        <thead><tr className="border-b border-slate-100">
+                                                          <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">品名</th>
+                                                          <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">物料編號</th>
+                                                          <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">規格</th>
+                                                          <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">單位</th>
+                                                          <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">數量</th>
+                                                          <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">備註</th>
+                                                        </tr></thead>
+                                                        <tbody>
+                                                          {items.map((item, i) => (
+                                                            <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                                                              <td className="px-3 py-2 text-slate-700">{item.item_name}</td>
+                                                              <td className="px-3 py-2 font-mono text-xs text-blue-600 whitespace-nowrap">{item.material_code}</td>
+                                                              <td className="px-3 py-2 text-slate-400">{(item as any).spec || '—'}</td>
+                                                              <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.unit || 'PCS'}</td>
+                                                              <td className="px-3 py-2 text-right font-medium">{Number(item.qty).toLocaleString()}</td>
+                                                              <td className="px-3 py-2 text-slate-400">{item.remark}</td>
+                                                            </tr>
+                                                          ))}
+                                                        </tbody>
+                                                      </table>
+                                                    </div>
+                                                  )}
+                                                </td>
+                                              </tr>
+                                            )}
+                                          </>
+                                        )
+                                      })}
                                     </tbody>
                                   </table>
                                 </div>
@@ -449,7 +564,7 @@ export default function DeliveryNotesPage() {
                     </>
                   )
                 })}
-                {paged.length === 0 && <tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400">尚無出貨單</td></tr>}
+                {paged.length === 0 && <tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400">尚無訂單出貨資料</td></tr>}
               </tbody>
             </table>
             <Pagination page={page} totalPages={totalPages} setPage={setPage} total={total} />
