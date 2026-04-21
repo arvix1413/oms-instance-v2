@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-const BASE_URL = 'http://43.133.56.234'
+const BASE_URL = 'http://43.160.199.226'
 
 test.describe('BOM Image Upload', () => {
   test.beforeEach(async ({ page }) => {

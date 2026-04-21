@@ -229,7 +229,7 @@ export default function QuotationsPage() {
     ])
     const items = data.items || []
     const signUrl = getSignatureUrl()
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://43.133.56.234'
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://43.160.199.226')
     const logoUrl = company.logo_url ? (company.logo_url.startsWith('http') ? company.logo_url : `${apiBase}${company.logo_url}`) : null
     const rawCustomerId = (data as any).customer_id ?? q.customer_id
     const customerDetail = rawCustomerId

@@ -19,7 +19,7 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
     company_name_local: 'CÔNG TY TNHH FAN YONG VIỆT NAM',
     address: '', phone: '', contact_person: '', logo_url: null,
   }
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://43.133.56.234'
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://43.160.199.226')
   const logoUrl = co.logo_url ? (co.logo_url.startsWith('http') ? co.logo_url : `${API_BASE}${co.logo_url}`) : null
   const items: any[] = data.items || []
   const orderRef = txt(data.po_ref || data.order_po_number || '')

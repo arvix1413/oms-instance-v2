@@ -295,7 +295,7 @@ export default function PoPage() {
     const total = Math.round(subTotal * (1 + taxRate / 100) * 100) / 100
     const currency = txt(items[0]?.currency) || txt(data.currency) || 'VND'
     const signatureUrl = getSignatureUrl()
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://43.133.56.234'
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://43.160.199.226')
     const logoUrl = company.logo_url ? (company.logo_url.startsWith('http') ? company.logo_url : `${API_BASE}${company.logo_url}`) : null
     const supplierId = (data as any).supplier_id
     const supplierDetail = suppliers.find(s =>

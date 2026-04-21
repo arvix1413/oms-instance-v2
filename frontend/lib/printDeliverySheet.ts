@@ -25,7 +25,7 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
     id: 1,
     tax_id: '',
   }
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://43.133.56.234'
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://43.160.199.226')
   const logoUrl = co.logo_url ? (String(co.logo_url).startsWith('http') ? co.logo_url : `${API_BASE}${co.logo_url}`) : null
   const items: any[] = Array.isArray(data.items) ? data.items : []
   const totalQty = items.reduce((s, i) => s + num(i.qty), 0)

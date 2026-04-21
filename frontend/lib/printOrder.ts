@@ -27,7 +27,7 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
     company_name_local: 'CÔNG TY TNHH FAN YONG VIỆT NAM',
     address: '', phone: '', contact_person: '', logo_url: null,
   }
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://43.133.56.234'
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://43.160.199.226')
   const logoUrl = co.logo_url ? (co.logo_url.startsWith('http') ? co.logo_url : `${API_BASE}${co.logo_url}`) : null
   const customerName = txt(data.customer_name)
   const customerAddress = txt(data.customer_address || data.address || data.delivery_address)

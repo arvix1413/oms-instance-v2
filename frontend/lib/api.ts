@@ -1,4 +1,6 @@
-export const API = process.env.NEXT_PUBLIC_API_URL || 'https://oms-backend.arvix1413.workers.dev'
+export const API =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== 'undefined' ? window.location.origin : 'http://43.160.199.226')
 type ReloadMode = 'auto' | 'always' | 'never'
 type OmsRequestInit = RequestInit & { reloadOnSuccess?: ReloadMode }
 type MutationPhase = 'start' | 'end'
