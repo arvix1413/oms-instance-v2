@@ -2,12 +2,19 @@ name: Build & Deploy OMS
 
 on:
   push:
-    branches: [main]
+    branches: [stg, prd]
   workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    env:
+      DEPLOY_ENV: ${{ github.ref_name }}
+      TARGET_HOST: ${{ github.ref_name == 'prd' && secrets.OMS_PRD_SERVER_HOST || secrets.OMS_STG_SERVER_HOST }}
+      TARGET_PORT: ${{ github.ref_name == 'prd' && secrets.OMS_PRD_SERVER_PORT || secrets.OMS_STG_SERVER_PORT }}
+      TARGET_USER: ${{ github.ref_name == 'prd' && secrets.OMS_PRD_SERVER_USER || secrets.OMS_STG_SERVER_USER }}
+      TARGET_PASSWORD: ${{ github.ref_name == 'prd' && secrets.OMS_PRD_SERVER_PASSWORD || secrets.OMS_STG_SERVER_PASSWORD }}
+      API_URL: ${{ github.ref_name == 'prd' && 'http://43.160.199.226' || 'http://43.133.56.234' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,22 +30,32 @@ jobs:
         with:
           context: ./backend
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USER }}/oms-backend:latest
+          tags: ${{ secrets.DOCKER_HUB_USER }}/oms-backend:${{ env.DEPLOY_ENV }}
 
       - name: Build & Push Frontend
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USER }}/oms-frontend:latest
+          tags: ${{ secrets.DOCKER_HUB_USER }}/oms-frontend:${{ env.DEPLOY_ENV }}
           build-args: |
-            NEXT_PUBLIC_API_URL=http://43.160.199.226
+            NEXT_PUBLIC_API_URL=${{ env.API_URL }}
+
+      - name: Upload Compose File
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.TARGET_HOST }}
+          username: ${{ env.TARGET_USER }}
+          password: ${{ env.TARGET_PASSWORD }}
+          port: ${{ env.TARGET_PORT }}
+          source: "docker-compose.yml"
+          target: "/opt/oms/"
 
       - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          password: ${{ secrets.SERVER_PASSWORD }}
-          port: ${{ secrets.SERVER_PORT }}
-          script: /opt/oms/deploy.sh
+          host: ${{ env.TARGET_HOST }}
+          username: ${{ env.TARGET_USER }}
+          password: ${{ env.TARGET_PASSWORD }}
+          port: ${{ env.TARGET_PORT }}
+          script: IMAGE_TAG=${{ env.DEPLOY_ENV }} /opt/oms/deploy.sh
