@@ -496,7 +496,8 @@ export default function PoPage() {
       </div>
 
       {(creating || editingId !== null) && canWrite && (
-        <div className="oms-card p-6 mb-5">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[1px] px-4 py-6 overflow-y-auto">
+          <div className="max-w-[1400px] mx-auto oms-card p-6">
           <h2 className="text-sm font-semibold text-slate-800 mb-4">{editingId ? '編輯採購單（草稿）' : '建立採購單'}</h2>
           <div className="grid grid-cols-4 gap-3 mb-4">
             <div>
@@ -593,9 +594,10 @@ export default function PoPage() {
             <button onClick={() => { setCreating(false); setEditingId(null); setForm({ supplier_id: '', supplier_name:'', currency:'VND', tax_rate: 8, remark:'', items:[emptyItem()] }) }} className="btn-ghost border border-slate-200">取消</button>
           </div>
         </div>
+        </div>
       )}
 
-      {!creating && editingId === null && (
+      {
         <>
           <div className="list-controls">
             <input className="list-search" placeholder="搜尋採購單號或供應商..." value={search} onChange={e=>setSearch(e.target.value)} />
@@ -730,7 +732,7 @@ export default function PoPage() {
         )}
       </div>
       </>
-      )}
+      }
     </div>
   )
 }

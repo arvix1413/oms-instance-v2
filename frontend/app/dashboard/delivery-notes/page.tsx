@@ -265,7 +265,8 @@ export default function DeliveryNotesPage() {
       </div>
 
       {creating && canWrite && (
-        <div className="oms-card p-6 mb-5">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[1px] px-4 py-6 overflow-y-auto">
+        <div className="max-w-[1200px] mx-auto oms-card p-6">
           <h2 className="font-semibold text-slate-800 mb-5">新增出貨單</h2>
 
           {/* Step 1: Select customer then order */}
@@ -345,10 +346,12 @@ export default function DeliveryNotesPage() {
             <button onClick={() => { setCreating(false); resetForm() }} className="btn-ghost border border-slate-200">取消</button>
           </div>
         </div>
+        </div>
       )}
 
       {editing && canWrite && (
-        <div className="oms-card p-6 mb-5">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[1px] px-4 py-6 overflow-y-auto">
+        <div className="max-w-[1200px] mx-auto oms-card p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-bold">編輯出貨單 {editing.dn_number}</h2>
               <button onClick={() => setEditing(null)} className="btn-ghost border border-slate-200">返回列表</button>
@@ -395,9 +398,10 @@ export default function DeliveryNotesPage() {
               <button onClick={() => setEditing(null)} className="btn-ghost border border-slate-200">取消</button>
             </div>
         </div>
+        </div>
       )}
 
-      {!creating && !editing && (
+      {
         <>
           <div className="mb-4">
             <input className="oms-input w-72" placeholder="搜尋訂單號、客戶、出貨單號..." value={search} onChange={e => setSearch(e.target.value)} />
@@ -572,7 +576,7 @@ export default function DeliveryNotesPage() {
         )}
       </div>
       </>
-      )}
+      }
     </div>
   )
 }
