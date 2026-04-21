@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS delivery_sheets (
 CREATE TABLE IF NOT EXISTS delivery_sheet_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
   ds_id INT NOT NULL,
+  material_id INT NULL,
   item_name VARCHAR(255),
   material_code VARCHAR(100),
   spec TEXT,
