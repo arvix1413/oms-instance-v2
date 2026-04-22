@@ -642,7 +642,7 @@ export default function DeliveryNotesPage() {
                   return (
                     <Fragment key={order.customer_order_id}>
                       <tr key={order.customer_order_id}
-                        className={`border-b border-slate-100 cursor-pointer transition-colors ${isOrderOpen ? 'bg-slate-100 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.16)]' : 'hover:bg-slate-50/70'}`}
+                        className={`border-b border-slate-100 cursor-pointer transition-colors ${isOrderOpen ? 'layer-row-open' : 'layer-row-hover'}`}
                         onClick={() => toggleOrderExpand(order.customer_order_id)}>
                         <td className="pl-3 py-2.5">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
@@ -689,13 +689,13 @@ export default function DeliveryNotesPage() {
                       {isOrderOpen && (
                         <tr key={`${order.customer_order_id}-items`} className="border-b border-slate-100">
                           <td colSpan={8} className="px-0 py-0">
-                            <div className="expand-row-wrap bg-gradient-to-b from-blue-50/85 to-blue-100/70 border-l-4 border-blue-300 pl-3">
+                            <div className="expand-row-wrap layer-panel-l2">
                               {(order.notes || []).length === 0 ? (
                                 <div className="px-5 py-6 text-xs text-slate-400">此訂單尚無出貨批次</div>
                               ) : (
                                 <div className="overflow-x-auto">
                                   <table className="w-full text-xs" style={{minWidth:900}}>
-                                    <thead><tr className="border-b border-blue-200 bg-blue-100/70">
+                                    <thead><tr className="layer-head-l2">
                                       <th className="w-8" />
                                       <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">出貨單號</th>
                                       <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">出貨日期</th>
@@ -710,7 +710,7 @@ export default function DeliveryNotesPage() {
                                         const items = loadedItems[dn.id] || []
                                         return (
                                           <Fragment key={dn.id}>
-                                            <tr key={dn.id} className={`border-b border-blue-200 last:border-0 cursor-pointer transition-colors ${isDnOpen ? 'bg-blue-100/80' : 'hover:bg-blue-100/50'}`} onClick={() => toggleDnExpand(dn.id)}>
+                                            <tr key={dn.id} className={`border-b border-blue-200 last:border-0 cursor-pointer transition-colors ${isDnOpen ? 'layer-row-l2-open' : 'layer-row-l2-hover'}`} onClick={() => toggleDnExpand(dn.id)}>
                                               <td className="pl-3 py-2">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                                                   className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isDnOpen ? 'rotate-90' : ''}`}>
@@ -736,7 +736,7 @@ export default function DeliveryNotesPage() {
                                             </tr>
                                             {isDnOpen && (
                                               <tr key={`${dn.id}-items`} className="border-b border-slate-100">
-                                                <td colSpan={7} className="pl-10 pr-0 py-0 bg-gradient-to-b from-sky-100/70 to-cyan-100/70 border-l-4 border-cyan-300">
+                                                <td colSpan={7} className="layer-panel-l3">
                                                   {items.length === 0 ? (
                                                     <div className="expand-row-loading">
                                                       <div className="w-3 h-3 border border-slate-300 border-t-slate-500 rounded-full animate-spin"/>載入中...
@@ -744,7 +744,7 @@ export default function DeliveryNotesPage() {
                                                   ) : (
                                                     <div className="overflow-x-auto">
                                                       <table className="w-full text-xs" style={{minWidth:600}}>
-                                                        <thead><tr className="border-b border-cyan-200 bg-cyan-100/80">
+                                                        <thead><tr className="layer-head-l3">
                                                           <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">品名</th>
                                                           <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">物料編號</th>
                                                           <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">規格</th>

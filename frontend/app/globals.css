@@ -64,6 +64,16 @@ input[type="number"] { -moz-appearance: textfield; }
 .expand-row-empty { @apply px-8 py-4 text-xs text-slate-400; }
 .expand-row-actions { @apply px-4 py-2.5 border-t border-slate-100 flex items-center gap-2 bg-slate-50/80; }
 
+/* Unified hierarchy style tokens (L1 order/list row -> L2 expanded panel -> L3 nested detail) */
+.layer-row-open { @apply bg-slate-100; box-shadow: inset 0 0 0 1px rgba(59,130,246,0.16); }
+.layer-row-hover { @apply hover:bg-slate-50/70; }
+.layer-panel-l2 { @apply bg-gradient-to-b from-blue-50/85 to-blue-100/70 border-l-4 border-blue-300 pl-3; }
+.layer-head-l2 { @apply border-b border-blue-200 bg-blue-100/70; }
+.layer-row-l2-open { @apply bg-blue-100/80; }
+.layer-row-l2-hover { @apply hover:bg-blue-100/50; }
+.layer-panel-l3 { @apply pl-10 pr-0 py-0 bg-gradient-to-b from-sky-100/70 to-cyan-100/70 border-l-4 border-cyan-300; }
+.layer-head-l3 { @apply border-b border-cyan-200 bg-cyan-100/80; }
+
 @keyframes slide-up {
   from { opacity: 0; transform: translateY(12px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }

@@ -596,7 +596,7 @@ export default function QuotationsPage() {
                   return (
                     <>
                       <tr key={q.id}
-                        className={`border-b border-slate-100 cursor-pointer transition-colors ${isOpen ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
+                        className={`border-b border-slate-100 cursor-pointer transition-colors ${isOpen ? 'layer-row-open' : 'layer-row-hover'}`}
                         onClick={() => toggleExpand(q.id)}>
                         <td className="pl-4 py-3"><span className="text-slate-500"><ChevronIcon open={isOpen} /></span></td>
                         <td className="px-4 py-3 font-mono text-xs text-blue-600">{q.quotation_number}</td>
@@ -619,7 +619,7 @@ export default function QuotationsPage() {
                       {isOpen && (
                         <tr key={`${q.id}-items`} className="border-b border-slate-100">
                           <td colSpan={8} className="px-0 py-0">
-                            <div className="expand-row-wrap">
+                            <div className="expand-row-wrap layer-panel-l2">
                               {qItems.length === 0 ? (
                                 <div className="expand-row-loading">
                                   <div className="w-3 h-3 border border-slate-300 border-t-slate-500 rounded-full animate-spin"/>載入中...
@@ -627,7 +627,7 @@ export default function QuotationsPage() {
                               ) : (
                                 <div className="overflow-x-auto">
                                   <table className="w-full text-xs" style={{minWidth:600}}>
-                                    <thead><tr className="border-b border-slate-100">
+                                    <thead><tr className="layer-head-l2">
                                       {['品名','物料編號','規格','單位','MOQ / 單價（阶梯）','備註'].map(h=>(
                                         <th key={h} className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
                                       ))}
@@ -646,7 +646,7 @@ export default function QuotationsPage() {
                                         }
                                         if (tiers.length === 0 && item.unit_price) tiers = [{moq:0, price: Number(item.unit_price)}]
                                         return (
-                                          <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                                          <tr key={i} className="border-b border-blue-100 last:border-0 hover:bg-blue-50/60">
                                             <td className="px-3 py-2 text-slate-600">{item.item_name}</td>
                                             <td className="px-3 py-2 font-mono text-blue-600 whitespace-nowrap">{item.material_code}</td>
                                             <td className="px-3 py-2 text-slate-400">{item.spec}</td>

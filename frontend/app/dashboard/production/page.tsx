@@ -449,7 +449,7 @@ export default function ProductionPage() {
                   return (
                     <>
                       <tr key={p.id}
-                        className={`border-b border-slate-100 cursor-pointer transition-colors ${isOpen ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
+                        className={`border-b border-slate-100 cursor-pointer transition-colors ${isOpen ? 'layer-row-open' : 'layer-row-hover'}`}
                         onClick={() => {
                           const n = new Set(expanded)
                           if (n.has(p.id)) { n.delete(p.id) }
@@ -494,7 +494,7 @@ export default function ProductionPage() {
                       {isOpen && (
                         <tr key={`${p.id}-detail`} className="border-b border-slate-100">
                           <td colSpan={8} className="px-0 py-0">
-                            <div className="expand-row-wrap">
+                            <div className="expand-row-wrap layer-panel-l2">
                               {/* Materials table */}
                               {(() => {
                                 const detail = loadedProds[p.id]
@@ -503,14 +503,14 @@ export default function ProductionPage() {
                                 return mats.length > 0 ? (
                                 <div className="overflow-x-auto">
                                   <table className="w-full text-xs" style={{minWidth:500}}>
-                                    <thead><tr className="border-b border-slate-100">
+                                    <thead><tr className="layer-head-l2">
                                       {['料號','材料名稱','規格','單位','計劃用量','實際領料'].map(h => (
                                         <th key={h} className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
                                       ))}
                                     </tr></thead>
                                     <tbody>
                                       {mats.map((mat, i) => (
-                                        <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                                        <tr key={i} className="border-b border-blue-100 last:border-0 hover:bg-blue-50/60">
                                           <td className="px-3 py-2 font-mono text-xs text-blue-600">{mat.material_code}</td>
                                           <td className="px-3 py-2 text-slate-700">{mat.material_name}</td>
                                           <td className="px-3 py-2 text-slate-400">{mat.spec}</td>

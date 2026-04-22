@@ -376,7 +376,7 @@ export default function DeliverySheetsPage() {
                       return (
                         <>
                           <tr key={sheet.id}
-                            className={`border-b border-slate-100 cursor-pointer transition-colors ${isOpen ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
+                            className={`border-b border-slate-100 cursor-pointer transition-colors ${isOpen ? 'layer-row-open' : 'layer-row-hover'}`}
                             onClick={() => toggleExpand(sheet.id)}>
                             <td className="pl-3 py-2.5">
                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
@@ -401,7 +401,7 @@ export default function DeliverySheetsPage() {
                           {isOpen && (
                             <tr key={`${sheet.id}-items`} className="border-b border-slate-100">
                               <td colSpan={8} className="px-0 py-0">
-                                <div className="expand-row-wrap">
+                                <div className="expand-row-wrap layer-panel-l2">
                                   {items.length === 0 ? (
                                     <div className="expand-row-loading">
                                       <div className="w-3 h-3 border border-slate-300 border-t-slate-500 rounded-full animate-spin"/>載入中...
@@ -409,14 +409,14 @@ export default function DeliverySheetsPage() {
                                   ) : (
                                     <div className="overflow-x-auto">
                                       <table className="w-full text-xs" style={{minWidth:500}}>
-                                        <thead><tr className="border-b border-slate-100">
+                                        <thead><tr className="layer-head-l2">
                                           {['品名','物料編號','規格','單位','數量','備註'].map(h => (
                                             <th key={h} className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
                                           ))}
                                         </tr></thead>
                                         <tbody>
                                           {items.map((item, i) => (
-                                            <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                                            <tr key={i} className="border-b border-blue-100 last:border-0 hover:bg-blue-50/60">
                                               <td className="px-3 py-2 text-slate-700">{item.item_name}</td>
                                               <td className="px-3 py-2 font-mono text-xs text-blue-600 whitespace-nowrap">{item.material_code}</td>
                                               <td className="px-3 py-2 text-slate-400">{item.spec || '—'}</td>
