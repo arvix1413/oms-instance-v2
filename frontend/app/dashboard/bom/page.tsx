@@ -199,7 +199,7 @@ export default function BomPage() {
                   step="0.01"
                   required
                   className={inp}
-                  value={editing.supplier_price ?? 0}
+                  value={editing.supplier_price ?? ''}
                   onChange={e=>setEditing(p=>({...p,supplier_price:e.target.value === '' ? undefined : Number(e.target.value)}))}
                 />
               </div>
@@ -211,7 +211,7 @@ export default function BomPage() {
                   step="0.01"
                   required
                   className={inp}
-                  value={editing.company_price ?? 0}
+                  value={editing.company_price ?? ''}
                   onChange={e=>setEditing(p=>({...p,company_price:e.target.value === '' ? undefined : Number(e.target.value)}))}
                 />
               </div>

@@ -103,7 +103,7 @@ export default function ReceivablesPage() {
               </div>
               <div>
                 <label className="block text-[11px] text-slate-500 mb-1.5">收款金額（應收：{Number(editing.invoice_amount||0).toLocaleString()}）</label>
-                <input type="number" className="oms-input" value={form.received_amount} onChange={e => setForm(p => ({ ...p, received_amount: Number(e.target.value) }))} />
+                <input type="number" className="oms-input" value={form.received_amount === 0 ? '' : form.received_amount} onChange={e => setForm(p => ({ ...p, received_amount: e.target.value === '' ? 0 : Number(e.target.value) }))} />
               </div>
               <div>
                 <label className="block text-[11px] text-slate-500 mb-1.5">收款日期</label>
