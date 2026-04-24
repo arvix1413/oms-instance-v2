@@ -117,7 +117,7 @@ export default function BomPage() {
     const matchCat = !catFilter || b.category === catFilter
     return matchSearch && matchCat
   })
-  const { page, setPage, totalPages, paged, total } = usePagination(filtered, 30)
+  const { page, setPage, totalPages, paged, total } = usePagination(filtered, 10)
   const inp = 'oms-input'
 
   return (
@@ -280,11 +280,18 @@ export default function BomPage() {
           <div className="flex justify-center py-16"><div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"/></div>
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm" style={{minWidth:1000}}>
+            <div className="overflow-x-auto overscroll-x-contain">
+              <table
+                className="w-full text-sm"
+                style={{
+                  minWidth: 1120,
+                  ['--sticky-col-1-width' as any]: '180px',
+                  ['--sticky-col-2-width' as any]: '240px',
+                }}
+              >
                 <thead>
                   <tr className="border-b border-slate-200">
-                    {['圖片','分類','物料編號','產品名稱','材料名稱','規格','單位','品牌','認證代碼','供應商'].map(h=>(
+                    {['物料編號','產品名稱','圖片','分類','材料名稱','規格','單位','品牌','認證代碼','供應商'].map(h=>(
                       <th key={h} className="px-3 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
                     <th className="px-3 py-3 text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">供應商單價</th>
@@ -296,12 +303,14 @@ export default function BomPage() {
                 <tbody>
                   {paged.map(b=>(
                     <tr key={b.id} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="px-3 py-2.5 font-mono text-xs text-blue-600 whitespace-nowrap">{b.product_sku}</td>
+                      <td className="px-3 py-2.5 text-slate-800 font-medium min-w-[220px] max-w-[260px]" title={b.product_name}>
+                        <div className="truncate">{b.product_name}</div>
+                      </td>
                       <td className="px-3 py-2.5">
                         {b.image_url ? <img src={b.image_url} alt="" className="w-9 h-9 object-cover rounded-lg border border-slate-200" onError={e=>{(e.target as HTMLImageElement).style.display='none'}} /> : <div className="w-9 h-9 bg-slate-100 rounded-lg flex items-center justify-center text-slate-300 text-xs">無</div>}
                       </td>
                       <td className="px-3 py-2.5 text-xs text-slate-400 whitespace-nowrap">{b.category||'—'}</td>
-                      <td className="px-3 py-2.5 font-mono text-xs text-blue-600 whitespace-nowrap">{b.product_sku}</td>
-                      <td className="px-3 py-2.5 text-slate-800 font-medium max-w-[200px] truncate" title={b.product_name}>{b.product_name}</td>
                       <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap">{b.material_name||'—'}</td>
                       <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap max-w-[120px] truncate" title={b.spec}>{b.spec||'—'}</td>
                       <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap">{b.unit}</td>
@@ -326,7 +335,7 @@ export default function BomPage() {
                 </tbody>
               </table>
             </div>
-            <Pagination page={page} totalPages={totalPages} setPage={setPage} total={total} pageSize={30} />
+            <Pagination page={page} totalPages={totalPages} setPage={setPage} total={total} pageSize={10} />
           </>
         )}
       </div>

@@ -75,7 +75,7 @@ export default function GoodsReceiptsPage() {
   const updateItem = (i: number, f: keyof GRItem, v: any) => setForm(p => ({ ...p, items: p.items.map((item, idx) => idx === i ? { ...item, [f]: v } : item) }))
 
   const filtered = grs.filter(g => !search || g.gr_number.toLowerCase().includes(search.toLowerCase()) || g.supplier_name.toLowerCase().includes(search.toLowerCase()))
-  const { page, setPage, totalPages, paged, total } = usePagination(filtered, 20)
+  const { page, setPage, totalPages, paged, total } = usePagination(filtered, 10)
   const inp = 'oms-input text-xs py-1.5'
 
   return (

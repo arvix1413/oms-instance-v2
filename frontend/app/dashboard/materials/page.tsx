@@ -71,7 +71,7 @@ export default function MaterialsPage() {
   }, [])
 
   const filtered = items.filter(m => !search || m.material_code.toLowerCase().includes(search.toLowerCase()) || m.material_name.toLowerCase().includes(search.toLowerCase()))
-  const { page, setPage, totalPages, paged, total } = usePagination(filtered, 20)
+  const { page, setPage, totalPages, paged, total } = usePagination(filtered, 10)
 
   // When supplier changes, auto-fill currency
   const handleSupplierChange = (supplierId: string) => {

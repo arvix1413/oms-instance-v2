@@ -57,7 +57,7 @@ export default function ReceivablesPage() {
     const matchPay = !payFilter || (i.payment_status || 'pending') === payFilter
     return matchSearch && matchPay
   })
-  const { page, setPage, totalPages, paged, total } = usePagination(filtered, 20)
+  const { page, setPage, totalPages, paged, total } = usePagination(filtered, 10)
 
   const totalInvoiced = items.reduce((s, i) => s + (i.invoice_amount || 0), 0)
   const totalReceived = items.filter(i => i.payment_status === 'paid').reduce((s, i) => s + (i.received_amount || 0), 0)

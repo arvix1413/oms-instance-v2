@@ -55,7 +55,7 @@ export default function AuditLogsPage() {
   useEffect(() => { load() }, [load])
 
   const filtered = filterAction ? logs.filter(l => l.action === filterAction) : logs
-  const { page, setPage, totalPages, paged, total: filteredTotal } = usePagination(filtered, 50)
+  const { page, setPage, totalPages, paged, total: filteredTotal } = usePagination(filtered, 10)
 
   const stats = {
     total: logs.length,
@@ -149,7 +149,7 @@ export default function AuditLogsPage() {
                 )}
               </tbody>
             </table>
-            <Pagination page={page} totalPages={totalPages} setPage={setPage} total={filteredTotal} pageSize={50} />
+            <Pagination page={page} totalPages={totalPages} setPage={setPage} total={filteredTotal} pageSize={10} />
           </>
         )}
       </div>

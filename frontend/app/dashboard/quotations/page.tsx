@@ -482,7 +482,7 @@ export default function QuotationsPage() {
     </div>
   )
   const filtered = items.filter(q => !search || q.quotation_number.toLowerCase().includes(search.toLowerCase()) || q.customer_name.toLowerCase().includes(search.toLowerCase()))
-  const { page, setPage, totalPages, paged, total: filteredTotal } = usePagination(filtered, 20)
+  const { page, setPage, totalPages, paged, total: filteredTotal } = usePagination(filtered, 10)
   const inp = 'oms-input text-xs py-1.5'
   const lockedInp = `${inp} bom-locked-field`
   const formTotal = form.items.reduce((s,i)=>s+Number(i.total_price),0)

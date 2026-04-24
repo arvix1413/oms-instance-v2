@@ -95,7 +95,7 @@ export default function StockAdjustmentsPage() {
   }
 
   const filtered = adjs.filter(a => !search || a.adj_number.toLowerCase().includes(search.toLowerCase()))
-  const { page, setPage, totalPages, paged, total } = usePagination(filtered, 20)
+  const { page, setPage, totalPages, paged, total } = usePagination(filtered, 10)
   const inp = 'oms-input text-xs py-1.5'
 
   return (

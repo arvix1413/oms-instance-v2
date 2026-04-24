@@ -205,7 +205,7 @@ export default function DeliverySheetsPage() {
   const filtered = sheets.filter(s => !search ||
     s.ds_number.toLowerCase().includes(search.toLowerCase()) ||
     (s.customer_name||'').toLowerCase().includes(search.toLowerCase()))
-  const { page, setPage, totalPages, paged, total } = usePagination(filtered, 20)
+  const { page, setPage, totalPages, paged, total } = usePagination(filtered, 10)
   const inp = 'oms-input text-xs py-1.5'
 
   return (

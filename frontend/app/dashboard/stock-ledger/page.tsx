@@ -37,7 +37,7 @@ export default function StockLedgerPage() {
     const matchTo = !dateTo || d <= dateTo
     return matchSearch && matchType && matchFrom && matchTo
   })
-  const { page, setPage, totalPages, paged, total } = usePagination(filtered, 50)
+  const { page, setPage, totalPages, paged, total } = usePagination(filtered, 10)
 
   return (
     <div>
@@ -92,7 +92,7 @@ export default function StockLedgerPage() {
                 {paged.length === 0 && <tr><td colSpan={10} className="text-center py-12 text-slate-400">尚無庫存流水記錄</td></tr>}
               </tbody>
             </table>
-            <Pagination page={page} totalPages={totalPages} setPage={setPage} total={total} pageSize={50} />
+            <Pagination page={page} totalPages={totalPages} setPage={setPage} total={total} pageSize={10} />
           </>
         )}
       </div>

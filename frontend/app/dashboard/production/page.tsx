@@ -240,7 +240,7 @@ export default function ProductionPage() {
     const matchStatus = !statusFilter || p.status === statusFilter
     return matchSearch && matchStatus
   })
-  const { page, setPage, totalPages, paged, total } = usePagination(filtered, 20)
+  const { page, setPage, totalPages, paged, total } = usePagination(filtered, 10)
 
   const shortageItems = stockCheck?.items.filter(i => !i.sufficient) || []
 

@@ -380,7 +380,7 @@ export default function DeliveryNotesPage() {
     const hitBatch = (o.notes || []).some(n => (n.dn_number || '').toLowerCase().includes(key))
     return hitOrder || hitBatch
   })
-  const { page, setPage, totalPages, paged, total } = usePagination(filtered, 20)
+  const { page, setPage, totalPages, paged, total } = usePagination(filtered, 10)
   const inp = 'oms-input text-xs py-1.5'
 
   return (
