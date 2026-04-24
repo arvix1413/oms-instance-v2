@@ -284,13 +284,20 @@ export default function MaterialsPage() {
       <div className="oms-card overflow-hidden">
         {loading ? <div className="flex justify-center py-16"><div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" /></div> : (
           <>
-            <div className="overflow-x-auto">
-              <table className="oms-table" style={{minWidth: 1100}}>
+            <div className="overflow-x-auto overscroll-x-contain">
+              <table
+                className="oms-table"
+                style={{
+                  minWidth: 1100,
+                  ['--sticky-col-1-width' as any]: '180px',
+                  ['--sticky-col-2-width' as any]: '240px',
+                }}
+              >
                 <thead>
                   <tr>
-                    <th className="px-3 py-3 text-left sticky left-0 bg-white z-10 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">圖片</th>
-                    <th className="px-3 py-3 text-left sticky left-[52px] bg-white z-10 whitespace-nowrap text-[11px] font-semibold text-slate-500 uppercase tracking-wider">物料編號</th>
+                    <th className="px-3 py-3 text-left whitespace-nowrap text-[11px] font-semibold text-slate-500 uppercase tracking-wider">物料編號</th>
                     <th className="px-3 py-3 text-left whitespace-nowrap text-[11px] font-semibold text-slate-500 uppercase tracking-wider">材料名稱</th>
+                    <th className="px-3 py-3 text-left whitespace-nowrap text-[11px] font-semibold text-slate-500 uppercase tracking-wider">圖片</th>
                     <th className="px-3 py-3 text-left whitespace-nowrap text-[11px] font-semibold text-slate-500 uppercase tracking-wider">產品分類</th>
                     <th className="px-3 py-3 text-left whitespace-nowrap text-[11px] font-semibold text-slate-500 uppercase tracking-wider">材料分類</th>
                     <th className="px-3 py-3 text-left whitespace-nowrap text-[11px] font-semibold text-slate-500 uppercase tracking-wider">規格</th>
@@ -306,11 +313,11 @@ export default function MaterialsPage() {
                 <tbody className="divide-y divide-white/[0.04]">
                   {paged.map(m => (
                     <tr key={m.id} className="hover:bg-slate-50">
-                      <td className="px-3 py-2 sticky left-0 bg-white">
+                      <td className="px-3 py-2 font-mono text-xs text-blue-600 whitespace-nowrap">{m.material_code}</td>
+                      <td className="px-3 py-2 text-slate-800 font-medium whitespace-nowrap max-w-[220px] truncate" title={m.material_name}>{m.material_name}</td>
+                      <td className="px-3 py-2">
                         {m.image_url ? <img src={m.image_url} alt="" className="w-9 h-9 object-cover rounded-lg border border-slate-200" onError={e=>{(e.target as HTMLImageElement).style.display='none'}} /> : <div className="w-9 h-9 bg-white/5 rounded-lg flex items-center justify-center text-slate-300 text-xs">無</div>}
                       </td>
-                      <td className="px-3 py-2 font-mono text-xs text-blue-600 sticky left-[52px] bg-white whitespace-nowrap">{m.material_code}</td>
-                      <td className="px-3 py-2 text-slate-800 font-medium whitespace-nowrap max-w-[180px] truncate" title={m.material_name}>{m.material_name}</td>
                       <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{m.category}</td>
                       <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{m.product_category}</td>
                       <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{m.spec}</td>
