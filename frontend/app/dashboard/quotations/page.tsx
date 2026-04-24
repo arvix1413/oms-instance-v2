@@ -533,7 +533,7 @@ export default function QuotationsPage() {
             <span className="text-xs font-semibold text-slate-600">報價明細</span>
             <button onClick={addItem} className="btn-ghost text-blue-600">+ 新增品項</button>
           </div>
-          <div className="overflow-x-auto overscroll-x-contain rounded-lg border border-slate-200">
+          <div className="no-sticky-cols overflow-x-auto overscroll-x-contain rounded-lg border border-slate-200">
             <table className="w-full text-xs" style={{ minWidth: 1320 }}>
               <thead><tr className="border-b border-slate-200">
                 {['選擇BOM','品名','規格','單位','階梯報價（MOQ / 單價）','Remark',''].map(h=>(
@@ -574,7 +574,7 @@ export default function QuotationsPage() {
       <div className="oms-card">
         {loading ? <div className="flex justify-center py-16"><div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"/></div> : (
           <>
-            <div className="overflow-x-auto overscroll-x-contain">
+            <div className="no-sticky-cols overflow-x-auto overscroll-x-contain">
             <table className="w-full text-sm" style={{ minWidth: 980 }}>
               <thead>
                 <tr className="border-b border-slate-200">
