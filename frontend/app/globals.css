@@ -161,6 +161,81 @@ input[type="number"] { -moz-appearance: textfield; }
   box-shadow: 1px 0 0 #e2e8f0, 12px 0 16px -16px rgba(15, 23, 42, 0.14);
 }
 
+.bom-sticky-cols > table {
+  --bom-col-1: 180px;
+  --bom-col-2: 240px;
+  --bom-col-3: 88px;
+  --bom-col-4: 88px;
+  --bom-col-5: 150px;
+  --bom-col-6: 130px;
+  --bom-col-7: 88px;
+  --bom-col-8: 96px;
+  --bom-col-9: 130px;
+}
+.bom-sticky-cols > table thead th:nth-child(-n+9),
+.bom-sticky-cols > table tbody td:nth-child(-n+9) {
+  position: sticky;
+  z-index: 4;
+}
+.bom-sticky-cols > table thead th:nth-child(-n+9) {
+  z-index: 6;
+  background: #f8fafc;
+  background-clip: padding-box;
+}
+.bom-sticky-cols > table tbody td:nth-child(-n+9) {
+  background: #ffffff;
+  background-clip: padding-box;
+}
+.bom-sticky-cols > table tbody tr:hover td:nth-child(-n+9) {
+  background: #f8fafc;
+}
+.bom-sticky-cols > table thead th:nth-child(1),
+.bom-sticky-cols > table tbody td:nth-child(1) {
+  left: 0;
+  min-width: var(--bom-col-1);
+}
+.bom-sticky-cols > table thead th:nth-child(2),
+.bom-sticky-cols > table tbody td:nth-child(2) {
+  left: var(--bom-col-1);
+  min-width: var(--bom-col-2);
+}
+.bom-sticky-cols > table thead th:nth-child(3),
+.bom-sticky-cols > table tbody td:nth-child(3) {
+  left: calc(var(--bom-col-1) + var(--bom-col-2));
+  min-width: var(--bom-col-3);
+}
+.bom-sticky-cols > table thead th:nth-child(4),
+.bom-sticky-cols > table tbody td:nth-child(4) {
+  left: calc(var(--bom-col-1) + var(--bom-col-2) + var(--bom-col-3));
+  min-width: var(--bom-col-4);
+}
+.bom-sticky-cols > table thead th:nth-child(5),
+.bom-sticky-cols > table tbody td:nth-child(5) {
+  left: calc(var(--bom-col-1) + var(--bom-col-2) + var(--bom-col-3) + var(--bom-col-4));
+  min-width: var(--bom-col-5);
+}
+.bom-sticky-cols > table thead th:nth-child(6),
+.bom-sticky-cols > table tbody td:nth-child(6) {
+  left: calc(var(--bom-col-1) + var(--bom-col-2) + var(--bom-col-3) + var(--bom-col-4) + var(--bom-col-5));
+  min-width: var(--bom-col-6);
+}
+.bom-sticky-cols > table thead th:nth-child(7),
+.bom-sticky-cols > table tbody td:nth-child(7) {
+  left: calc(var(--bom-col-1) + var(--bom-col-2) + var(--bom-col-3) + var(--bom-col-4) + var(--bom-col-5) + var(--bom-col-6));
+  min-width: var(--bom-col-7);
+}
+.bom-sticky-cols > table thead th:nth-child(8),
+.bom-sticky-cols > table tbody td:nth-child(8) {
+  left: calc(var(--bom-col-1) + var(--bom-col-2) + var(--bom-col-3) + var(--bom-col-4) + var(--bom-col-5) + var(--bom-col-6) + var(--bom-col-7));
+  min-width: var(--bom-col-8);
+}
+.bom-sticky-cols > table thead th:nth-child(9),
+.bom-sticky-cols > table tbody td:nth-child(9) {
+  left: calc(var(--bom-col-1) + var(--bom-col-2) + var(--bom-col-3) + var(--bom-col-4) + var(--bom-col-5) + var(--bom-col-6) + var(--bom-col-7) + var(--bom-col-8));
+  min-width: var(--bom-col-9);
+  box-shadow: 1px 0 0 #e2e8f0, 14px 0 18px -16px rgba(15, 23, 42, 0.16);
+}
+
 @keyframes slide-up {
   from { opacity: 0; transform: translateY(12px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
