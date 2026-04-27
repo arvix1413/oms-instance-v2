@@ -73,7 +73,7 @@ export default function StickyTableHeaderBridge() {
         return
       }
 
-      host.style.display = ''
+      host.style.display = 'block'
       host.style.height = `${Math.ceil(theadRect.height)}px`
       viewport.style.width = `${wrapper.clientWidth}px`
       viewport.style.marginLeft = `${Math.max(0, wrapperRect.left - mainRect.left)}px`
