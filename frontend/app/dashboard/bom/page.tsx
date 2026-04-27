@@ -280,11 +280,11 @@ export default function BomPage() {
           <div className="flex justify-center py-16"><div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"/></div>
         ) : (
           <>
-            <div className="bom-sticky-cols overflow-x-auto overscroll-x-contain">
+            <div className="overflow-x-auto overscroll-x-contain">
               <table
                 className="w-full text-sm"
                 style={{
-                  minWidth: 1560,
+                  minWidth: 1120,
                   ['--sticky-col-1-width' as any]: '180px',
                   ['--sticky-col-2-width' as any]: '240px',
                 }}
