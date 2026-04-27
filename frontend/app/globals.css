@@ -203,3 +203,32 @@ input[type="number"] { -moz-appearance: textfield; }
   0% { opacity: .78; transform: translateY(1px); }
   100% { opacity: 1; transform: translateY(0); }
 }
+
+.oms-sticky-header-host {
+  position: sticky;
+  top: 0;
+  z-index: 24;
+  display: none;
+  pointer-events: none;
+}
+.oms-sticky-header-viewport {
+  overflow: hidden;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 14px 14px 0 0;
+  background: rgba(248, 250, 252, 0.96);
+  box-shadow: 0 10px 20px -22px rgba(15, 23, 42, 0.28);
+}
+.oms-sticky-header-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  will-change: transform;
+}
+.oms-sticky-header-table thead th {
+  top: 0 !important;
+}
+
+@media (max-width: 767px) {
+  .oms-sticky-header-host {
+    top: 47px;
+  }
+}

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { getToken, clearToken } from '@/lib/api'
 import { getUser, ROLE_LABELS, type Role } from '@/lib/permissions'
 import { can } from '@/lib/usePermissions'
+import StickyTableHeaderBridge from '@/components/StickyTableHeaderBridge'
 
 type NavItem = { href: string; label: string; icon: React.ReactNode }
 type NavGroup = { label: string; icon: React.ReactNode; children: NavItem[] }
@@ -302,6 +303,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
           <div className="text-[11px] font-semibold tracking-wide text-slate-500">FAN YONG OMS</div>
         </div>
+        <StickyTableHeaderBridge />
         <div className={`dashboard-content p-5 md:p-6 xl:p-7 ${softRefreshing ? 'oms-soft-refresh' : ''}`}>{children}</div>
       </main>
     </div>
