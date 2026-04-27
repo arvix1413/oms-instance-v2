@@ -14,7 +14,7 @@ input[type="number"] { -moz-appearance: textfield; }
 /* Table */
 .oms-table { @apply w-full text-sm; }
 .oms-table thead tr { @apply border-b border-slate-200; }
-.oms-table thead th { @apply px-4 py-2.5 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider bg-slate-50; }
+.oms-table thead th { @apply px-4 py-2.5 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider bg-slate-50; position: sticky; top: 0; z-index: 10; }
 .oms-table tbody tr { @apply border-b border-slate-100 hover:bg-blue-50/40 transition-colors; }
 .oms-table tbody td { @apply px-4 py-2.5 text-sm text-slate-700; }
 /* Detail cells in business tables: keep consistent regular weight */
@@ -89,6 +89,14 @@ input[type="number"] { -moz-appearance: textfield; }
   border-spacing: 0;
   --sticky-col-1-width: 170px;
   --sticky-col-2-width: 220px;
+}
+.table-scroll-x > table thead th,
+.overflow-x-auto.overscroll-x-contain > table thead th,
+.oms-card .overflow-x-auto > table thead th,
+.dashboard-content table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 .no-sticky-cols > table thead th:nth-child(-n+2),
 .no-sticky-cols > table tbody td:nth-child(-n+2) {
