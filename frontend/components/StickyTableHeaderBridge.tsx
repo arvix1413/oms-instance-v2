@@ -2,31 +2,43 @@
 
 import { useEffect, useRef } from 'react'
 
-const TABLE_WRAPPER_SELECTOR = [
-  '.dashboard-content .table-scroll-x',
-  '.dashboard-content .overflow-x-auto.overscroll-x-contain',
-  '.dashboard-content .oms-card > .overflow-x-auto',
-].join(', ')
-
 type ActiveTableState = {
   wrapper: HTMLElement
   table: HTMLTableElement
   thead: HTMLTableSectionElement
 }
 
-function getTableWrappers(root: ParentNode): HTMLElement[] {
-  const found = Array.from(root.querySelectorAll<HTMLElement>(TABLE_WRAPPER_SELECTOR))
-  const unique = new Set<HTMLElement>()
-  const wrappers: HTMLElement[] = []
-  for (const node of found) {
-    if (unique.has(node)) continue
-    const table = node.querySelector('table')
-    const thead = table?.querySelector('thead')
-    if (!table || !thead) continue
-    unique.add(node)
-    wrappers.push(node)
+function getWrapperForTable(table: HTMLTableElement): HTMLElement | null {
+  return (
+    table.closest<HTMLElement>('.table-scroll-x') ||
+    table.closest<HTMLElement>('.overflow-x-auto') ||
+    table.closest<HTMLElement>('.oms-card') ||
+    table.parentElement
+  )
+}
+
+function getCandidateTables(root: ParentNode): ActiveTableState[] {
+  const tables = Array.from(root.querySelectorAll<HTMLTableElement>('table'))
+  const unique = new Set<HTMLTableElement>()
+  const candidates: ActiveTableState[] = []
+
+  for (const table of tables) {
+    if (unique.has(table)) continue
+    if (table.closest('.oms-sticky-header-host')) continue
+
+    const thead = table.querySelector('thead')
+    const wrapper = getWrapperForTable(table)
+    if (!thead || !wrapper) continue
+
+    const rect = table.getBoundingClientRect()
+    const headerCells = thead.querySelectorAll('th')
+    if (rect.width < 320 || headerCells.length < 3) continue
+
+    unique.add(table)
+    candidates.push({ wrapper, table, thead })
   }
-  return wrappers
+
+  return candidates
 }
 
 export default function StickyTableHeaderBridge() {
@@ -119,12 +131,9 @@ export default function StickyTableHeaderBridge() {
 
     const update = () => {
       const hostRect = host.getBoundingClientRect()
-      const wrappers = getTableWrappers(content)
-      const next = wrappers
-        .map((wrapper) => {
-          const table = wrapper.querySelector('table') as HTMLTableElement | null
-          const thead = table?.querySelector('thead') as HTMLTableSectionElement | null
-          if (!table || !thead) return null
+      const candidates = getCandidateTables(content)
+      const next = candidates
+        .map(({ wrapper, table, thead }) => {
           const wrapperRect = wrapper.getBoundingClientRect()
           const theadRect = thead.getBoundingClientRect()
           const pastTop = theadRect.top <= hostRect.top + 1
