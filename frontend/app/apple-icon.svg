@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <defs>
+    <linearGradient id="oms-apple-bg" x1="20" y1="16" x2="160" y2="164" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0b3b66"/>
+      <stop offset="1" stop-color="#0f766e"/>
+    </linearGradient>
+    <linearGradient id="oms-apple-accent" x1="52" y1="56" x2="130" y2="132" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f8fafc"/>
+      <stop offset="1" stop-color="#bfdbfe"/>
+    </linearGradient>
+  </defs>
+  <rect x="12" y="12" width="156" height="156" rx="44" fill="url(#oms-apple-bg)"/>
+  <path d="M56 63 90 44l34 19v54l-34 19-34-19V63Z" fill="none" stroke="url(#oms-apple-accent)" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M56 63 90 82l34-19" fill="none" stroke="url(#oms-apple-accent)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M90 82v54" fill="none" stroke="url(#oms-apple-accent)" stroke-width="10" stroke-linecap="round"/>
+  <path d="m72 92 13 13 27-27" fill="none" stroke="#f59e0b" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
