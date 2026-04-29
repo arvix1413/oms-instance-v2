@@ -67,6 +67,31 @@ export default function QuotationsPage() {
   const [mounted, setMounted] = useState(false)
   const [search, setSearch] = useState('')
 
+  const loadQuotationItems = async (id: number) => {
+    const d = await apiFetch<Q>(`/api/quotations/${id}`)
+    const nextItems = d.items || []
+    setLoadedItems(p => ({ ...p, [id]: nextItems }))
+    return nextItems
+  }
+
+  const refreshExpandedRows = async (expandedIds: number[]) => {
+    if (!expandedIds.length) {
+      setLoadedItems({})
+      return
+    }
+    const nextEntries = await Promise.all(
+      expandedIds.map(async (id) => {
+        try {
+          const d = await apiFetch<Q>(`/api/quotations/${id}`)
+          return [id, d.items || []] as const
+        } catch {
+          return [id, []] as const
+        }
+      })
+    )
+    setLoadedItems(Object.fromEntries(nextEntries))
+  }
+
   useEffect(() => { setMounted(true) }, [])
 
   const load = () => apiFetch<Q[]>('/api/quotations').then(setItems).finally(()=>setLoading(false))
@@ -93,8 +118,7 @@ export default function QuotationsPage() {
     if (next.has(id)) { next.delete(id) } else {
       next.add(id)
       if (!loadedItems[id]) {
-        const d = await apiFetch<Q>(`/api/quotations/${id}`)
-        setLoadedItems(p => ({ ...p, [id]: d.items || [] }))
+        await loadQuotationItems(id)
       }
     }
     setExpanded(next)
@@ -105,11 +129,7 @@ export default function QuotationsPage() {
     await apiFetch(`/api/quotations/${id}/status`,{method:'PATCH',body:JSON.stringify({status})})
     toast('狀態已更新')
     await load()
-    setLoadedItems({})
-    if (expanded.has(id)) {
-      const d = await apiFetch<Q>(`/api/quotations/${id}`)
-      setLoadedItems(p => ({ ...p, [id]: d.items || [] }))
-    }
+    await refreshExpandedRows(Array.from(expanded))
   }
   const del = async (id:number, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -156,11 +176,11 @@ export default function QuotationsPage() {
       }
       resetForm()
       await load()
-      setLoadedItems({})
       if (savedId !== null) {
         setExpanded(new Set([savedId]))
-        const refreshed = await apiFetch<Q>(`/api/quotations/${savedId}`)
-        setLoadedItems(p => ({ ...p, [savedId]: refreshed.items || [] }))
+        await loadQuotationItems(savedId)
+      } else {
+        await refreshExpandedRows(Array.from(expanded))
       }
     } catch(e:any){ toast('錯誤：'+e.message, 'error') }
   }

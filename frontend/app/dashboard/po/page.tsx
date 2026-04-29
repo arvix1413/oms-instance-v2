@@ -63,6 +63,31 @@ export default function PoPage() {
   const canApprove = can('po.approve')
   const canDel = can('po.delete')
 
+  const loadPoItems = async (id: number) => {
+    const data = await apiFetch<Po>(`/api/po/${id}`)
+    const nextItems = data.items || []
+    setLoadedItems(p => ({ ...p, [id]: nextItems }))
+    return nextItems
+  }
+
+  const refreshExpandedRows = async (expandedIds: number[]) => {
+    if (!expandedIds.length) {
+      setLoadedItems({})
+      return
+    }
+    const nextEntries = await Promise.all(
+      expandedIds.map(async (id) => {
+        try {
+          const data = await apiFetch<Po>(`/api/po/${id}`)
+          return [id, data.items || []] as const
+        } catch {
+          return [id, []] as const
+        }
+      })
+    )
+    setLoadedItems(Object.fromEntries(nextEntries))
+  }
+
   const load = () => apiFetch<Po[]>('/api/po').then(setPos).finally(() => setLoading(false))
   useEffect(() => {
     load()
@@ -128,8 +153,7 @@ export default function PoPage() {
       next.add(id)
       setExpanded(next)
       if (!loadedItems[id]) {
-        const data = await apiFetch<Po>(`/api/po/${id}`)
-        setLoadedItems(p => ({ ...p, [id]: data.items || [] }))
+        await loadPoItems(id)
       }
     }
   }
@@ -139,8 +163,8 @@ export default function PoPage() {
     try {
       await apiFetch(`/api/po/${id}/approve`, { method: 'PATCH' })
       toast('已核准')
-      setLoadedItems(p => { const n = { ...p }; delete n[id]; return n })
-      load()
+      await load()
+      await refreshExpandedRows(Array.from(expanded))
     } catch (e: any) { toast('核准失敗：' + e.message, 'error') }
   }
 
@@ -150,8 +174,8 @@ export default function PoPage() {
     try {
       await apiFetch(`/api/po/${po.id}/receive`, { method: 'PATCH' })
       toast('收貨完成，庫存已更新')
-      setLoadedItems(p => { const n = { ...p }; delete n[po.id]; return n })
-      load()
+      await load()
+      await refreshExpandedRows(Array.from(expanded))
     } catch (e: any) { toast('收貨失敗：' + e.message, 'error') }
   }
 
@@ -164,10 +188,7 @@ export default function PoPage() {
       await apiFetch(`/api/po/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
       toast('狀態已更新')
       await load()
-      if (expanded.has(id)) {
-        const data = await apiFetch<Po>(`/api/po/${id}`)
-        setLoadedItems(p => ({ ...p, [id]: data.items || [] }))
-      }
+      await refreshExpandedRows(Array.from(expanded))
     } catch (e: any) { toast('操作失敗：' + e.message, 'error') }
   }
 
@@ -227,11 +248,11 @@ export default function PoPage() {
       }
       setForm({ supplier_id: '', supplier_name:'', currency:'VND', tax_rate: 8, remark:'', items:[emptyItem()] })
       await load()
-      setLoadedItems({})
       if (savedId !== null) {
         setExpanded(new Set([savedId]))
-        const refreshed = await apiFetch<Po>(`/api/po/${savedId}`)
-        setLoadedItems(p => ({ ...p, [savedId]: refreshed.items || [] }))
+        await loadPoItems(savedId)
+      } else {
+        await refreshExpandedRows(Array.from(expanded))
       }
     } catch (e: any) { toast('錯誤：' + e.message, 'error') }
   }

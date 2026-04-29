@@ -71,6 +71,31 @@ export default function DeliveryNotesPage() {
   const [deliveryDate, setDeliveryDate] = useState('')
   const [remark, setRemark] = useState('')
 
+  const loadDnItems = async (id: number) => {
+    const d = await apiFetch<DN>(`/api/delivery-notes/${id}`)
+    const nextItems = d.items || []
+    setLoadedItems(p => ({ ...p, [id]: nextItems }))
+    return nextItems
+  }
+
+  const refreshExpandedDns = async (expandedIds: number[]) => {
+    if (!expandedIds.length) {
+      setLoadedItems({})
+      return
+    }
+    const nextEntries = await Promise.all(
+      expandedIds.map(async (id) => {
+        try {
+          const d = await apiFetch<DN>(`/api/delivery-notes/${id}`)
+          return [id, d.items || []] as const
+        } catch {
+          return [id, []] as const
+        }
+      })
+    )
+    setLoadedItems(Object.fromEntries(nextEntries))
+  }
+
   const load = () => apiFetch<OrderDeliveryRow[]>('/api/delivery-notes/overview').then(setOrderRows).finally(() => setLoading(false))
   useEffect(() => {
     load()
@@ -134,7 +159,7 @@ export default function DeliveryNotesPage() {
       setCreating(false)
       resetForm()
       await load()
-      setLoadedItems({})
+      await refreshExpandedDns(Array.from(expandedDns))
     } catch (e: any) { toast('錯誤：' + e.message, 'error') }
   }
 
@@ -184,8 +209,7 @@ export default function DeliveryNotesPage() {
       return next
     })
     if (!loadedItems[dnId]) {
-      const d = await apiFetch<DN>(`/api/delivery-notes/${dnId}`)
-      setLoadedItems(p => ({ ...p, [dnId]: d.items || [] }))
+      await loadDnItems(dnId)
     }
   }
 
@@ -263,10 +287,10 @@ export default function DeliveryNotesPage() {
       setEditItemPicker('')
       setEditOriginalQtyByCode({})
       await load()
-      setLoadedItems({})
       if (expandedDns.has(editedId)) {
-        const d = await apiFetch<DN>(`/api/delivery-notes/${editedId}`)
-        setLoadedItems(p => ({ ...p, [editedId]: d.items || [] }))
+        await loadDnItems(editedId)
+      } else {
+        await refreshExpandedDns(Array.from(expandedDns))
       }
     } catch (e: any) { toast('更新失敗：' + e.message, 'error') }
   }
@@ -283,11 +307,7 @@ export default function DeliveryNotesPage() {
       await apiFetch(`/api/delivery-notes/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
       toast('狀態已更新')
       await load()
-      setLoadedItems({})
-      if (expandedDns.has(id)) {
-        const d = await apiFetch<DN>(`/api/delivery-notes/${id}`)
-        setLoadedItems(p => ({ ...p, [id]: d.items || [] }))
-      }
+      await refreshExpandedDns(Array.from(expandedDns))
     } catch (e: any) { toast('操作失敗：' + e.message, 'error') }
     finally { setActionLoading(null) }
   }

@@ -89,6 +89,31 @@ export default function CustomerOrdersPage() {
   const canWrite = can('customer_order.create')
   const canDel = can('customer_order.delete')
 
+  const loadOrderItems = async (id: number) => {
+    const data = await apiFetch<Order>(`/api/customer-orders/${id}`)
+    const nextItems = data.items || []
+    setLoadedItems(p => ({ ...p, [id]: nextItems }))
+    return nextItems
+  }
+
+  const refreshExpandedRows = async (expandedIds: number[]) => {
+    if (!expandedIds.length) {
+      setLoadedItems({})
+      return
+    }
+    const nextEntries = await Promise.all(
+      expandedIds.map(async (id) => {
+        try {
+          const data = await apiFetch<Order>(`/api/customer-orders/${id}`)
+          return [id, data.items || []] as const
+        } catch {
+          return [id, []] as const
+        }
+      })
+    )
+    setLoadedItems(Object.fromEntries(nextEntries))
+  }
+
   const load = () => {
     const requests: Promise<any>[] = [apiFetch<Order[]>('/api/customer-orders')]
     if (canViewProfit) requests.push(apiFetch<{ orders: ProfitOrderSummary[] }>('/api/profit-tracking/orders'))
@@ -123,8 +148,7 @@ export default function CustomerOrdersPage() {
     else {
       next.add(id); setExpanded(next)
       if (loadedItems[id] === undefined) {
-        const data = await apiFetch<Order>(`/api/customer-orders/${id}`)
-        setLoadedItems(p => ({ ...p, [id]: data.items || [] }))
+        await loadOrderItems(id)
       }
     }
   }
@@ -147,12 +171,11 @@ export default function CustomerOrdersPage() {
       }
       setForm({ po_date:'', po_number:'', customer_id:'', remark:'', currency:'VND', delivery_date:'', delivery_address:'', person_in_charge:'', payment_terms:'', items:[emptyItem()] })
       await load()
-      // Invalidate expanded-row item cache so user doesn't see stale item list.
-      setLoadedItems({})
       if (savedOrderId !== null) {
         setExpanded(new Set([savedOrderId]))
-        const refreshed = await apiFetch<Order>(`/api/customer-orders/${savedOrderId}`)
-        setLoadedItems(p => ({ ...p, [savedOrderId]: refreshed.items || [] }))
+        await loadOrderItems(savedOrderId)
+      } else {
+        await refreshExpandedRows(Array.from(expanded))
       }
     } catch(e:any){ toast('錯誤：'+e.message, 'error') }
   }
@@ -244,11 +267,7 @@ export default function CustomerOrdersPage() {
       await apiFetch(`/api/customer-orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
       toast('狀態已更新')
       await load()
-      setLoadedItems({})
-      if (expanded.has(id)) {
-        const refreshed = await apiFetch<Order>(`/api/customer-orders/${id}`)
-        setLoadedItems(p => ({ ...p, [id]: refreshed.items || [] }))
-      }
+      await refreshExpandedRows(Array.from(expanded))
     } catch (e: any) { toast('錯誤：' + e.message, 'error') }
   }
 

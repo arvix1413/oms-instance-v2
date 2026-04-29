@@ -45,6 +45,31 @@ export default function DeliverySheetsPage() {
   const [deliveryDate, setDeliveryDate] = useState('')
   const [remark, setRemark] = useState('')
 
+  const loadSheetItems = async (id: number) => {
+    const d = await apiFetch<DS>(`/api/delivery-sheets/${id}`)
+    const nextItems = d.items || []
+    setLoadedItems(p => ({ ...p, [id]: nextItems }))
+    return nextItems
+  }
+
+  const refreshExpandedRows = async (expandedIds: number[]) => {
+    if (!expandedIds.length) {
+      setLoadedItems({})
+      return
+    }
+    const nextEntries = await Promise.all(
+      expandedIds.map(async (id) => {
+        try {
+          const d = await apiFetch<DS>(`/api/delivery-sheets/${id}`)
+          return [id, d.items || []] as const
+        } catch {
+          return [id, []] as const
+        }
+      })
+    )
+    setLoadedItems(Object.fromEntries(nextEntries))
+  }
+
   const load = () => apiFetch<DS[]>('/api/delivery-sheets').then(setSheets).finally(() => setLoading(false))
   useEffect(() => {
     load()
@@ -116,7 +141,7 @@ export default function DeliverySheetsPage() {
       setCreating(false)
       resetForm()
       await load()
-      setLoadedItems({})
+      await refreshExpandedRows(Array.from(expanded))
     } catch (e: any) { toast('錯誤：' + e.message, 'error') }
   }
 
@@ -132,8 +157,7 @@ export default function DeliverySheetsPage() {
     else {
       next.add(id); setExpanded(next)
       if (!loadedItems[id]) {
-        const d = await apiFetch<DS>(`/api/delivery-sheets/${id}`)
-        setLoadedItems(p => ({ ...p, [id]: d.items || [] }))
+        await loadSheetItems(id)
       }
     }
   }
@@ -156,10 +180,10 @@ export default function DeliverySheetsPage() {
       const editedId = editing.id
       setEditing(null)
       await load()
-      setLoadedItems({})
       if (expanded.has(editedId)) {
-        const d = await apiFetch<DS>(`/api/delivery-sheets/${editedId}`)
-        setLoadedItems(p => ({ ...p, [editedId]: d.items || [] }))
+        await loadSheetItems(editedId)
+      } else {
+        await refreshExpandedRows(Array.from(expanded))
       }
     } catch (e: any) { toast('更新失敗：' + e.message, 'error') }
   }
