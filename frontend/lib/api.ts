@@ -13,6 +13,16 @@ export function getToken() {
 export function setToken(t: string) { localStorage.setItem('oms_token', t) }
 export function clearToken() { localStorage.removeItem('oms_token') }
 
+function redirectToLoginOnUnauthorized() {
+  if (typeof window === 'undefined') return
+  clearToken()
+  localStorage.removeItem('oms_user')
+  localStorage.removeItem('oms_permissions')
+  if (window.location.pathname !== '/login') {
+    window.location.replace('/login')
+  }
+}
+
 function mapApiErrorMessage(raw: string, status: number): string {
   const msg = String(raw || '').trim()
   const lower = msg.toLowerCase()
@@ -131,6 +141,9 @@ export async function apiFetch<T>(path: string, opts: OmsRequestInit = {}): Prom
       },
     })
     if (!res.ok) {
+      if (res.status === 401) {
+        redirectToLoginOnUnauthorized()
+      }
       const err = await res.json().catch(() => ({ error: res.statusText }))
       const raw = (err as any).error || res.statusText
       throw new Error(mapApiErrorMessage(raw, res.status))
