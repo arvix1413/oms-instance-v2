@@ -343,6 +343,17 @@ const resolveMaterialId = async (materialIdRaw: any, materialCodeRaw: any): Prom
   return Number.isFinite(resolved) && resolved > 0 ? resolved : null
 }
 
+const liveFirst = (...exprs: string[]) => `COALESCE(${exprs.join(', ')})`
+
+const materialRefJoin = (itemAlias: string, materialAlias = 'm') => `
+  LEFT JOIN materials ${materialAlias}
+    ON (
+      (${itemAlias}.material_id IS NOT NULL AND ${itemAlias}.material_id > 0 AND ${itemAlias}.material_id = ${materialAlias}.id)
+      OR ((${itemAlias}.material_id IS NULL OR ${itemAlias}.material_id = 0) AND ${itemAlias}.material_code = ${materialAlias}.material_code)
+    )
+    AND ${materialAlias}.deleted_at IS NULL
+`
+
 // ── Audit ────────────────────────────────────────────────────────────────────
 async function audit(user: any, action: string, resource: string, resourceId: any, detail?: string) {
   try {
@@ -744,7 +755,7 @@ app.get('/api/po', authMiddleware, async c => {
   const url = new URL(c.req.url)
   const status = url.searchParams.get('status') || ''
   const supplierId = url.searchParams.get('supplier_id') || ''
-  let sql = `SELECT po.*, s.name as supplier_name, s.supplier_code
+  let sql = `SELECT po.*, ${liveFirst('NULLIF(s.name, \'\')', 'NULLIF(po.supplier_name, \'\')', '\'\'')} as supplier_name, s.supplier_code
     FROM purchase_orders po LEFT JOIN suppliers s ON po.supplier_id = s.id AND s.deleted_at IS NULL`
   const params: any[] = []
   const where: string[] = ['po.deleted_at IS NULL']
@@ -756,18 +767,18 @@ app.get('/api/po', authMiddleware, async c => {
 })
 app.get('/api/po/:id', authMiddleware, async c => {
   const po = await queryOne<any>(`
-    SELECT po.*, s.name as supplier_name, s.supplier_code
+    SELECT po.*, ${liveFirst('NULLIF(s.name, \'\')', 'NULLIF(po.supplier_name, \'\')', '\'\'')} as supplier_name, s.supplier_code
     FROM purchase_orders po LEFT JOIN suppliers s ON po.supplier_id = s.id AND s.deleted_at IS NULL
     WHERE po.id=? AND po.deleted_at IS NULL`, [c.req.param('id')])
   if (!po) return c.json({ error: 'Not found' }, 404)
   const items = await query(`
     SELECT pi.*,
-           COALESCE(pi.material_name, m.material_name, b.product_name, '') as material_name,
-           COALESCE(pi.spec, m.spec, b.spec, '') as spec,
-           COALESCE(pi.unit, m.unit, b.unit, 'PCS') as unit,
+           ${liveFirst('NULLIF(m.material_name, \'\')', 'NULLIF(pi.material_name, \'\')', 'NULLIF(b.product_name, \'\')', '\'\'')} as material_name,
+           ${liveFirst('NULLIF(m.spec, \'\')', 'NULLIF(pi.spec, \'\')', 'NULLIF(b.spec, \'\')', '\'\'')} as spec,
+           ${liveFirst('NULLIF(m.unit, \'\')', 'NULLIF(pi.unit, \'\')', 'NULLIF(b.unit, \'\')', '\'PCS\'')} as unit,
            COALESCE(m.image_url, b.image_url, '') as image_url
     FROM po_items pi 
-    LEFT JOIN materials m ON pi.material_id = m.id
+    ${materialRefJoin('pi')}
     LEFT JOIN bom b ON pi.material_code = b.product_sku
     WHERE pi.po_id=?`, [c.req.param('id')])
   return c.json({ ...po, items })
@@ -907,7 +918,8 @@ app.get('/api/customer-orders', authMiddleware, async c => {
              COALESCE(co.received_amount, 0) as received_amount, 
              COALESCE(co.payment_status, 'unpaid') as payment_status, 
              co.payment_date, co.payment_note,
-             c.customer_name, c.customer_code
+             ${liveFirst('NULLIF(c.customer_name, \'\')', 'NULLIF(co.customer_name, \'\')', '\'\'')} as customer_name,
+             c.customer_code
       FROM customer_orders co LEFT JOIN customers c ON co.customer_id = c.id AND c.deleted_at IS NULL
       ${whereClause}
       ORDER BY co.created_at DESC
@@ -918,7 +930,8 @@ app.get('/api/customer-orders', authMiddleware, async c => {
     try {
       const orders = await query(`
         SELECT co.id, co.po_date, co.po_number, co.customer_id, co.status, co.remark, co.created_at,
-               c.customer_name, c.customer_code
+               ${liveFirst('NULLIF(c.customer_name, \'\')', 'NULLIF(co.customer_name, \'\')', '\'\'')} as customer_name,
+               c.customer_code
         FROM customer_orders co LEFT JOIN customers c ON co.customer_id = c.id AND c.deleted_at IS NULL
         WHERE co.deleted_at IS NULL
         ORDER BY co.created_at DESC
@@ -937,7 +950,7 @@ app.get('/api/customer-orders/pending', authMiddleware, async c => {
 
   let sql = `
     SELECT co.id, co.po_number, co.po_date, co.status, co.customer_id,
-           c.customer_name,
+           ${liveFirst('NULLIF(c.customer_name, \'\')', 'NULLIF(co.customer_name, \'\')', '\'\'')} as customer_name,
            GROUP_CONCAT(b.product_name ORDER BY ci.id SEPARATOR ', ') as items_summary
     FROM customer_orders co
     LEFT JOIN customers c ON co.customer_id = c.id AND c.deleted_at IS NULL
@@ -958,7 +971,8 @@ app.get('/api/customer-orders/:id', authMiddleware, async c => {
            co.tax_rate, co.tax_amount, co.total_amount, co.currency,
            co.delivery_date, co.delivery_address, co.person_in_charge, co.payment_terms,
            co.received_amount, co.payment_status, co.payment_date, co.payment_note,
-           c.customer_name, c.customer_code, c.address, c.phone, c.fax, c.email, c.tax_id
+           ${liveFirst('NULLIF(c.customer_name, \'\')', 'NULLIF(co.customer_name, \'\')', '\'\'')} as customer_name,
+           c.customer_code, c.address, c.phone, c.fax, c.email, c.tax_id
     FROM customer_orders co LEFT JOIN customers c ON co.customer_id = c.id AND c.deleted_at IS NULL
     WHERE co.id=? AND co.deleted_at IS NULL`, [c.req.param('id')])
   if (!order) return c.json({ error: 'Not found' }, 404)
@@ -1136,7 +1150,8 @@ app.get('/api/profit-tracking/orders', authMiddleware, requireManager, async c =
 
     const orders = await query<any>(`
       SELECT co.id, co.po_number, co.po_date, co.status, co.created_at, co.currency,
-             c.customer_name, c.customer_code
+             ${liveFirst('NULLIF(c.customer_name, \'\')', 'NULLIF(co.customer_name, \'\')', '\'\'')} as customer_name,
+             c.customer_code
       FROM customer_orders co
       LEFT JOIN customers c ON co.customer_id = c.id AND c.deleted_at IS NULL
       ${whereClause}
@@ -1210,7 +1225,8 @@ app.get('/api/profit-tracking/orders/:id', authMiddleware, requireManager, async
     const order = await queryOne<any>(`
       SELECT co.id, co.po_number, co.po_date, co.status, co.remark, co.currency,
              co.delivery_date, co.delivery_address, co.person_in_charge, co.payment_terms,
-             c.customer_name, c.customer_code
+             ${liveFirst('NULLIF(c.customer_name, \'\')', 'NULLIF(co.customer_name, \'\')', '\'\'')} as customer_name,
+             c.customer_code
       FROM customer_orders co
       LEFT JOIN customers c ON c.id = co.customer_id AND c.deleted_at IS NULL
       WHERE co.id=? AND co.deleted_at IS NULL
@@ -1456,14 +1472,14 @@ app.delete('/api/profit-tracking/entries/:entryId', authMiddleware, requireManag
 
 // ── Quotations ────────────────────────────────────────────────────────────────
 app.get('/api/quotations', authMiddleware, async c => c.json(await query(`
-  SELECT q.*, c.customer_name, c.customer_code
+  SELECT q.*, ${liveFirst('NULLIF(c.customer_name, \'\')', 'NULLIF(q.customer_name, \'\')', '\'\'')} as customer_name, c.customer_code
   FROM quotations q LEFT JOIN customers c ON q.customer_id = c.id AND c.deleted_at IS NULL
   WHERE q.deleted_at IS NULL
   ORDER BY q.created_at DESC
 `)))
 app.get('/api/quotations/:id', authMiddleware, async c => {
   const q = await queryOne<any>(`
-    SELECT q.*, c.customer_name, c.customer_code
+    SELECT q.*, ${liveFirst('NULLIF(c.customer_name, \'\')', 'NULLIF(q.customer_name, \'\')', '\'\'')} as customer_name, c.customer_code
     FROM quotations q LEFT JOIN customers c ON q.customer_id = c.id AND c.deleted_at IS NULL
     WHERE q.id=? AND q.deleted_at IS NULL`, [c.req.param('id')])
   if (!q) return c.json({ error: 'Not found' }, 404)
@@ -1622,7 +1638,7 @@ app.get('/api/delivery-notes/overview', authMiddleware, async c => {
 })
 
 app.get('/api/delivery-notes', authMiddleware, async c => c.json(await query(`
-  SELECT dn.*, c.customer_name, c.customer_code,
+  SELECT dn.*, ${liveFirst('NULLIF(c.customer_name, \'\')', 'NULLIF(dn.customer_name, \'\')', '\'\'')} as customer_name, c.customer_code,
          co.po_number as order_po_number
   FROM delivery_notes dn 
   LEFT JOIN customers c ON dn.customer_id = c.id AND c.deleted_at IS NULL
@@ -1632,7 +1648,7 @@ app.get('/api/delivery-notes', authMiddleware, async c => c.json(await query(`
 `)))
 app.get('/api/delivery-notes/:id', authMiddleware, async c => {
   const dn = await queryOne<any>(`
-    SELECT dn.*, c.customer_name, c.customer_code, c.address,
+    SELECT dn.*, ${liveFirst('NULLIF(c.customer_name, \'\')', 'NULLIF(dn.customer_name, \'\')', '\'\'')} as customer_name, c.customer_code, c.address,
            co.po_number as po_ref
     FROM delivery_notes dn 
     LEFT JOIN customers c ON dn.customer_id = c.id AND c.deleted_at IS NULL
@@ -1641,11 +1657,11 @@ app.get('/api/delivery-notes/:id', authMiddleware, async c => {
   if (!dn) return c.json({ error: 'Not found' }, 404)
   const items = await query(`
     SELECT dni.*, 
-           COALESCE(NULLIF(dni.item_name,''), m.material_name, b.product_name, '') as item_name,
-           COALESCE(NULLIF(dni.spec,''), m.spec, b.spec) as spec,
-           COALESCE(NULLIF(dni.unit,''), m.unit, b.unit, 'PCS') as unit
+           ${liveFirst('NULLIF(m.material_name, \'\')', 'NULLIF(dni.item_name, \'\')', 'NULLIF(b.product_name, \'\')', '\'\'')} as item_name,
+           ${liveFirst('NULLIF(m.spec, \'\')', 'NULLIF(dni.spec, \'\')', 'NULLIF(b.spec, \'\')', '\'\'')} as spec,
+           ${liveFirst('NULLIF(m.unit, \'\')', 'NULLIF(dni.unit, \'\')', 'NULLIF(b.unit, \'\')', '\'PCS\'')} as unit
     FROM delivery_note_items dni
-    LEFT JOIN materials m ON dni.material_id = m.id AND m.deleted_at IS NULL
+    ${materialRefJoin('dni')}
     LEFT JOIN (
       SELECT bom.id, bom.product_sku, bom.product_name, 
              COALESCE(bom.spec, GROUP_CONCAT(DISTINCT bi.spec SEPARATOR ', ')) as spec,
@@ -1778,7 +1794,7 @@ app.delete('/api/delivery-notes/:id', authMiddleware, requirePerm('delivery.dele
 
 // ── Delivery Sheets (送貨單) ────────────────────────────────────────────────
 app.get('/api/delivery-sheets', authMiddleware, async c => c.json(await query(`
-  SELECT ds.*, c.customer_name, c.customer_code,
+  SELECT ds.*, ${liveFirst('NULLIF(c.customer_name, \'\')', 'NULLIF(ds.customer_name, \'\')', '\'\'')} as customer_name, c.customer_code,
          co.po_number as order_po_number
   FROM delivery_sheets ds
   LEFT JOIN customers c ON ds.customer_id = c.id AND c.deleted_at IS NULL
@@ -1788,7 +1804,7 @@ app.get('/api/delivery-sheets', authMiddleware, async c => c.json(await query(`
 `)))
 app.get('/api/delivery-sheets/:id', authMiddleware, async c => {
   const ds = await queryOne<any>(`
-    SELECT ds.*, c.customer_name, c.customer_code, c.address,
+    SELECT ds.*, ${liveFirst('NULLIF(c.customer_name, \'\')', 'NULLIF(ds.customer_name, \'\')', '\'\'')} as customer_name, c.customer_code, c.address,
            co.po_number as po_ref
     FROM delivery_sheets ds
     LEFT JOIN customers c ON ds.customer_id = c.id AND c.deleted_at IS NULL
@@ -1797,11 +1813,11 @@ app.get('/api/delivery-sheets/:id', authMiddleware, async c => {
   if (!ds) return c.json({ error: 'Not found' }, 404)
   const items = await query(`
     SELECT dsi.*,
-           COALESCE(NULLIF(dsi.item_name,''), m.material_name, b.product_name, '') as item_name,
-           COALESCE(NULLIF(dsi.spec,''), m.spec, b.spec) as spec,
-           COALESCE(NULLIF(dsi.unit,''), m.unit, b.unit, 'PCS') as unit
+           ${liveFirst('NULLIF(m.material_name, \'\')', 'NULLIF(dsi.item_name, \'\')', 'NULLIF(b.product_name, \'\')', '\'\'')} as item_name,
+           ${liveFirst('NULLIF(m.spec, \'\')', 'NULLIF(dsi.spec, \'\')', 'NULLIF(b.spec, \'\')', '\'\'')} as spec,
+           ${liveFirst('NULLIF(m.unit, \'\')', 'NULLIF(dsi.unit, \'\')', 'NULLIF(b.unit, \'\')', '\'PCS\'')} as unit
     FROM delivery_sheet_items dsi
-    LEFT JOIN materials m ON dsi.material_id = m.id AND m.deleted_at IS NULL
+    ${materialRefJoin('dsi')}
     LEFT JOIN (
       SELECT bom.id, bom.product_sku, bom.product_name,
              COALESCE(bom.spec, GROUP_CONCAT(DISTINCT bi.spec SEPARATOR ', ')) as spec,
@@ -1870,7 +1886,7 @@ app.delete('/api/delivery-sheets/:id', authMiddleware, requirePerm('delivery.del
 app.get('/api/inventory', authMiddleware, async c => c.json(await query(`
   SELECT b.id, b.product_sku as product_code, b.product_name,
          b.spec, b.unit, COALESCE(b.current_stock, 0) as closing_balance,
-         b.category, s.name as supplier_name, b.currency, b.image_url
+         b.category, ${liveFirst('NULLIF(s.name, \'\')', 'NULLIF(b.supplier_name, \'\')', '\'\'')} as supplier_name, b.currency, b.image_url
   FROM bom b
   LEFT JOIN suppliers s ON b.supplier_id = s.id AND s.deleted_at IS NULL
   WHERE b.deleted_at IS NULL
@@ -1882,7 +1898,7 @@ app.get('/api/inventory/bom', authMiddleware, async c => c.json(await query(`
   SELECT b.id, b.product_sku as product_code, b.product_name,
          b.spec, b.unit, b.category,
          COALESCE(b.current_stock, 0) as closing_balance,
-         s.name as supplier_name, b.currency,
+         ${liveFirst('NULLIF(s.name, \'\')', 'NULLIF(b.supplier_name, \'\')', '\'\'')} as supplier_name, b.currency,
          b.image_url
   FROM bom b
   LEFT JOIN suppliers s ON b.supplier_id = s.id AND s.deleted_at IS NULL
@@ -2126,7 +2142,7 @@ app.get('/api/reports', authMiddleware, async c => {
 // ── Goods Receipts (進貨單) ───────────────────────────────────────────────────
 app.get('/api/goods-receipts', authMiddleware, async c => {
   const rows = await query(`
-    SELECT gr.*, s.name as supplier_name, s.supplier_code
+    SELECT gr.*, ${liveFirst('NULLIF(s.name, \'\')', 'NULLIF(gr.supplier_name, \'\')', '\'\'')} as supplier_name, s.supplier_code
     FROM goods_receipts gr LEFT JOIN suppliers s ON gr.supplier_id = s.id AND s.deleted_at IS NULL
     WHERE gr.deleted_at IS NULL
     ORDER BY gr.created_at DESC`)
@@ -2134,17 +2150,17 @@ app.get('/api/goods-receipts', authMiddleware, async c => {
 })
 app.get('/api/goods-receipts/:id', authMiddleware, async c => {
   const gr = await queryOne<any>(`
-    SELECT gr.*, s.name as supplier_name
+    SELECT gr.*, ${liveFirst('NULLIF(s.name, \'\')', 'NULLIF(gr.supplier_name, \'\')', '\'\'')} as supplier_name
     FROM goods_receipts gr LEFT JOIN suppliers s ON gr.supplier_id = s.id AND s.deleted_at IS NULL
     WHERE gr.id=? AND gr.deleted_at IS NULL`, [c.req.param('id')])
   if (!gr) return c.json({ error: 'Not found' }, 404)
   const items = await query(`
     SELECT gri.*,
-           COALESCE(NULLIF(gri.material_name,''), m.material_name, b.product_name, '') as material_name,
-           COALESCE(NULLIF(gri.spec,''), m.spec, b.spec) as spec,
-           COALESCE(NULLIF(gri.unit,''), m.unit, b.unit, 'PCS') as unit
+           ${liveFirst('NULLIF(m.material_name, \'\')', 'NULLIF(gri.material_name, \'\')', 'NULLIF(b.product_name, \'\')', '\'\'')} as material_name,
+           ${liveFirst('NULLIF(m.spec, \'\')', 'NULLIF(gri.spec, \'\')', 'NULLIF(b.spec, \'\')', '\'\'')} as spec,
+           ${liveFirst('NULLIF(m.unit, \'\')', 'NULLIF(gri.unit, \'\')', 'NULLIF(b.unit, \'\')', '\'PCS\'')} as unit
     FROM goods_receipt_items gri
-    LEFT JOIN materials m ON gri.material_id = m.id AND m.deleted_at IS NULL
+    ${materialRefJoin('gri')}
     LEFT JOIN bom b ON gri.material_code = b.product_sku
     WHERE gri.gr_id=?`, [c.req.param('id')])
   return c.json({ ...gr, items })
