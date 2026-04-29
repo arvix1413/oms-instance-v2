@@ -1,8 +1,10 @@
 'use client'
+import DecimalInput from '@/components/DecimalInput'
 import { useDialog } from '@/components/Dialog'
 import FieldLockHint from '@/components/FieldLockHint'
 import { useEffect, useState } from 'react'
 import { apiFetch, API, getToken } from '@/lib/api'
+import { formatDecimal, formatQuantity } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
 
 type Product = { id: number; sku: string; name: string; category: string; description: string; image_url: string; price: number; stock: number; unit: string; status: string }
@@ -82,8 +84,8 @@ export default function ProductsPage() {
             <div><label className="block text-xs font-medium mb-1">商品名稱 *</label><input className={inp} value={editing.name||''} onChange={e=>setEditing(p=>({...p,name:e.target.value}))} /></div>
             <div><label className="block text-xs font-medium mb-1">分類</label><input className={inp} value={editing.category||''} onChange={e=>setEditing(p=>({...p,category:e.target.value}))} /></div>
             <div><label className="block text-xs font-medium mb-1">單位</label><input className={inp} value={editing.unit||'PCS'} onChange={e=>setEditing(p=>({...p,unit:e.target.value}))} /></div>
-            <div><label className="block text-xs font-medium mb-1">售價 (VND)</label><input type="number" className={inp} value={editing.price || ""} onChange={e=>setEditing(p=>({...p,price:Number(e.target.value)}))} /></div>
-            <div><label className="block text-xs font-medium mb-1">庫存</label><input type="number" className={inp} value={editing.stock || ""} onChange={e=>setEditing(p=>({...p,stock:Number(e.target.value)}))} /></div>
+            <div><label className="block text-xs font-medium mb-1">售價 (VND)</label><DecimalInput className={inp} value={editing.price} onValueChange={value=>setEditing(p=>({...p,price:value ?? 0}))} /></div>
+            <div><label className="block text-xs font-medium mb-1">庫存</label><DecimalInput className={inp} value={editing.stock} onValueChange={value=>setEditing(p=>({...p,stock:value ?? 0}))} /></div>
             <div className="md:col-span-2"><label className="block text-xs font-medium mb-1">描述</label><textarea className={`${inp} h-16`} value={editing.description||''} onChange={e=>setEditing(p=>({...p,description:e.target.value}))} /></div>
             <div className="md:col-span-2">
               <label className="block text-xs font-medium mb-1">商品圖片</label>
@@ -137,8 +139,8 @@ export default function ProductsPage() {
                     <td className="px-4 py-3 font-mono text-xs text-blue-600">{p.sku}</td>
                     <td className="px-4 py-3 text-slate-800 text-slate-800 font-medium">{p.name}</td>
                     <td className="px-4 py-3 text-slate-500">{p.category}</td>
-                    <td className="px-4 py-3 text-right">{p.price.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right">{p.stock}</td>
+                    <td className="px-4 py-3 text-right">{formatDecimal(p.price)}</td>
+                    <td className="px-4 py-3 text-right">{formatQuantity(p.stock)}</td>
                     <td className="px-4 py-3">
                       <span className={p.status === 'active' ? 'badge-green' : 'badge-gray'}>{p.status === 'active' ? '啟用' : '停用'}</span>
                     </td>

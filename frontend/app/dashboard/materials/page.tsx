@@ -1,8 +1,10 @@
 'use client'
 import { useDialog } from '@/components/Dialog'
+import DecimalInput from '@/components/DecimalInput'
 import FieldLockHint from '@/components/FieldLockHint'
 import { useEffect, useState, useRef } from 'react'
 import { apiFetch, API, getToken } from '@/lib/api'
+import { formatDecimal, formatQuantity } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import * as XLSX from 'xlsx'
 
@@ -37,10 +39,10 @@ function DetailModal({ item, onClose, onEdit }: { item: Material; onClose: () =>
           {row('規格', item.spec)}
           {row('單位', item.unit)}
           {row('供應商', item.supplier_name)}
-          {row('供應商單價', item.supplier_price?.toLocaleString())}
-          {row('公司售價', item.company_price?.toLocaleString(), 'font-semibold text-slate-800')}
+          {row('供應商單價', formatDecimal(item.supplier_price))}
+          {row('公司售價', formatDecimal(item.company_price), 'font-semibold text-slate-800')}
           {row('幣別', item.currency)}
-          {row('庫存', item.stock?.toLocaleString())}
+          {row('庫存', formatQuantity(item.stock))}
         </div>
         <div className="px-6 pb-6">
           <button onClick={onEdit} className="btn-primary w-full justify-center">編輯</button>
@@ -208,7 +210,7 @@ export default function MaterialsPage() {
                     <td className="border border-slate-200 px-2 py-1 text-slate-600">{row.unit}</td>
                     <td className="border border-slate-200 px-2 py-1 text-slate-400">{row.category}</td>
                     <td className="border border-slate-200 px-2 py-1 text-slate-400">{row.supplier_name}</td>
-                    <td className="border border-slate-200 px-2 py-1 text-right text-slate-600">{row.supplier_price?.toLocaleString()}</td>
+                    <td className="border border-slate-200 px-2 py-1 text-right text-slate-600">{formatDecimal(row.supplier_price)}</td>
                   </tr>
                 ))}
                 {importPreview.length > 50 && <tr><td colSpan={7} className="border border-slate-200 px-2 py-2 text-center text-slate-400">...還有 {importPreview.length-50} 筆</td></tr>}
@@ -249,15 +251,24 @@ export default function MaterialsPage() {
                 ))}
               </select>
             </div>
-            <div><label className="block text-[11px] text-slate-500 mb-1.5">供應商單價</label><input type="number" className={inp} value={editing.supplier_price || ""} onChange={e=>setEditing(p=>({...p,supplier_price:Number(e.target.value)}))} /></div>
-            <div><label className="block text-[11px] text-slate-500 mb-1.5">公司售價</label><input type="number" className={inp} value={editing.company_price || ""} onChange={e=>setEditing(p=>({...p,company_price:Number(e.target.value)}))} /></div>
+            <div>
+              <label className="block text-[11px] text-slate-500 mb-1.5">供應商單價</label>
+              <DecimalInput className={inp} value={editing.supplier_price} onValueChange={value=>setEditing(p=>({...p,supplier_price:value ?? 0}))} />
+            </div>
+            <div>
+              <label className="block text-[11px] text-slate-500 mb-1.5">公司售價</label>
+              <DecimalInput className={inp} value={editing.company_price} onValueChange={value=>setEditing(p=>({...p,company_price:value ?? 0}))} />
+            </div>
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">幣別</label>
               <select className={inp} value={editing.currency||'VND'} onChange={e=>setEditing(p=>({...p,currency:e.target.value}))}>
                 <option>VND</option><option>TWD</option><option>CNY</option><option>USD</option>
               </select>
             </div>
-            <div><label className="block text-[11px] text-slate-500 mb-1.5">庫存</label><input type="number" className={inp} value={editing.stock || ""} onChange={e=>setEditing(p=>({...p,stock:Number(e.target.value)}))} /></div>
+            <div>
+              <label className="block text-[11px] text-slate-500 mb-1.5">庫存</label>
+              <DecimalInput className={inp} value={editing.stock} onValueChange={value=>setEditing(p=>({...p,stock:value ?? 0}))} />
+            </div>
             <div className="md:col-span-3">
               <label className="block text-[11px] text-slate-500 mb-1.5">圖片</label>
               <div className="flex items-center gap-3">
@@ -323,10 +334,10 @@ export default function MaterialsPage() {
                       <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{m.spec}</td>
                       <td className="px-3 py-2 text-slate-600 whitespace-nowrap">{m.unit}</td>
                       <td className="px-3 py-2 text-slate-500 whitespace-nowrap max-w-[150px] truncate" title={m.supplier_name || ''}>{m.supplier_name || <span className="text-slate-300 text-xs">未指定</span>}</td>
-                      <td className="px-3 py-2 text-right text-slate-600 whitespace-nowrap">{m.supplier_price?.toLocaleString()}</td>
-                      <td className="px-3 py-2 text-right text-slate-800 font-medium whitespace-nowrap">{m.company_price?.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right text-slate-600 whitespace-nowrap">{formatDecimal(m.supplier_price)}</td>
+                      <td className="px-3 py-2 text-right text-slate-800 font-medium whitespace-nowrap">{formatDecimal(m.company_price)}</td>
                       <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{m.currency}</td>
-                      <td className="px-3 py-2 text-right text-slate-600 whitespace-nowrap">{m.stock?.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right text-slate-600 whitespace-nowrap">{formatQuantity(m.stock)}</td>
                       <td className="px-3 py-2 whitespace-nowrap">
                         <div className="flex gap-1">
                           <button onClick={() => setDetail(m)} className="btn-ghost">詳情</button>

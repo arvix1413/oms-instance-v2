@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
+import { formatDecimal, formatInteger } from '@/lib/numberFormat'
 import Link from 'next/link'
 
 type ReportData = {
@@ -38,7 +39,7 @@ export default function DashboardPage() {
     if (n >= 1_000_000_000) return (n/1_000_000_000).toFixed(2)+'B'
     if (n >= 1_000_000) return (n/1_000_000).toFixed(1)+'M'
     if (n >= 1000) return (n/1000).toFixed(0)+'K'
-    return n.toLocaleString()
+    return formatInteger(n)
   }
 
   const kpis = [
@@ -152,26 +153,26 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
             <div className="oms-card p-5">
               <div className="text-xs text-slate-400 mb-1">應收總額（客戶訂單）</div>
-              <div className="text-2xl font-bold text-slate-800">{(s?.total_invoiced||0).toLocaleString()}</div>
-              <div className="text-xs text-slate-400 mt-1">已收 {(s?.total_received||0).toLocaleString()}</div>
+              <div className="text-2xl font-bold text-slate-800">{formatDecimal(s?.total_invoiced || 0)}</div>
+              <div className="text-xs text-slate-400 mt-1">已收 {formatDecimal(s?.total_received || 0)}</div>
             </div>
             <div className="oms-card p-5">
               <div className="text-xs text-slate-400 mb-1">待收款</div>
-              <div className="text-2xl font-bold text-amber-500">{(s?.total_outstanding_receivable||0).toLocaleString()}</div>
+              <div className="text-2xl font-bold text-amber-500">{formatDecimal(s?.total_outstanding_receivable || 0)}</div>
             </div>
             <div className="oms-card p-5">
               <div className="text-xs text-slate-400 mb-1">應付總額（採購單）</div>
-              <div className="text-2xl font-bold text-slate-800">{(s?.total_payable||0).toLocaleString()}</div>
-              <div className="text-xs text-slate-400 mt-1">已付 {(s?.total_paid||0).toLocaleString()}</div>
+              <div className="text-2xl font-bold text-slate-800">{formatDecimal(s?.total_payable || 0)}</div>
+              <div className="text-xs text-slate-400 mt-1">已付 {formatDecimal(s?.total_paid || 0)}</div>
             </div>
             <div className="oms-card p-5">
               <div className="text-xs text-slate-400 mb-1">待付款</div>
-              <div className="text-2xl font-bold text-red-500">{(s?.total_outstanding_payable||0).toLocaleString()}</div>
+              <div className="text-2xl font-bold text-red-500">{formatDecimal(s?.total_outstanding_payable || 0)}</div>
             </div>
             <div className="oms-card p-5 col-span-2">
               <div className="text-xs text-slate-400 mb-1">淨收益（已收 - 已付）</div>
               <div className={`text-2xl font-bold ${(s?.total_received||0)-(s?.total_paid||0) >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                {((s?.total_received||0)-(s?.total_paid||0)).toLocaleString()}
+                {formatDecimal((s?.total_received || 0) - (s?.total_paid || 0))}
               </div>
             </div>
           </div>
@@ -206,12 +207,12 @@ export default function DashboardPage() {
                     return (
                       <tr key={m} className={`border-b border-slate-100 ${hasData ? '' : 'opacity-40'}`}>
                         <td className="px-4 py-3 font-medium text-slate-700">{year}-{m}</td>
-                        <td className="px-4 py-3 text-right text-slate-600">{invoiced > 0 ? invoiced.toLocaleString() : '—'}</td>
-                        <td className="px-4 py-3 text-right text-emerald-600 font-medium">{received > 0 ? received.toLocaleString() : '—'}</td>
-                        <td className="px-4 py-3 text-right text-slate-600">{payable > 0 ? payable.toLocaleString() : '—'}</td>
-                        <td className="px-4 py-3 text-right text-red-500 font-medium">{paid > 0 ? paid.toLocaleString() : '—'}</td>
+                        <td className="px-4 py-3 text-right text-slate-600">{invoiced > 0 ? formatDecimal(invoiced) : '—'}</td>
+                        <td className="px-4 py-3 text-right text-emerald-600 font-medium">{received > 0 ? formatDecimal(received) : '—'}</td>
+                        <td className="px-4 py-3 text-right text-slate-600">{payable > 0 ? formatDecimal(payable) : '—'}</td>
+                        <td className="px-4 py-3 text-right text-red-500 font-medium">{paid > 0 ? formatDecimal(paid) : '—'}</td>
                         <td className={`px-4 py-3 text-right font-bold ${net > 0 ? 'text-emerald-600' : net < 0 ? 'text-red-500' : 'text-slate-400'}`}>
-                          {hasData ? net.toLocaleString() : '—'}
+                          {hasData ? formatDecimal(net) : '—'}
                         </td>
                       </tr>
                     )
@@ -220,12 +221,12 @@ export default function DashboardPage() {
                 <tfoot>
                   <tr className="border-t-2 border-slate-200 bg-slate-50">
                     <td className="px-4 py-3 font-bold text-slate-700">全年合計</td>
-                    <td className="px-4 py-3 text-right font-bold text-slate-700">{(s?.total_invoiced||0).toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right font-bold text-emerald-600">{(s?.total_received||0).toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right font-bold text-slate-700">{(s?.total_payable||0).toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right font-bold text-red-500">{(s?.total_paid||0).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right font-bold text-slate-700">{formatDecimal(s?.total_invoiced || 0)}</td>
+                    <td className="px-4 py-3 text-right font-bold text-emerald-600">{formatDecimal(s?.total_received || 0)}</td>
+                    <td className="px-4 py-3 text-right font-bold text-slate-700">{formatDecimal(s?.total_payable || 0)}</td>
+                    <td className="px-4 py-3 text-right font-bold text-red-500">{formatDecimal(s?.total_paid || 0)}</td>
                     <td className={`px-4 py-3 text-right font-bold ${(s?.total_received||0)-(s?.total_paid||0) >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                      {((s?.total_received||0)-(s?.total_paid||0)).toLocaleString()}
+                      {formatDecimal((s?.total_received || 0) - (s?.total_paid || 0))}
                     </td>
                   </tr>
                 </tfoot>

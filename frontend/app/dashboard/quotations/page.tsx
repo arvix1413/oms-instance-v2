@@ -1,8 +1,10 @@
 'use client'
 import React from 'react'
+import DecimalInput from '@/components/DecimalInput'
 import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch, getSignatureUrl } from '@/lib/api'
+import { formatDecimal, formatInteger } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { getCompany } from '@/lib/useCompany'
 import { normalizeMoqTiers, resolveTierPrice } from '@/lib/moqPricing'
@@ -221,7 +223,7 @@ export default function QuotationsPage() {
       const n = Number(v)
       return Number.isFinite(n) ? n : 0
     }
-    const fmt = (v: any) => num(v).toLocaleString()
+    const fmt = (v: any) => formatDecimal(num(v))
 
     const [data, company] = await Promise.all([
       apiFetch<Q>(`/api/quotations/${id}`),
@@ -463,19 +465,18 @@ export default function QuotationsPage() {
       {item.moq_tiers.map((tier, t) => (
         <div key={t} className="grid grid-cols-[26px_1fr_1fr] gap-1 items-center">
           <span className="text-[10px] text-slate-400 text-center">#{t + 1}</span>
-          <input
-            type="number"
+          <DecimalInput
             className={inp}
-            value={tier.moq || ''}
+            digits={0}
+            value={tier.moq}
             placeholder="MOQ"
-            onChange={e => updateTier(itemIndex, t, 'moq', parseNum(e.target.value))}
+            onValueChange={value => updateTier(itemIndex, t, 'moq', value ?? 0)}
           />
-          <input
-            type="number"
+          <DecimalInput
             className={inp}
-            value={tier.price || ''}
+            value={tier.price}
             placeholder="單價"
-            onChange={e => updateTier(itemIndex, t, 'price', parseNum(e.target.value))}
+            onValueChange={value => updateTier(itemIndex, t, 'price', value ?? 0)}
           />
         </div>
       ))}
@@ -601,7 +602,7 @@ export default function QuotationsPage() {
                         <td className="pl-4 py-3"><span className="text-slate-500"><ChevronIcon open={isOpen} /></span></td>
                         <td className="px-4 py-3 font-mono text-xs text-blue-600">{q.quotation_number}</td>
                         <td className="px-4 py-3 text-slate-800 font-medium max-w-[200px] truncate" title={q.customer_name}>{q.customer_name}</td>
-                        <td className="px-4 py-3 text-right text-slate-600 font-medium">{Number(q.total_amount||0).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-right text-slate-600 font-medium">{formatDecimal(q.total_amount || 0)}</td>
                         <td className="px-4 py-3 text-slate-400 text-xs">{q.currency}</td>
                         <td className="px-4 py-3 text-slate-400 text-xs">{q.valid_until ? String(q.valid_until).slice(0,10) : '—'}</td>
                         <td className="px-4 py-3"><span className={sm.badge}>{sm.label}</span></td>
@@ -655,9 +656,9 @@ export default function QuotationsPage() {
                                               <div className="flex flex-wrap gap-2">
                                                 {tiers.map((t, ti) => (
                                                   <span key={ti} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 border border-blue-100 rounded text-[10px]">
-                                                    <span className="text-slate-500">{t.moq > 0 ? t.moq.toLocaleString() : '—'}</span>
+                                                    <span className="text-slate-500">{t.moq > 0 ? formatInteger(t.moq) : '—'}</span>
                                                     <span className="text-slate-300">→</span>
-                                                    <span className="font-semibold text-blue-700">{t.price > 0 ? Number(t.price).toLocaleString() : '—'}</span>
+                                                    <span className="font-semibold text-blue-700">{t.price > 0 ? formatDecimal(t.price) : '—'}</span>
                                                   </span>
                                                 ))}
                                               </div>

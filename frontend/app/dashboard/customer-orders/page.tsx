@@ -1,7 +1,9 @@
 'use client'
+import DecimalInput from '@/components/DecimalInput'
 import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch, getSignatureUrl } from '@/lib/api'
+import { formatDecimal, formatQuantity } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, CO_STEPS } from '@/components/StatusFlow'
 import { generateOrderHTML } from '@/lib/printOrder'
@@ -292,7 +294,7 @@ export default function CustomerOrdersPage() {
   const { page, setPage, totalPages, paged, total } = usePagination(filtered, 10)
   const inp = 'oms-input text-xs py-1.5'
   const lockedInp = `${inp} bom-locked-field`
-  const money = (v?: number) => Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })
+  const money = (v?: number) => formatDecimal(v || 0)
 
   return (
     <div>
@@ -415,13 +417,13 @@ export default function CustomerOrdersPage() {
                       <input className={lockedInp} value={item.unit||''} onChange={e=>updateItem(i,'unit',e.target.value)} readOnly />
                     </td>
                     <td className="p-1.5 w-24">
-                      <input type="number" className={inp} value={item.qty||''} onChange={e=>updateItem(i,'qty',Number(e.target.value))} />
+                      <DecimalInput className={inp} value={item.qty} onValueChange={value=>updateItem(i,'qty',value ?? 0)} />
                     </td>
                     <td className="p-1.5 w-28">
-                      <input type="number" className={inp} value={item.unit_price||''} onChange={e=>updateItem(i,'unit_price',Number(e.target.value))} />
+                      <DecimalInput className={inp} value={item.unit_price} onValueChange={value=>updateItem(i,'unit_price',value ?? 0)} />
                     </td>
                     <td className="p-1.5 w-28 text-right">
-                      <span className="font-semibold text-slate-700">{((item.qty||0) * (item.unit_price||0)).toLocaleString()}</span>
+                      <span className="font-semibold text-slate-700">{formatDecimal((item.qty || 0) * (item.unit_price || 0))}</span>
                     </td>
                     <td className="p-1.5 min-w-[180px]">
                       <input className={inp} value={item.remark || ''} onChange={e=>updateItem(i,'remark',e.target.value)} placeholder="Remark" />
@@ -439,8 +441,8 @@ export default function CustomerOrdersPage() {
             const subtotal = form.items.reduce((s,i) => s + (i.qty||0)*(i.unit_price||0), 0)
             return (
               <div className="flex justify-end mt-3 text-xs text-slate-500 gap-6">
-                <span>小計：<span className="font-semibold text-slate-700">{subtotal.toLocaleString()}</span></span>
-                <span>總計：<span className="font-bold text-slate-900 text-sm">{subtotal.toLocaleString()}</span></span>
+                <span>小計：<span className="font-semibold text-slate-700">{formatDecimal(subtotal)}</span></span>
+                <span>總計：<span className="font-bold text-slate-900 text-sm">{formatDecimal(subtotal)}</span></span>
               </div>
             )
           })()}
@@ -497,7 +499,7 @@ export default function CustomerOrdersPage() {
                         <td className="px-4 py-3 text-slate-800 font-medium max-w-[220px] truncate" title={o.customer_name}>{o.customer_name}</td>
                         <td className="px-4 py-3 text-slate-400 text-xs">{o.po_date ? String(o.po_date).slice(0,10) : '—'}</td>
                         <td className="px-4 py-3 text-slate-400 text-xs">{o.delivery_date ? String(o.delivery_date).slice(0,10) : '—'}</td>
-                        <td className="px-4 py-3 text-right font-semibold text-slate-800">{o.total_amount ? Number(o.total_amount).toLocaleString() : '—'}</td>
+                        <td className="px-4 py-3 text-right font-semibold text-slate-800">{o.total_amount ? formatDecimal(o.total_amount) : '—'}</td>
                         {canViewProfit && (
                           <td className={`px-4 py-3 text-right font-semibold ${(profit?.net_profit || 0) >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                             {profit ? money(profit.net_profit) : '—'}
@@ -567,11 +569,11 @@ export default function CustomerOrdersPage() {
                                       <tr key={i} className="border-b border-blue-100 last:border-0 hover:bg-blue-50/60">
                                         <td className="px-4 py-2 font-mono text-blue-600 whitespace-nowrap">{item.product_sku}</td>
                                         <td className="px-4 py-2 text-slate-700 whitespace-nowrap max-w-[200px] truncate" title={item.product_name}>{item.product_name}</td>
-                                        <td className="px-4 py-2 text-right font-medium whitespace-nowrap">{Number(item.qty).toLocaleString()}</td>
-                                        <td className="px-4 py-2 text-right text-slate-600 whitespace-nowrap">{Number(item.unit_price).toLocaleString()}</td>
+                                        <td className="px-4 py-2 text-right font-medium whitespace-nowrap">{formatQuantity(item.qty)}</td>
+                                        <td className="px-4 py-2 text-right text-slate-600 whitespace-nowrap">{formatDecimal(item.unit_price)}</td>
                                         <td className="px-4 py-2 text-slate-400 whitespace-normal break-words max-w-[220px]">{(item as any).remark || '—'}</td>
-                                        <td className="px-4 py-2 text-right text-slate-600 whitespace-nowrap">{Number(item.arrived_qty||0).toLocaleString()}</td>
-                                        <td className="px-4 py-2 text-right font-medium whitespace-nowrap">{Number(item.balance||0).toLocaleString()}</td>
+                                        <td className="px-4 py-2 text-right text-slate-600 whitespace-nowrap">{formatQuantity(item.arrived_qty || 0)}</td>
+                                        <td className="px-4 py-2 text-right font-medium whitespace-nowrap">{formatQuantity(item.balance || 0)}</td>
                                         <td className="px-4 py-2 whitespace-nowrap">
                                           <span className={STATUS_BADGE[item.status||'pending']||'badge-gray'}>{STATUS_LABEL[item.status||'pending']||item.status}</span>
                                         </td>

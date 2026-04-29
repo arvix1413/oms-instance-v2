@@ -1,10 +1,12 @@
 'use client'
 
+import DecimalInput from '@/components/DecimalInput'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { apiFetch } from '@/lib/api'
 import { getUser } from '@/lib/permissions'
 import { useDialog } from '@/components/Dialog'
+import { formatDecimal } from '@/lib/numberFormat'
 
 type ProfitOrder = {
   id: number
@@ -100,7 +102,7 @@ const CATEGORY_OPTIONS = [
   { value: 'manual_adjustment', label: '手動調整(+/-)' },
 ]
 
-const money = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 2 })
+const money = (n: number) => formatDecimal(n)
 
 export default function ProfitTrackingPage() {
   const router = useRouter()
@@ -455,38 +457,26 @@ export default function ProfitTrackingPage() {
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <label className="block text-[11px] text-slate-400 mb-1">營運成本%</label>
-                      <input
+                      <DecimalInput
                         className="oms-input text-sm"
-                        type="number"
-                        min={0}
-                        max={100}
-                        step="0.01"
                         value={rateConfig.operating_cost_rate}
-                        onChange={e => setRateConfig(p => ({ ...p, operating_cost_rate: Number(e.target.value) }))}
+                        onValueChange={value => setRateConfig(p => ({ ...p, operating_cost_rate: value ?? 0 }))}
                       />
                     </div>
                     <div>
                       <label className="block text-[11px] text-slate-400 mb-1">VAT%</label>
-                      <input
+                      <DecimalInput
                         className="oms-input text-sm"
-                        type="number"
-                        min={0}
-                        max={100}
-                        step="0.01"
                         value={rateConfig.vat_rate}
-                        onChange={e => setRateConfig(p => ({ ...p, vat_rate: Number(e.target.value) }))}
+                        onValueChange={value => setRateConfig(p => ({ ...p, vat_rate: value ?? 0 }))}
                       />
                     </div>
                     <div>
                       <label className="block text-[11px] text-slate-400 mb-1">CIT%</label>
-                      <input
+                      <DecimalInput
                         className="oms-input text-sm"
-                        type="number"
-                        min={0}
-                        max={100}
-                        step="0.01"
                         value={rateConfig.cit_rate}
-                        onChange={e => setRateConfig(p => ({ ...p, cit_rate: Number(e.target.value) }))}
+                        onValueChange={value => setRateConfig(p => ({ ...p, cit_rate: value ?? 0 }))}
                       />
                     </div>
                   </div>
@@ -506,7 +496,7 @@ export default function ProfitTrackingPage() {
                     {CATEGORY_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                   </select>
                   <input className="oms-input text-sm" placeholder="項目名稱（例：3月物流費）" value={entryForm.description} onChange={e => setEntryForm(p => ({ ...p, description: e.target.value }))} />
-                  <input className="oms-input text-sm" type="number" placeholder="金額（manual_adjustment 可負數）" value={entryForm.amount} onChange={e => setEntryForm(p => ({ ...p, amount: e.target.value }))} />
+                  <input className="oms-input text-sm" type="text" inputMode="decimal" placeholder="金額（manual_adjustment 可負數）" value={entryForm.amount} onChange={e => setEntryForm(p => ({ ...p, amount: e.target.value }))} />
                   <input className="oms-input text-sm" placeholder="備註（可選）" value={entryForm.remark} onChange={e => setEntryForm(p => ({ ...p, remark: e.target.value }))} />
                   <button className="btn-primary w-full justify-center" disabled={savingEntry} onClick={addEntry}>{savingEntry ? '儲存中...' : '加入追蹤'}</button>
                 </div>

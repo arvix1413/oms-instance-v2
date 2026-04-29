@@ -1,8 +1,10 @@
 'use client'
+import DecimalInput from '@/components/DecimalInput'
 import { generateDeliverySheetHTML } from '@/lib/printDeliverySheet'
 import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
+import { formatQuantity } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { can } from '@/lib/usePermissions'
 import { getCompany } from '@/lib/useCompany'
@@ -276,12 +278,11 @@ export default function DeliverySheetsPage() {
                       <tr key={item.id} className="border-b border-slate-100 last:border-0">
                         <td className="px-3 py-2 text-slate-700 font-medium">{item.product_name}</td>
                         <td className="px-3 py-2 font-mono text-blue-600">{item.product_sku}</td>
-                        <td className="px-3 py-2 text-right text-slate-500">{item.qty.toLocaleString()}</td>
+                        <td className="px-3 py-2 text-right text-slate-500">{formatQuantity(item.qty)}</td>
                         <td className="px-3 py-2 text-right">
-                          <input type="number" className={`${inp} w-24 text-right`}
-                            min={0} max={item.qty}
+                          <DecimalInput className={`${inp} w-24 text-right`}
                             value={deliveryQtys[item.id] ?? item.qty}
-                            onChange={e => setDeliveryQtys(p => ({ ...p, [item.id]: Number(e.target.value) }))} />
+                            onValueChange={value => setDeliveryQtys(p => ({ ...p, [item.id]: value ?? 0 }))} />
                         </td>
                       </tr>
                     ))}
@@ -330,9 +331,9 @@ export default function DeliverySheetsPage() {
                       <td className="px-3 py-2 text-slate-700">{item.item_name}</td>
                       <td className="px-3 py-2 font-mono text-xs text-blue-600">{item.material_code}</td>
                       <td className="px-3 py-2 text-right">
-                        <input type="number" className="oms-input text-xs py-1 w-20 text-right" min={0}
+                        <DecimalInput className="oms-input text-xs py-1 w-20 text-right"
                           value={item.qty}
-                          onChange={e => setEditForm(p => ({ ...p, items: p.items.map((it, idx) => idx === i ? { ...it, qty: Number(e.target.value) } : it) }))} />
+                          onValueChange={value => setEditForm(p => ({ ...p, items: p.items.map((it, idx) => idx === i ? { ...it, qty: value ?? 0 } : it) }))} />
                       </td>
                       <td className="px-3 py-2">
                         <input className="oms-input text-xs py-1" value={item.remark || ''}
@@ -421,7 +422,7 @@ export default function DeliverySheetsPage() {
                                               <td className="px-3 py-2 font-mono text-xs text-blue-600 whitespace-nowrap">{item.material_code}</td>
                                               <td className="px-3 py-2 text-slate-400">{item.spec || '—'}</td>
                                               <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.unit || 'PCS'}</td>
-                                              <td className="px-3 py-2 text-right font-medium">{Number(item.qty).toLocaleString()}</td>
+                                              <td className="px-3 py-2 text-right font-medium">{formatQuantity(item.qty)}</td>
                                               <td className="px-3 py-2 text-slate-400">{item.remark}</td>
                                             </tr>
                                           ))}

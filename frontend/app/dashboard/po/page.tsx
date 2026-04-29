@@ -1,7 +1,9 @@
 'use client'
+import DecimalInput from '@/components/DecimalInput'
 import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch, getSignatureUrl } from '@/lib/api'
+import { formatDecimal, formatQuantity } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, PO_STEPS, getPOActions } from '@/components/StatusFlow'
 import { SearchableSelect } from '@/components/SearchableSelect'
@@ -282,7 +284,8 @@ export default function PoPage() {
       const n = Number(v)
       return Number.isFinite(n) ? n : 0
     }
-    const fmt = (v: any) => num(v).toLocaleString()
+    const fmtMoney = (v: any) => formatDecimal(num(v))
+    const fmtQty = (v: any) => formatQuantity(num(v))
     const fmtText = (v: any) => txt(v).replace(/\n/g, '<br/>')
 
     const [data, company] = await Promise.all([
@@ -311,10 +314,10 @@ export default function PoPage() {
         <td class="col-code">${txt(item.material_code)}</td>
         <td class="col-name">${txt(item.material_name)}</td>
         <td class="col-spec">${txt(item.spec)}</td>
-        <td class="col-qty">${fmt(item.quantity)}</td>
+        <td class="col-qty">${fmtQty(item.quantity)}</td>
         <td class="col-unit" style="text-align:center">${txt(item.unit) || 'PCS'}</td>
-        <td class="col-price">${fmt(item.unit_price)}</td>
-        <td class="col-total">${fmt(item.total_price)}</td>
+        <td class="col-price">${fmtMoney(item.unit_price)}</td>
+        <td class="col-total">${fmtMoney(item.total_price)}</td>
         <td class="col-remark">${fmtText(item.remark)}</td>
       </tr>`).join('')
 
@@ -435,12 +438,12 @@ export default function PoPage() {
         <tfoot>
           <tr class="total-row">
             <td colspan="7">未稅 / Trước thuế</td>
-            <td style="font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums">${fmt(subTotal)}</td>
+            <td style="font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums">${fmtMoney(subTotal)}</td>
             <td></td>
           </tr>
           <tr class="total-row">
             <td colspan="7">含稅合計 / Tổng cộng sau thuế</td>
-            <td style="font-size:12px;color:#1a56db;white-space:nowrap;font-variant-numeric:tabular-nums">${fmt(total)}</td>
+            <td style="font-size:12px;color:#1a56db;white-space:nowrap;font-variant-numeric:tabular-nums">${fmtMoney(total)}</td>
             <td></td>
           </tr>
         </tfoot>
@@ -570,9 +573,9 @@ export default function PoPage() {
                     <td className="p-1"><input className={lockedInp} value={item.material_name} onChange={e=>updateItem(i,'material_name',e.target.value)} readOnly /></td>
                     <td className="p-1"><input className={lockedInp} value={item.spec} onChange={e=>updateItem(i,'spec',e.target.value)} readOnly style={{width:120}} /></td>
                     <td className="p-1"><input className={lockedInp} value={item.unit} onChange={e=>updateItem(i,'unit',e.target.value)} readOnly style={{width:70}} /></td>
-                    <td className="p-1"><input type="number" className={inp} style={{width:90}} value={item.quantity || ""} onChange={e=>updateItem(i,'quantity',Number(e.target.value))} /></td>
-                    <td className="p-1"><input type="number" className={inp} style={{width:110}} value={item.unit_price || ""} onChange={e=>updateItem(i,'unit_price',Number(e.target.value))} /></td>
-                    <td className="p-1 px-2 text-right text-slate-600 font-medium whitespace-nowrap">{Number(item.total_price).toLocaleString()}</td>
+                    <td className="p-1"><DecimalInput className={inp} style={{width:90}} value={item.quantity} onValueChange={value=>updateItem(i,'quantity',value ?? 0)} /></td>
+                    <td className="p-1"><DecimalInput className={inp} style={{width:110}} value={item.unit_price} onValueChange={value=>updateItem(i,'unit_price',value ?? 0)} /></td>
+                    <td className="p-1 px-2 text-right text-slate-600 font-medium whitespace-nowrap">{formatDecimal(item.total_price)}</td>
                     <td className="p-1"><input className={inp} style={{width:180}} value={item.remark} onChange={e=>updateItem(i,'remark',e.target.value)} /></td>
                     <td className="p-1 text-center"><button onClick={() => removeItem(i)} className="text-slate-300 hover:text-red-600 transition-colors">✕</button></td>
                   </tr>
@@ -581,9 +584,9 @@ export default function PoPage() {
               <tfoot>
                 <tr className="border-t border-slate-200">
                   <td colSpan={8} className="px-3 py-2 text-right text-[11px] text-slate-400 font-semibold uppercase">未稅合計</td>
-                  <td className="px-2 py-2 text-right text-slate-600 font-bold">{formTotal.toLocaleString()}</td>
+                  <td className="px-2 py-2 text-right text-slate-600 font-bold">{formatDecimal(formTotal)}</td>
                   <td className="px-2 py-2 text-right text-slate-700 font-bold" colSpan={2}>
-                    稅率 {form.tax_rate}%　幣別 {form.currency}　含稅 {(formTotal * (1 + (form.tax_rate || 8) / 100)).toLocaleString()}
+                    稅率 {form.tax_rate}%　幣別 {form.currency}　含稅 {formatDecimal(formTotal * (1 + (form.tax_rate || 8) / 100))}
                   </td>
                 </tr>
               </tfoot>
@@ -642,7 +645,7 @@ export default function PoPage() {
                         </td>
                         <td className="px-4 py-3 font-mono text-xs text-blue-600">{p.po_number}</td>
                         <td className="px-4 py-3 text-slate-800 font-medium max-w-[200px] truncate" title={p.supplier_name}>{p.supplier_name}</td>
-                        <td className="px-4 py-3 text-right text-slate-600 font-medium">{Number(p.total_amount).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-right text-slate-600 font-medium">{formatDecimal(p.total_amount)}</td>
                         <td className="px-4 py-3 text-slate-400 text-xs">{p.currency}</td>
                         <td className="px-4 py-3"><span className={sm.badge}>{sm.label}</span></td>
                         <td className="px-4 py-3 text-slate-300 text-xs">{p.created_at?.slice(0,10)}</td>
@@ -699,9 +702,9 @@ export default function PoPage() {
                                           <td className="px-3 py-2 font-mono text-blue-600 whitespace-nowrap">{item.material_code}</td>
                                           <td className="px-3 py-2 text-slate-600 whitespace-nowrap max-w-[160px] truncate" title={item.material_name}>{item.material_name}</td>
                                           <td className="px-3 py-2 text-slate-400 whitespace-nowrap max-w-[120px] truncate" title={item.spec}>{item.spec}</td>
-                                          <td className="px-3 py-2 text-right text-slate-600 font-medium whitespace-nowrap">{Number(item.quantity).toLocaleString()}</td>
-                                          <td className="px-3 py-2 text-right text-slate-600 whitespace-nowrap">{Number(item.unit_price).toLocaleString()}</td>
-                                          <td className="px-3 py-2 text-right text-slate-800 font-semibold whitespace-nowrap">{Number(item.total_price).toLocaleString()}</td>
+                                          <td className="px-3 py-2 text-right text-slate-600 font-medium whitespace-nowrap">{formatQuantity(item.quantity)}</td>
+                                          <td className="px-3 py-2 text-right text-slate-600 whitespace-nowrap">{formatDecimal(item.unit_price)}</td>
+                                          <td className="px-3 py-2 text-right text-slate-800 font-semibold whitespace-nowrap">{formatDecimal(item.total_price)}</td>
                                           <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.unit}</td>
                                           <td className="px-3 py-2 text-slate-400 whitespace-normal break-words max-w-[220px]">{item.remark}</td>
                                         </tr>
@@ -710,7 +713,7 @@ export default function PoPage() {
                                     <tfoot>
                                       <tr className="border-t border-blue-200 bg-blue-100/50">
                                         <td colSpan={6} className="px-3 py-2 text-right text-[10px] text-slate-300 font-semibold uppercase">未稅合計</td>
-                                        <td className="px-3 py-2 text-right text-slate-600 font-bold">{items.reduce((s,i)=>s+Number(i.total_price),0).toLocaleString()}</td>
+                                        <td className="px-3 py-2 text-right text-slate-600 font-bold">{formatDecimal(items.reduce((s,i)=>s+Number(i.total_price),0))}</td>
                                         <td colSpan={2} className="px-3 py-2 text-slate-400 text-xs">稅率 {Number((p as any).tax_rate || 8)}%　幣別 {p.currency || items[0]?.currency || 'VND'}</td>
                                       </tr>
                                     </tfoot>

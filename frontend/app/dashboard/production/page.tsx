@@ -1,7 +1,9 @@
 'use client'
+import DecimalInput from '@/components/DecimalInput'
 import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
+import { formatQuantity } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, PROD_STEPS, getProdActions } from '@/components/StatusFlow'
 import { can } from '@/lib/usePermissions'
@@ -162,7 +164,7 @@ export default function ProductionPage() {
       const n = Number(v)
       return Number.isFinite(n) ? n : 0
     }
-    const fmt = (v: any) => num(v).toLocaleString()
+    const fmt = (v: any) => formatQuantity(num(v))
 
     const detail = loadedProds[prod.id] || await apiFetch<Prod>(`/api/production/${prod.id}`)
     const company = await getCompany()
@@ -282,8 +284,8 @@ export default function ProductionPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1.5">生產數量 *</label>
-                  <input type="number" min="1" className="oms-input" value={form.planned_qty}
-                    onChange={e => { setForm(p => ({ ...p, planned_qty: Number(e.target.value) })); setStockCheck(null) }} />
+                  <DecimalInput className="oms-input" value={form.planned_qty}
+                    onValueChange={value => { setForm(p => ({ ...p, planned_qty: Math.max(1, value ?? 0) })); setStockCheck(null) }} />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1.5">關聯客戶訂單（選填）</label>
@@ -395,7 +397,7 @@ export default function ProductionPage() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1.5">生產數量</label>
-                <input type="number" min="1" className="oms-input" value={editForm.planned_qty} onChange={e => setEditForm(p => ({ ...p, planned_qty: Number(e.target.value) }))} />
+                <DecimalInput className="oms-input" value={editForm.planned_qty} onValueChange={value => setEditForm(p => ({ ...p, planned_qty: Math.max(1, value ?? 0) }))} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1.5">計劃開始</label>
@@ -469,8 +471,8 @@ export default function ProductionPage() {
                         </td>
                         <td className="px-3 py-2.5 font-mono text-xs text-blue-600 whitespace-nowrap">{p.prod_number}</td>
                         <td className="px-3 py-2.5 font-medium max-w-[200px] truncate" title={p.product_name}>{p.product_name}</td>
-                        <td className="px-3 py-2.5 text-right text-slate-600">{Number(p.planned_qty).toLocaleString()}</td>
-                        <td className="px-3 py-2.5 text-right text-emerald-600">{Number(p.produced_qty||0).toLocaleString()}</td>
+                        <td className="px-3 py-2.5 text-right text-slate-600">{formatQuantity(p.planned_qty)}</td>
+                        <td className="px-3 py-2.5 text-right text-emerald-600">{formatQuantity(p.produced_qty || 0)}</td>
                         <td className="px-3 py-2.5 text-slate-400 text-xs whitespace-nowrap">
                           {p.planned_start ? String(p.planned_start).slice(0,10) : '—'}
                           {p.planned_end ? ` ~ ${String(p.planned_end).slice(0,10)}` : ''}

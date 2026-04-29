@@ -1,6 +1,7 @@
 import { type CompanySettings } from './useCompany'
 import { SHARED_PRINT_ITEM_TABLE_CSS } from './printItemTableStyles'
 import { SHARED_PRINT_PARTY_TABLE_CSS } from './printPartyTableStyles'
+import { formatDecimal, formatQuantity } from './numberFormat'
 
 export function generateOrderHTML(data: any, signatureUrl?: string, company?: CompanySettings): string {
   const txt = (v: any) => {
@@ -13,7 +14,8 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
     const n = Number(v)
     return Number.isFinite(n) ? n : 0
   }
-  const fmt = (v: any) => num(v).toLocaleString()
+  const fmtMoney = (v: any) => formatDecimal(num(v))
+  const fmtQty = (v: any) => formatQuantity(num(v))
   const fmtText = (v: any) => txt(v).replace(/\n/g, '<br/>')
   const fmtDate = (v: any) => {
     const s = txt(v)
@@ -50,10 +52,10 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
       '<td class="col-code">' + skuVal + '</td>',
       '<td class="col-name">' + nameText + '</td>',
       '<td class="col-spec">' + specText + '</td>',
-      '<td class="col-qty">' + fmt(qty) + '</td>',
+      '<td class="col-qty">' + fmtQty(qty) + '</td>',
       '<td class="col-unit" style="text-align:center">' + (txt(item.unit) || 'PCS') + '</td>',
-      '<td class="col-price">' + fmt(unitPrice) + '</td>',
-      '<td class="col-amt">' + fmt(amt) + '</td>',
+      '<td class="col-price">' + fmtMoney(unitPrice) + '</td>',
+      '<td class="col-amt">' + fmtMoney(amt) + '</td>',
       '<td class="col-remark">' + fmtText(item.remark) + '</td>',
       '</tr>',
     ].join('')
@@ -128,13 +130,13 @@ export function generateOrderHTML(data: any, signatureUrl?: string, company?: Co
   parts.push('<table class="items"><thead><tr>')
   parts.push('<th style="width:1%">ST</th><th class="col-code">物料編號</th><th class="col-name">品名</th><th class="col-spec">規格</th><th class="col-qty">數量</th><th class="col-unit">單位</th><th class="col-price">單價</th><th class="col-amt">金額</th><th class="col-remark">備註</th>')
   parts.push('</tr></thead><tbody>' + itemRows + '</tbody>')
-  parts.push('<tfoot><tr class="total-row"><td colspan="7">小計 / Tổng chưa thuế</td><td>' + fmt(subtotal) + '</td><td></td></tr></tfoot>')
+  parts.push('<tfoot><tr class="total-row"><td colspan="7">小計 / Tổng chưa thuế</td><td>' + fmtMoney(subtotal) + '</td><td></td></tr></tfoot>')
   parts.push('</table>')
 
   // Summary
   parts.push('<div class="summary-right">')
-  parts.push('<div class="sum-row"><span>小計</span><span>' + fmt(subtotal) + '</span></div>')
-  parts.push('<div class="sum-row"><span>總計</span><span style="font-size:13px;color:#1a56db">' + fmt(total) + ' ' + (txt(data.currency) || 'VND') + '</span></div>')
+  parts.push('<div class="sum-row"><span>小計</span><span>' + fmtMoney(subtotal) + '</span></div>')
+  parts.push('<div class="sum-row"><span>總計</span><span style="font-size:13px;color:#1a56db">' + fmtMoney(total) + ' ' + (txt(data.currency) || 'VND') + '</span></div>')
   parts.push('</div>')
 
   // Notes

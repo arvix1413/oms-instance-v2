@@ -1,4 +1,5 @@
 'use client'
+import DecimalInput from '@/components/DecimalInput'
 import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
@@ -156,7 +157,7 @@ export default function StockAdjustmentsPage() {
                     <td className="p-1"><input className={inp} value={item.material_name} onChange={e => updateItem(i, 'material_name', e.target.value)} /></td>
                     <td className="p-1"><input className={inp} style={{width:45}} value={item.unit} onChange={e => updateItem(i, 'unit', e.target.value)} /></td>
                     <td className="p-1 px-2 text-right text-slate-400">{item.system_qty}</td>
-                    <td className="p-1"><input type="number" className={inp} style={{width:70}} value={item.actual_qty || ''} onChange={e => updateItem(i, 'actual_qty', Number(e.target.value))} /></td>
+                    <td className="p-1"><DecimalInput className={inp} style={{width:70}} value={item.actual_qty} onValueChange={value => updateItem(i, 'actual_qty', value ?? 0)} /></td>
                     <td className={`p-1 px-2 text-right font-semibold ${item.diff_qty > 0 ? 'text-emerald-600' : item.diff_qty < 0 ? 'text-red-500' : 'text-slate-400'}`}>
                       {item.diff_qty > 0 ? '+' : ''}{item.diff_qty}
                     </td>

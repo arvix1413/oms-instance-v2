@@ -1,8 +1,10 @@
 'use client'
 import { useDialog } from '@/components/Dialog'
+import DecimalInput from '@/components/DecimalInput'
 import FieldLockHint from '@/components/FieldLockHint'
 import { useEffect, useState } from 'react'
 import { apiFetch, API, getToken } from '@/lib/api'
+import { formatDecimal, formatInteger } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { getUser } from '@/lib/permissions'
 import { can } from '@/lib/usePermissions'
@@ -102,6 +104,8 @@ export default function BomPage() {
     const sup = suppliers.find(s => String(s.id) === supplierId)
     setEditing(p => ({ ...p, supplier_id: supplierId ? Number(supplierId) : null, supplier_name: sup?.name||'', currency: sup?.currency||'VND' }))
   }
+  const formatTiers = (tiers?: MoqTier[]) =>
+    normalizeMoqTiers(tiers).map((tier) => `${formatInteger(tier.moq)}/${formatDecimal(tier.price)}`).join(' | ')
   const updateTier = (tierIdx:number, field:'moq'|'price', val:number) => {
     setEditing(p => {
       const tiers = Array.isArray(p?.moq_tiers) ? [...p.moq_tiers] : emptyTiers()
@@ -193,26 +197,18 @@ export default function BomPage() {
               </div>
               <div>
                 <label className="block text-[11px] text-slate-500 mb-1.5">供應商單價</label>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  required
+                <DecimalInput
                   className={inp}
-                  value={editing.supplier_price ?? ''}
-                  onChange={e=>setEditing(p=>({...p,supplier_price:e.target.value === '' ? undefined : Number(e.target.value)}))}
+                  value={editing.supplier_price}
+                  onValueChange={value=>setEditing(p=>({...p,supplier_price:value}))}
                 />
               </div>
               <div>
                 <label className="block text-[11px] text-slate-500 mb-1.5">公司售價</label>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  required
+                <DecimalInput
                   className={inp}
-                  value={editing.company_price ?? ''}
-                  onChange={e=>setEditing(p=>({...p,company_price:e.target.value === '' ? undefined : Number(e.target.value)}))}
+                  value={editing.company_price}
+                  onValueChange={value=>setEditing(p=>({...p,company_price:value}))}
                 />
               </div>
               <div className="col-span-2">
@@ -221,19 +217,18 @@ export default function BomPage() {
                   {(editing.moq_tiers || emptyTiers()).map((tier, i) => (
                     <div key={i} className="grid grid-cols-[26px_1fr_1fr] gap-2 items-center">
                       <span className="text-[10px] text-slate-400 text-center">#{i + 1}</span>
-                      <input
-                        type="number"
+                      <DecimalInput
                         className={inp}
                         placeholder="MOQ"
-                        value={tier.moq || ''}
-                        onChange={e=>updateTier(i, 'moq', Number(e.target.value))}
+                        digits={0}
+                        value={tier.moq}
+                        onValueChange={value=>updateTier(i, 'moq', value ?? 0)}
                       />
-                      <input
-                        type="number"
+                      <DecimalInput
                         className={inp}
                         placeholder="單價"
-                        value={tier.price || ''}
-                        onChange={e=>updateTier(i, 'price', Number(e.target.value))}
+                        value={tier.price}
+                        onValueChange={value=>updateTier(i, 'price', value ?? 0)}
                       />
                     </div>
                   ))}
@@ -317,10 +312,11 @@ export default function BomPage() {
                       <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap">{b.brand||'—'}</td>
                       <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap">{b.cert_code||'—'}</td>
                       <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap max-w-[140px] truncate" title={b.supplier_name}>{b.supplier_name||'—'}</td>
-                      <td className="px-3 py-2.5 text-right text-slate-600 whitespace-nowrap">{Number(b.supplier_price).toLocaleString()}</td>
-                      <td className="px-3 py-2.5 text-right font-semibold text-slate-800 whitespace-nowrap">{Number(b.company_price).toLocaleString()}</td>
+                      <td className="px-3 py-2.5 text-right text-slate-600 whitespace-nowrap">{formatDecimal(b.supplier_price)}</td>
+                      <td className="px-3 py-2.5 text-right font-semibold text-slate-800 whitespace-nowrap">{formatDecimal(b.company_price)}</td>
                       <td className="px-3 py-2.5 text-slate-400 whitespace-nowrap">{b.currency}</td>
                       <td className="px-3 py-2.5 whitespace-nowrap">
+                        {!!normalizeMoqTiers((b as any).moq_tiers).length && <div className="text-[10px] text-slate-400 mb-1">{formatTiers((b as any).moq_tiers)}</div>}
                         <div className="flex gap-1">
                           {canEdit && <button onClick={()=>setEditing({ ...b, unit: normalizeUnit(b.unit), moq_tiers: (() => {
                             const parsed = normalizeMoqTiers((b as any).moq_tiers)

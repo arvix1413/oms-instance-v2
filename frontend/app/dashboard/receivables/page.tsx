@@ -1,7 +1,9 @@
 'use client'
+import DecimalInput from '@/components/DecimalInput'
 import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
+import { formatDecimal } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
 
 type AR = {
@@ -76,15 +78,15 @@ export default function ReceivablesPage() {
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="oms-card p-4">
           <div className="text-xs text-slate-400 mb-1">應收總額</div>
-          <div className="text-xl font-bold text-slate-800">{totalInvoiced.toLocaleString()}</div>
+          <div className="text-xl font-bold text-slate-800">{formatDecimal(totalInvoiced)}</div>
         </div>
         <div className="oms-card p-4">
           <div className="text-xs text-slate-400 mb-1">已收款</div>
-          <div className="text-xl font-bold text-emerald-600">{totalReceived.toLocaleString()}</div>
+          <div className="text-xl font-bold text-emerald-600">{formatDecimal(totalReceived)}</div>
         </div>
         <div className="oms-card p-4">
           <div className="text-xs text-slate-400 mb-1">待收款</div>
-          <div className="text-xl font-bold text-amber-500">{totalPending.toLocaleString()}</div>
+          <div className="text-xl font-bold text-amber-500">{formatDecimal(totalPending)}</div>
         </div>
       </div>
 
@@ -102,8 +104,8 @@ export default function ReceivablesPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] text-slate-500 mb-1.5">收款金額（應收：{Number(editing.invoice_amount||0).toLocaleString()}）</label>
-                <input type="number" className="oms-input" value={form.received_amount === 0 ? '' : form.received_amount} onChange={e => setForm(p => ({ ...p, received_amount: e.target.value === '' ? 0 : Number(e.target.value) }))} />
+                <label className="block text-[11px] text-slate-500 mb-1.5">收款金額（應收：{formatDecimal(editing.invoice_amount || 0)}）</label>
+                <DecimalInput className="oms-input" value={form.received_amount} onValueChange={value => setForm(p => ({ ...p, received_amount: value ?? 0 }))} />
               </div>
               <div>
                 <label className="block text-[11px] text-slate-500 mb-1.5">收款日期</label>
@@ -152,8 +154,8 @@ export default function ReceivablesPage() {
                       <td className="font-medium">{item.customer_name}</td>
                       <td className="text-slate-400 text-xs">{item.customer_po}</td>
                       <td className="text-slate-400 text-xs">{item.delivery_date}</td>
-                      <td className="text-right font-medium">{(item.invoice_amount || 0).toLocaleString()}</td>
-                      <td className="text-right text-emerald-600">{(item.received_amount || 0).toLocaleString()}</td>
+                      <td className="text-right font-medium">{formatDecimal(item.invoice_amount || 0)}</td>
+                      <td className="text-right text-emerald-600">{formatDecimal(item.received_amount || 0)}</td>
                       <td className="text-slate-400 text-xs">{item.payment_date}</td>
                       <td><span className={st.badge}>{st.label}</span></td>
                       <td>

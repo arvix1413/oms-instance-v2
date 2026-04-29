@@ -1,8 +1,10 @@
 'use client'
+import DecimalInput from '@/components/DecimalInput'
 import { generateDeliveryNoteHTML } from '@/lib/printDeliveryNote'
 import { useDialog } from '@/components/Dialog'
 import { Fragment, useEffect, useState } from 'react'
 import { apiFetch, getSignatureUrl } from '@/lib/api'
+import { formatQuantity } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, DN_STEPS, getDNActions } from '@/components/StatusFlow'
 import { can } from '@/lib/usePermissions'
@@ -450,14 +452,13 @@ export default function DeliveryNotesPage() {
                       <tr key={item.id} className="border-b border-slate-100 last:border-0">
                         <td className="px-3 py-2 text-slate-700 font-medium">{item.product_name}</td>
                         <td className="px-3 py-2 font-mono text-blue-600">{item.product_sku}</td>
-                        <td className="px-3 py-2 text-right text-slate-500">{item.qty.toLocaleString()}</td>
-                        <td className="px-3 py-2 text-right text-slate-500">{item.arrived_qty.toLocaleString()}</td>
-                        <td className="px-3 py-2 text-right text-slate-700 font-semibold">{item.remaining_qty.toLocaleString()}</td>
+                        <td className="px-3 py-2 text-right text-slate-500">{formatQuantity(item.qty)}</td>
+                        <td className="px-3 py-2 text-right text-slate-500">{formatQuantity(item.arrived_qty)}</td>
+                        <td className="px-3 py-2 text-right text-slate-700 font-semibold">{formatQuantity(item.remaining_qty)}</td>
                         <td className="px-3 py-2 text-right">
-                          <input type="number" className={`${inp} w-24 text-right`}
-                            min={0} max={item.remaining_qty}
+                          <DecimalInput className={`${inp} w-24 text-right`}
                             value={shippedQtys[item.id] ?? item.remaining_qty}
-                            onChange={e => setShippedQtys(p => ({ ...p, [item.id]: Number(e.target.value) }))} />
+                            onValueChange={value => setShippedQtys(p => ({ ...p, [item.id]: value ?? 0 }))} />
                         </td>
                       </tr>
                     ))}
@@ -512,7 +513,7 @@ export default function DeliveryNotesPage() {
                     <option value="">-- 選擇物料 --</option>
                     {editOrderItems.map(item => (
                       <option key={item.id} value={String(item.id)}>
-                        {item.product_sku} / {item.product_name}（剩餘 {Number(item.remaining_qty || 0).toLocaleString()}）
+                        {item.product_sku} / {item.product_name}（剩餘 {formatQuantity(item.remaining_qty || 0)}）
                       </option>
                     ))}
                   </select>
@@ -561,19 +562,16 @@ export default function DeliveryNotesPage() {
                                 }))}
                               />
                             </td>
-                            <td className="px-3 py-2 text-right text-slate-500">{linkedOrder ? Number(linkedOrder.qty).toLocaleString() : '—'}</td>
-                            <td className="px-3 py-2 text-right text-slate-500">{linkedOrder ? Number(linkedOrder.arrived_qty).toLocaleString() : '—'}</td>
-                            <td className="px-3 py-2 text-right text-slate-700 font-medium">{currentMax !== undefined ? Number(currentMax).toLocaleString() : '—'}</td>
+                            <td className="px-3 py-2 text-right text-slate-500">{linkedOrder ? formatQuantity(linkedOrder.qty) : '—'}</td>
+                            <td className="px-3 py-2 text-right text-slate-500">{linkedOrder ? formatQuantity(linkedOrder.arrived_qty) : '—'}</td>
+                            <td className="px-3 py-2 text-right text-slate-700 font-medium">{currentMax !== undefined ? formatQuantity(currentMax) : '—'}</td>
                             <td className="px-3 py-2 text-right">
-                              <input
-                                type="number"
+                              <DecimalInput
                                 className="oms-input text-xs py-1 w-24 text-right"
-                                min={0}
-                                max={currentMax}
                                 value={item.qty}
-                                onChange={e => setEditForm(p => ({
+                                onValueChange={value => setEditForm(p => ({
                                   ...p,
-                                  items: p.items.map(it => it._key === item._key ? { ...it, qty: Number(e.target.value || 0) } : it)
+                                  items: p.items.map(it => it._key === item._key ? { ...it, qty: value ?? 0 } : it)
                                 }))}
                               />
                             </td>
@@ -652,9 +650,9 @@ export default function DeliveryNotesPage() {
                         </td>
                         <td className="px-3 py-2.5 font-mono text-xs text-blue-600 whitespace-nowrap">{order.order_po_number || '—'}</td>
                         <td className="px-3 py-2.5 font-medium whitespace-nowrap max-w-[240px] truncate" title={order.customer_name}>{order.customer_name || '—'}</td>
-                        <td className="px-3 py-2.5 text-right text-slate-600">{Number(order.order_qty).toLocaleString()}</td>
-                        <td className="px-3 py-2.5 text-right text-emerald-700 font-medium">{Number(order.shipped_qty).toLocaleString()}</td>
-                        <td className="px-3 py-2.5 text-right text-amber-700 font-medium">{Number(order.remaining_qty).toLocaleString()}</td>
+                        <td className="px-3 py-2.5 text-right text-slate-600">{formatQuantity(order.order_qty)}</td>
+                        <td className="px-3 py-2.5 text-right text-emerald-700 font-medium">{formatQuantity(order.shipped_qty)}</td>
+                        <td className="px-3 py-2.5 text-right text-amber-700 font-medium">{formatQuantity(order.remaining_qty)}</td>
                         <td className="px-3 py-2.5 min-w-[200px]">
                           <div className="flex items-center gap-2">
                             <div className="h-2 flex-1 bg-slate-100 rounded-full overflow-hidden">
@@ -719,7 +717,7 @@ export default function DeliveryNotesPage() {
                                               </td>
                                               <td className="px-3 py-2 font-mono text-xs text-blue-600 whitespace-nowrap">{dn.dn_number}</td>
                                               <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{dn.delivery_date ? String(dn.delivery_date).slice(0, 10) : '—'}</td>
-                                              <td className="px-3 py-2 text-right text-slate-700 font-medium">{Number(dn.batch_qty || 0).toLocaleString()}</td>
+                                              <td className="px-3 py-2 text-right text-slate-700 font-medium">{formatQuantity(dn.batch_qty || 0)}</td>
                                               <td className="px-3 py-2 text-slate-400 max-w-[220px] truncate" title={dn.remark || ''}>{dn.remark || '—'}</td>
                                               <td className="px-3 py-2 whitespace-nowrap"><span className={STATUS_MAP[dn.status]?.badge}>{STATUS_MAP[dn.status]?.label || dn.status}</span></td>
                                               <td className="px-3 py-2 whitespace-nowrap" onClick={e => e.stopPropagation()}>
@@ -759,7 +757,7 @@ export default function DeliveryNotesPage() {
                                                               <td className="px-3 py-2 font-mono text-xs text-blue-600 whitespace-nowrap">{item.material_code}</td>
                                                               <td className="px-3 py-2 text-slate-400">{(item as any).spec || '—'}</td>
                                                               <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.unit || 'PCS'}</td>
-                                                              <td className="px-3 py-2 text-right font-medium">{Number(item.qty).toLocaleString()}</td>
+                                                              <td className="px-3 py-2 text-right font-medium">{formatQuantity(item.qty)}</td>
                                                               <td className="px-3 py-2 text-slate-400">{item.remark}</td>
                                                             </tr>
                                                           ))}

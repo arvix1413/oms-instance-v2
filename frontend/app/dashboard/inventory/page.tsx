@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
+import { formatQuantity } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
 
 type Inv = {
@@ -77,7 +78,7 @@ export default function InventoryPage() {
         </div>
         <div className="oms-card p-4">
           <div className="text-xs text-slate-400 mb-1">篩選結果庫存總量</div>
-          <div className="text-2xl font-bold text-blue-600">{totalStock.toLocaleString()}</div>
+          <div className="text-2xl font-bold text-blue-600">{formatQuantity(totalStock)}</div>
         </div>
         <div className="oms-card p-4">
           <div className="text-xs text-slate-400 mb-1">零庫存品項</div>
@@ -144,7 +145,7 @@ export default function InventoryPage() {
                         <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap max-w-[140px] truncate" title={item.supplier_name}>{item.supplier_name || '—'}</td>
                         <td className="px-3 py-2.5 text-right whitespace-nowrap">
                           <span className={`font-bold text-base ${stock <= 0 ? 'text-red-500' : stock < 10 ? 'text-orange-500' : 'text-emerald-600'}`}>
-                            {stock.toLocaleString()}
+                            {formatQuantity(stock)}
                           </span>
                           <span className="text-xs text-slate-400 ml-1">{item.unit}</span>
                         </td>

@@ -1,7 +1,9 @@
 'use client'
+import DecimalInput from '@/components/DecimalInput'
 import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
+import { formatDecimal, formatQuantity } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, GR_STEPS, getGRActions } from '@/components/StatusFlow'
 
@@ -128,9 +130,9 @@ export default function GoodsReceiptsPage() {
                     <td className="p-1"><input className={inp} value={item.material_name} onChange={e => updateItem(i, 'material_name', e.target.value)} /></td>
                     <td className="p-1"><input className={inp} style={{width:80}} value={item.spec} onChange={e => updateItem(i, 'spec', e.target.value)} /></td>
                     <td className="p-1"><input className={inp} style={{width:45}} value={item.unit} onChange={e => updateItem(i, 'unit', e.target.value)} /></td>
-                    <td className="p-1"><input type="number" className={inp} style={{width:65}} value={item.ordered_qty || ''} onChange={e => updateItem(i, 'ordered_qty', Number(e.target.value))} /></td>
-                    <td className="p-1"><input type="number" className={inp} style={{width:65}} value={item.received_qty || ''} onChange={e => updateItem(i, 'received_qty', Number(e.target.value))} /></td>
-                    <td className="p-1"><input type="number" className={inp} style={{width:80}} value={item.unit_price || ''} onChange={e => updateItem(i, 'unit_price', Number(e.target.value))} /></td>
+                    <td className="p-1"><DecimalInput className={inp} style={{width:65}} value={item.ordered_qty} onValueChange={value => updateItem(i, 'ordered_qty', value ?? 0)} /></td>
+                    <td className="p-1"><DecimalInput className={inp} style={{width:65}} value={item.received_qty} onValueChange={value => updateItem(i, 'received_qty', value ?? 0)} /></td>
+                    <td className="p-1"><DecimalInput className={inp} style={{width:80}} value={item.unit_price} onValueChange={value => updateItem(i, 'unit_price', value ?? 0)} /></td>
                     <td className="p-1">
                       <select className={inp} style={{width:55}} value={item.currency} onChange={e => updateItem(i, 'currency', e.target.value)}>
                         <option>VND</option><option>TWD</option><option>CNY</option><option>USD</option>
@@ -179,8 +181,8 @@ export default function GoodsReceiptsPage() {
                     <td className="border border-slate-200 px-3 py-2">{item.material_name}</td>
                     <td className="border border-slate-200 px-3 py-2 text-slate-500">{item.spec}</td>
                     <td className="border border-slate-200 px-3 py-2">{item.unit}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-right">{item.ordered_qty}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-right font-semibold text-emerald-600">{item.received_qty}</td>
+                    <td className="border border-slate-200 px-3 py-2 text-right">{formatQuantity(item.ordered_qty)}</td>
+                    <td className="border border-slate-200 px-3 py-2 text-right font-semibold text-emerald-600">{formatQuantity(item.received_qty)}</td>
                     <td className="border border-slate-200 px-3 py-2 text-slate-400">{item.batch_no}</td>
                     <td className="border border-slate-200 px-3 py-2 text-slate-400">{item.remark}</td>
                   </tr>
