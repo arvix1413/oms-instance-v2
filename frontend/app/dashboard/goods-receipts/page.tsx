@@ -79,6 +79,7 @@ export default function GoodsReceiptsPage() {
   const filtered = grs.filter(g => !search || g.gr_number.toLowerCase().includes(search.toLowerCase()) || g.supplier_name.toLowerCase().includes(search.toLowerCase()))
   const { page, setPage, totalPages, paged, total } = usePagination(filtered, 10)
   const inp = 'oms-input text-xs py-1.5'
+  const lockedInp = `${inp} bom-locked-field`
 
   return (
     <div>
@@ -105,7 +106,7 @@ export default function GoodsReceiptsPage() {
             </div>
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">供應商 *</label>
-              <input className={inp} value={form.supplier_name} onChange={e => setForm(p => ({ ...p, supplier_name: e.target.value }))} />
+              <input className={form.po_id ? lockedInp : inp} value={form.supplier_name} onChange={e => setForm(p => ({ ...p, supplier_name: e.target.value }))} readOnly={!!form.po_id} />
             </div>
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">收貨日期</label>
@@ -126,15 +127,15 @@ export default function GoodsReceiptsPage() {
               <tbody>
                 {form.items.map((item, i) => (
                   <tr key={i} className="border-b border-slate-100">
-                    <td className="p-1"><input className={inp} style={{width:90}} value={item.material_code} onChange={e => updateItem(i, 'material_code', e.target.value)} /></td>
-                    <td className="p-1"><input className={inp} value={item.material_name} onChange={e => updateItem(i, 'material_name', e.target.value)} /></td>
-                    <td className="p-1"><input className={inp} style={{width:80}} value={item.spec} onChange={e => updateItem(i, 'spec', e.target.value)} /></td>
-                    <td className="p-1"><input className={inp} style={{width:45}} value={item.unit} onChange={e => updateItem(i, 'unit', e.target.value)} /></td>
-                    <td className="p-1"><DecimalInput className={inp} style={{width:65}} value={item.ordered_qty} onValueChange={value => updateItem(i, 'ordered_qty', value ?? 0)} /></td>
+                    <td className="p-1"><input className={item.po_item_id ? lockedInp : inp} style={{width:90}} value={item.material_code} onChange={e => updateItem(i, 'material_code', e.target.value)} readOnly={!!item.po_item_id} /></td>
+                    <td className="p-1"><input className={item.po_item_id ? lockedInp : inp} value={item.material_name} onChange={e => updateItem(i, 'material_name', e.target.value)} readOnly={!!item.po_item_id} /></td>
+                    <td className="p-1"><input className={item.po_item_id ? lockedInp : inp} style={{width:80}} value={item.spec} onChange={e => updateItem(i, 'spec', e.target.value)} readOnly={!!item.po_item_id} /></td>
+                    <td className="p-1"><input className={item.po_item_id ? lockedInp : inp} style={{width:45}} value={item.unit} onChange={e => updateItem(i, 'unit', e.target.value)} readOnly={!!item.po_item_id} /></td>
+                    <td className="p-1"><DecimalInput className={item.po_item_id ? lockedInp : inp} style={{width:65}} value={item.ordered_qty} onValueChange={value => updateItem(i, 'ordered_qty', value ?? 0)} readOnly={!!item.po_item_id} /></td>
                     <td className="p-1"><DecimalInput className={inp} style={{width:65}} value={item.received_qty} onValueChange={value => updateItem(i, 'received_qty', value ?? 0)} /></td>
-                    <td className="p-1"><DecimalInput className={inp} style={{width:80}} value={item.unit_price} onValueChange={value => updateItem(i, 'unit_price', value ?? 0)} /></td>
+                    <td className="p-1"><DecimalInput className={item.po_item_id ? lockedInp : inp} style={{width:80}} value={item.unit_price} onValueChange={value => updateItem(i, 'unit_price', value ?? 0)} readOnly={!!item.po_item_id} /></td>
                     <td className="p-1">
-                      <select className={inp} style={{width:55}} value={item.currency} onChange={e => updateItem(i, 'currency', e.target.value)}>
+                      <select className={item.po_item_id ? lockedInp : inp} style={{width:55}} value={item.currency} onChange={e => updateItem(i, 'currency', e.target.value)} disabled={!!item.po_item_id}>
                         <option>VND</option><option>TWD</option><option>CNY</option><option>USD</option>
                       </select>
                     </td>

@@ -2208,10 +2208,37 @@ app.post('/api/goods-receipts', authMiddleware, requirePerm('po.create'), async 
     const grId = r.insertId
     if (b.items?.length) {
       for (const item of b.items) {
-        const materialId = await resolveMaterialId(item.material_id, item.material_code)
+        let materialId = await resolveMaterialId(item.material_id, item.material_code)
+        let materialCode = item.material_code || ''
+        let materialName = item.material_name || ''
+        let spec = item.spec || ''
+        let unit = item.unit || 'PCS'
+        let orderedQty = item.ordered_qty || 0
+        let unitPrice = item.unit_price || 0
+        let currency = item.currency || 'VND'
+
+        if (item.po_item_id) {
+          const poItem = await queryOne<any>(`
+            SELECT pi.*, m.material_code as live_material_code, m.material_name as live_material_name, m.spec as live_spec, m.unit as live_unit, m.currency as live_currency
+            FROM po_items pi
+            LEFT JOIN materials m ON pi.material_id = m.id AND m.deleted_at IS NULL
+            WHERE pi.id=?
+            LIMIT 1
+          `, [item.po_item_id])
+          if (poItem) {
+            materialId = await resolveMaterialId(poItem.material_id, poItem.material_code)
+            materialCode = poItem.live_material_code || poItem.material_code || materialCode
+            materialName = poItem.live_material_name || poItem.material_name || materialName
+            spec = poItem.live_spec || poItem.spec || spec
+            unit = poItem.live_unit || poItem.unit || unit
+            orderedQty = poItem.quantity || orderedQty
+            unitPrice = poItem.unit_price || unitPrice
+            currency = poItem.live_currency || poItem.currency || currency
+          }
+        }
         await execute(
           'INSERT INTO goods_receipt_items (gr_id,po_item_id,material_id,material_code,material_name,spec,unit,ordered_qty,received_qty,unit_price,currency,batch_no,remark) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
-          [grId,item.po_item_id||null,materialId,item.material_code,item.material_name,item.spec||'',item.unit||'PCS',item.ordered_qty||0,item.received_qty,item.unit_price||0,item.currency||'VND',item.batch_no||'',item.remark||'']
+          [grId,item.po_item_id||null,materialId,materialCode,materialName,spec,unit,orderedQty,item.received_qty,unitPrice,currency,item.batch_no||'',item.remark||'']
         )
       }
     }
