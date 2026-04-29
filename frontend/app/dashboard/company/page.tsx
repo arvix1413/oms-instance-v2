@@ -1,7 +1,7 @@
 'use client'
 import { useDialog } from '@/components/Dialog'
 import { useEffect, useState, useRef } from 'react'
-import { apiFetch, API, getToken } from '@/lib/api'
+import { apiFetch, apiFetchRaw, API } from '@/lib/api'
 import { can } from '@/lib/usePermissions'
 import { useRouter } from 'next/navigation'
 import { clearCompanyCache, type CompanySettings } from '@/lib/useCompany'
@@ -40,7 +40,8 @@ export default function CompanyPage() {
     setUploading(true)
     try {
       const fd = new FormData(); fd.append('file', file)
-      const res = await fetch(`${API}/api/upload`, { method: 'POST', headers: { Authorization: `Bearer ${getToken()}` }, body: fd })
+      const res = await apiFetchRaw('/api/upload', { method: 'POST', body: fd })
+      if (!res.ok) throw new Error('上傳失敗')
       const data = await res.json()
       setForm(p => ({ ...p, logo_url: data.url || null }))
       toast('Logo 已上傳')

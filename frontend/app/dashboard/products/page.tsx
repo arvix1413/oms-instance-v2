@@ -3,7 +3,7 @@ import DecimalInput from '@/components/DecimalInput'
 import { useDialog } from '@/components/Dialog'
 import FieldLockHint from '@/components/FieldLockHint'
 import { useEffect, useState } from 'react'
-import { apiFetch, API, getToken } from '@/lib/api'
+import { apiFetch, apiFetchRaw } from '@/lib/api'
 import { formatDecimal, formatQuantity } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
 
@@ -26,7 +26,8 @@ export default function ProductsPage() {
     setUploading(true)
     try {
       const fd = new FormData(); fd.append('file', file)
-      const res = await fetch(`${API}/api/upload`, { method: 'POST', headers: { Authorization: `Bearer ${getToken()}` }, body: fd })
+      const res = await apiFetchRaw('/api/upload', { method: 'POST', body: fd })
+      if (!res.ok) throw new Error('上傳失敗')
       const data = await res.json()
       return data.url || ''
     } finally { setUploading(false) }
