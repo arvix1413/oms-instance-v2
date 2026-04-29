@@ -8,12 +8,12 @@ export const metadata: Metadata = {
   description: '製造業訂單、BOM、採購管理系統',
   icons: {
     icon: [
-      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
     ],
     apple: [
-      { url: '/apple-icon.svg', type: 'image/svg+xml' },
+      { url: '/apple-touch-icon.svg', type: 'image/svg+xml' },
     ],
-    shortcut: ['/icon.svg'],
+    shortcut: ['/favicon.svg'],
   },
 }
 

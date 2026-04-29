@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="oms-fg-bg" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0b3b66"/>
+      <stop offset="1" stop-color="#0f766e"/>
+    </linearGradient>
+    <linearGradient id="oms-fg-accent" x1="18" y1="20" x2="45" y2="46" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f8fafc"/>
+      <stop offset="1" stop-color="#bfdbfe"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#oms-fg-bg)"/>
+  <path d="M20 22.5 32 16l12 6.5v18L32 47l-12-6.5v-18Z" fill="none" stroke="url(#oms-fg-accent)" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M20 22.5 32 29l12-6.5" fill="none" stroke="url(#oms-fg-accent)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M32 29v18" fill="none" stroke="url(#oms-fg-accent)" stroke-width="4" stroke-linecap="round"/>
+  <path d="m25.5 33 4.5 4.5L39.5 28" fill="none" stroke="#f59e0b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
