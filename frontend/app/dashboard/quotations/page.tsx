@@ -282,8 +282,9 @@ export default function QuotationsPage() {
 
       return `
       <tr>
-        <td style="text-align:center;font-size:11px">${idx+1}</td>
+        <td class="col-st" style="text-align:center;font-size:11px">${idx+1}</td>
         <td style="font-size:11px">${txt(item.item_name)}</td>
+        <td class="col-code" style="text-align:center;font-size:11px">${txt(item.material_code)}</td>
         <td class="col-spec" style="font-size:11px">${txt(item.spec)}</td>
         <td class="col-unit" style="text-align:center;font-size:11px">${txt(item.unit) || 'PCS'}</td>
         <td class="col-moq" style="text-align:center;font-size:11px">${moqCell}</td>
@@ -389,8 +390,9 @@ export default function QuotationsPage() {
 
       <table class="items">
         <thead><tr>
-          <th style="width:1%">ST</th>
+          <th class="col-st">ST</th>
           <th class="col-name">品名 / Products</th>
+          <th class="col-code">物料編號</th>
           <th class="col-spec">規格</th>
           <th class="col-unit">單位</th>
           <th class="col-moq">MOQ</th>
