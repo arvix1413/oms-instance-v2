@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { DialogProvider } from '@/components/Dialog'
 import NumberInputWheelGuard from '@/components/NumberInputWheelGuard'
+import HorizontalTableWheelBridge from '@/components/HorizontalTableWheelBridge'
 
 export const metadata: Metadata = {
   title: 'OMS 訂單管理系統',
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-gray-50 text-gray-900">
         <DialogProvider>
           <NumberInputWheelGuard />
+          <HorizontalTableWheelBridge />
           {children}
         </DialogProvider>
       </body>
