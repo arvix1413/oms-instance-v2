@@ -572,8 +572,7 @@ export default function CustomerOrdersPage() {
                               ) : items.length === 0 ? (
                                 <div className="expand-row-empty">尚無品項</div>
                               ) : (
-                                <div className="table-scroll-x">
-                                  <table className="w-full text-xs" style={{ minWidth: 1080 }}>
+                                <table className="w-full text-xs">
                                   <thead><tr className="layer-head-l2">
                                     <th className="px-4 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">料號</th>
                                     <th className="px-4 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">品名</th>
@@ -600,8 +599,7 @@ export default function CustomerOrdersPage() {
                                       </tr>
                                     ))}
                                   </tbody>
-                                  </table>
-                                </div>
+                                </table>
                               )}
                             </div>
                           </td>

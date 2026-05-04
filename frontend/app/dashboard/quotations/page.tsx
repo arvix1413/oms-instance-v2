@@ -648,8 +648,8 @@ export default function QuotationsPage() {
                                   <div className="w-3 h-3 border border-slate-300 border-t-slate-500 rounded-full animate-spin"/>載入中...
                                 </div>
                               ) : (
-                                <div className="table-scroll-x">
-                                  <table className="w-full text-xs" style={{minWidth:980}}>
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-xs" style={{minWidth:600}}>
                                     <thead><tr className="layer-head-l2">
                                       {['品名','物料編號','規格','單位','MOQ / 單價（阶梯）','備註'].map(h=>(
                                         <th key={h} className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>

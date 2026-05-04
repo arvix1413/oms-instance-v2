@@ -67,19 +67,12 @@ input[type="number"] { -moz-appearance: textfield; }
 /* Unified hierarchy style tokens (L1 order/list row -> L2 expanded panel -> L3 nested detail) */
 .layer-row-open { @apply bg-slate-100; box-shadow: inset 0 0 0 1px rgba(59,130,246,0.16); }
 .layer-row-hover { @apply hover:bg-slate-50/70; }
-.layer-panel-l2 { @apply bg-gradient-to-b from-blue-50/85 to-blue-100/70 border-l-4 border-blue-300; padding: 12px 0 10px 16px; }
+.layer-panel-l2 { @apply bg-gradient-to-b from-blue-50/85 to-blue-100/70 border-l-4 border-blue-300 pl-3; }
 .layer-head-l2 { @apply border-b border-blue-200 bg-blue-100/70; }
 .layer-row-l2-open { @apply bg-blue-100/80; }
 .layer-row-l2-hover { @apply hover:bg-blue-100/50; }
-.layer-panel-l3 { @apply bg-gradient-to-b from-sky-100/70 to-cyan-100/70 border-l-4 border-cyan-300; padding: 10px 0 2px 40px; }
+.layer-panel-l3 { @apply pl-10 pr-0 py-0 bg-gradient-to-b from-sky-100/70 to-cyan-100/70 border-l-4 border-cyan-300; }
 .layer-head-l3 { @apply border-b border-cyan-200 bg-cyan-100/80; }
-.layer-panel-l2 > .table-scroll-x,
-.layer-panel-l2 > .overflow-x-auto,
-.layer-panel-l3 > .table-scroll-x,
-.layer-panel-l3 > .overflow-x-auto {
-  padding-right: 12px;
-  padding-bottom: 4px;
-}
 
 .table-scroll-x,
 .overflow-x-auto.overscroll-x-contain,
