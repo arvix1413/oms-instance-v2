@@ -503,8 +503,8 @@ export default function ProductionPage() {
                                 if (!detail) return <div className="px-4 py-3 text-xs text-slate-400 flex items-center gap-2"><div className="w-3 h-3 border border-slate-300 border-t-slate-500 rounded-full animate-spin"/>載入中...</div>
                                 const mats = detail.materials || []
                                 return mats.length > 0 ? (
-                                <div className="overflow-x-auto">
-                                  <table className="w-full text-xs" style={{minWidth:500}}>
+                                <div className="table-scroll-x">
+                                  <table className="w-full text-xs" style={{minWidth:960}}>
                                     <thead><tr className="layer-head-l2">
                                       {['料號','材料名稱','規格','單位','計劃用量','實際領料'].map(h => (
                                         <th key={h} className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
@@ -524,7 +524,7 @@ export default function ProductionPage() {
                                     </tbody>
                                   </table>
                                 </div>
-                              ) : (
+                                ) : (
                                 <div className="px-4 py-3 text-xs text-slate-400">
                                   {detail.remark ? `備註：${detail.remark}` : '無材料明細'}
                                 </div>
