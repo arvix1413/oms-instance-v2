@@ -711,8 +711,8 @@ export default function DeliveryNotesPage() {
                               {(order.notes || []).length === 0 ? (
                                 <div className="px-5 py-6 text-xs text-slate-400">此訂單尚無出貨批次</div>
                               ) : (
-                                <div className="overflow-x-auto">
-                                  <table className="w-full text-xs" style={{minWidth:900}}>
+                                <div className="table-scroll-x">
+                                  <table className="w-full text-xs" style={{ minWidth: 980 }}>
                                     <thead><tr className="layer-head-l2">
                                       <th className="w-8" />
                                       <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">出貨單號</th>
@@ -754,14 +754,15 @@ export default function DeliveryNotesPage() {
                                             </tr>
                                             {isDnOpen && (
                                               <tr key={`${dn.id}-items`} className="border-b border-slate-100">
-                                                <td colSpan={7} className="layer-panel-l3">
+                                                <td colSpan={7} className="px-0 py-0">
+                                                  <div className="layer-panel-l3">
                                                   {items.length === 0 ? (
                                                     <div className="expand-row-loading">
                                                       <div className="w-3 h-3 border border-slate-300 border-t-slate-500 rounded-full animate-spin"/>載入中...
                                                     </div>
                                                   ) : (
-                                                    <div className="overflow-x-auto">
-                                                      <table className="w-full text-xs" style={{minWidth:600}}>
+                                                    <div className="table-scroll-x">
+                                                      <table className="w-full text-xs" style={{ minWidth: 920 }}>
                                                         <thead><tr className="layer-head-l3">
                                                           <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">品名</th>
                                                           <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">物料編號</th>
@@ -785,6 +786,7 @@ export default function DeliveryNotesPage() {
                                                       </table>
                                                     </div>
                                                   )}
+                                                  </div>
                                                 </td>
                                               </tr>
                                             )}

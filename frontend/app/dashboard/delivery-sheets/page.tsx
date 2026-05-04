@@ -432,8 +432,8 @@ export default function DeliverySheetsPage() {
                                       <div className="w-3 h-3 border border-slate-300 border-t-slate-500 rounded-full animate-spin"/>載入中...
                                     </div>
                                   ) : (
-                                    <div className="overflow-x-auto">
-                                      <table className="w-full text-xs" style={{minWidth:500}}>
+                                    <div className="table-scroll-x">
+                                      <table className="w-full text-xs" style={{ minWidth: 920 }}>
                                         <thead><tr className="layer-head-l2">
                                           {['品名','物料編號','規格','單位','數量','備註'].map(h => (
                                             <th key={h} className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
