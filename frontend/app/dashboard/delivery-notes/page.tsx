@@ -711,7 +711,7 @@ export default function DeliveryNotesPage() {
                               {(order.notes || []).length === 0 ? (
                                 <div className="px-5 py-6 text-xs text-slate-400">此訂單尚無出貨批次</div>
                               ) : (
-                                <div className="table-scroll-x no-sticky-cols">
+                                <div className="table-scroll-x">
                                   <table className="w-full text-xs" style={{ minWidth: 980 }}>
                                     <thead><tr className="layer-head-l2">
                                       <th className="w-8" />
@@ -761,7 +761,7 @@ export default function DeliveryNotesPage() {
                                                       <div className="w-3 h-3 border border-slate-300 border-t-slate-500 rounded-full animate-spin"/>載入中...
                                                     </div>
                                                   ) : (
-                                                    <div className="table-scroll-x no-sticky-cols">
+                                                    <div className="table-scroll-x">
                                                       <table className="w-full text-xs" style={{ minWidth: 920 }}>
                                                         <thead><tr className="layer-head-l3">
                                                           <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">品名</th>
