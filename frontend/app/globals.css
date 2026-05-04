@@ -90,6 +90,12 @@ input[type="number"] { -moz-appearance: textfield; }
   --sticky-col-1-width: 170px;
   --sticky-col-2-width: 220px;
 }
+.expand-row-wrap .table-scroll-x > table,
+.expand-row-wrap .overflow-x-auto.overscroll-x-contain > table,
+.expand-row-wrap .oms-card .overflow-x-auto > table {
+  width: max-content;
+  min-width: max(max-content, calc(100% + 360px));
+}
 .table-scroll-x > table thead th,
 .overflow-x-auto.overscroll-x-contain > table thead th,
 .oms-card .overflow-x-auto > table thead th,
