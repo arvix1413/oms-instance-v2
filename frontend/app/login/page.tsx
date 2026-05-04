@@ -46,7 +46,7 @@ export default function LoginPage() {
               <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">Email</label>
               <input type="email" required value={form.email}
                 onChange={e => setForm(p => ({...p, email: e.target.value}))}
-                className="oms-input" placeholder="admin@oms.com" />
+                className="oms-input" placeholder="name@company.com" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">密碼</label>
@@ -65,7 +65,7 @@ export default function LoginPage() {
               {loading ? '登入中...' : '登入'}
             </button>
           </form>
-          <p className="text-center text-[11px] text-slate-300 mt-6">admin@oms.com · admin123</p>
+          <p className="text-center text-[11px] text-slate-400 mt-6">請使用個人帳號登入。如未開通，請聯絡管理員。</p>
         </div>
       </div>
     </div>

@@ -1,94 +1,290 @@
-# OMS - Order Management System
+# OMS Instance V2
 
-FAN YONG CO., LTD 訂單管理系統，部署在 VPS 雲端伺服器，使用 Docker 容器化運行。
+OMS 是 FAN YONG CO., LTD 的订单管理系统，覆盖从客户订单、BOM、采购、入库、出货，到库存、利润追踪、权限和审计日志的一整条业务链。
 
-## 線上地址
+这份 README 不是对客户的简介，而是给新接手的工程师或 AI 的项目地图。目标是让接手者在 5 分钟内知道：项目做什么、关键逻辑在哪、如何本地启动、如何部署、改动后怎么验证。
 
-- 前端：http://43.133.56.234
-- 後端 API：http://43.133.56.234/api
-- 預設帳號：`admin@oms.com` / `admin123`
+## 1. Current Environment
 
-## 技術棧
+### Branch To Environment
+- `stg` -> STG 环境，服务器 `43.133.56.234`
+- `prd` -> PRD 环境，服务器 `43.160.199.226`
 
-- **前端**：Next.js 14 + TypeScript + Tailwind CSS
-- **後端**：Hono + Node.js + MySQL
-- **部署**：Docker Compose + GitHub Actions CI/CD
-- **測試**：Playwright E2E
+### Online URLs
+- STG 前端: `http://43.133.56.234`
+- STG 后端: `http://43.133.56.234:3001`
+- PRD 前端: `http://43.160.199.226`
+- PRD 后端: `http://43.160.199.226:3001`
 
-## 功能模組
+### Account Access
+- 请使用个人账号登录
+- 不要在 README、登录页或其他入口展示共用主账号密码
+- 如需开通或重置账号，请由管理员处理
 
-### 業務流程
-- 客戶訂單管理（建立 → 出貨 → 完成）
-- BOM 材料明細管理（含圖片上傳）
-- 採購單管理（草稿 → 核准 → 發送 → 收貨）
-- 生產單管理
-- 出貨單管理（確認出貨時自動扣減庫存）
+## 2. Tech Stack
 
-### 基礎資料
-- 客戶管理
-- 供應商管理
+### Frontend
+- Next.js 14 App Router
+- TypeScript
+- Tailwind CSS
+- 原生 `fetch` + 本地封装 API 层
 
-### 倉庫管理
-- 庫存查詢（BOM 成品庫存）
-- 庫存流水帳
-- 庫存調整（需核准）
+### Backend
+- Hono
+- Node.js
+- MySQL 8
+- TypeScript
 
-### 系統管理
-- RBAC 動態權限系統（角色：manager / employee）
-- 用戶管理（新增/重置密碼，預設密碼 admin123）
-- 角色權限管理（即時生效，登入時從後端獲取）
-- 操作日誌
-- 個人資料（電子簽名上傳，重複使用於採購單/出貨單列印）
+### Deployment
+- Docker Compose
+- GitHub Actions
+- Docker Hub 镜像发布
+- Telegram 部署通知
 
-## 庫存邏輯
+### Testing
+- Playwright E2E
+- 若干一次性排查脚本和 CRUD sweep 脚本
 
-| 操作 | 庫存變化 |
-|------|---------|
-| 採購單收貨（received）| +採購數量 |
-| 出貨單確認出貨（shipped）| -出貨數量 |
-| 生產單完工（有原材料配置）| -原材料用量 |
-| 庫存調整核准 | ±差異數量 |
+## 3. Repository Layout
 
-## 角色權限
-
-| 角色 | 說明 |
-|------|------|
-| manager | 全部功能 + 核准採購單/庫存調整/刪除資料/用戶管理 |
-| employee | 建立/編輯基本資料，不可核准或刪除 |
-
-權限可在「權限管理」頁面動態調整，登入時即時生效。
-
-## 採購單 / 出貨單列印
-
-- 列印格式參考 `referenceFiles/` 目錄中的範本
-- 電子簽名從個人資料頁面上傳，自動帶入列印預覽
-- 採購單欄位：物料編號（連結 BOM）、材料名稱、規格、重量、單價、數量
-
-## 部署資訊
-
-- **伺服器**：43.133.56.234
-- **自動部署**：push 到 main 分支觸發 GitHub Actions，約 150 秒完成
-- **Docker 容器**：oms-frontend, oms-backend, oms-mysql
-
-## 本地開發
-
-```bash
-# 後端
-cd backend && npm run dev   # http://localhost:3001
-
-# 前端
-cd frontend && npm run dev  # http://localhost:3000
+```text
+oms-instance-v2/
+├── frontend/                   # Next.js 前端
+│   ├── app/dashboard/          # 各业务页面
+│   ├── components/             # UI 组件、黏性表头桥接等
+│   ├── lib/                    # API、权限、打印、通用逻辑
+│   └── Dockerfile
+├── backend/                    # Hono API
+│   ├── src/index.ts            # 核心业务入口，大量 API 和运行时 migration 在这里
+│   ├── src/db.ts               # MySQL 连接
+│   └── src/auth.ts             # JWT、密码、时间工具
+├── scripts/                    # 一些自动化脚本
+├── docker-compose.yml          # 服务器部署入口
+├── deploy-local.sh             # 旧的本地触发式部署脚本
+├── verify-deployment.sh        # 部署后检查脚本
+└── init.sql                    # 初始化数据库
 ```
 
-## 下次開發待辦
+## 4. Frontend Entry Points
 
-- [ ] 出貨單出貨後更新客戶訂單「已出貨數量」欄位（已部分實現：自動更新 arrived_qty）
-- [ ] 生產單原材料配置與庫存聯動（完工時扣減原材料）
-- [ ] 報表模組（月度銷售/採購統計圖表）
-- [ ] 應收/應付帳款管理
-- [ ] 多語言支援（繁中/越南文）
-- [ ] 手機版 RWD 優化
-- [ ] 批量匯入客戶/供應商資料（Excel）
-- [ ] 採購單 PDF 匯出（含電子簽名）
-- [ ] 客戶訂單關聯出貨單（一對多追蹤）
-- [ ] 庫存預警（低於安全庫存自動提示）
+### Main Dashboard Pages
+- [frontend/app/dashboard/bom/page.tsx](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/frontend/app/dashboard/bom/page.tsx)
+- [frontend/app/dashboard/customer-orders/page.tsx](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/frontend/app/dashboard/customer-orders/page.tsx)
+- [frontend/app/dashboard/po/page.tsx](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/frontend/app/dashboard/po/page.tsx)
+- [frontend/app/dashboard/goods-receipts/page.tsx](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/frontend/app/dashboard/goods-receipts/page.tsx)
+- [frontend/app/dashboard/delivery-notes/page.tsx](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/frontend/app/dashboard/delivery-notes/page.tsx)
+- [frontend/app/dashboard/delivery-sheets/page.tsx](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/frontend/app/dashboard/delivery-sheets/page.tsx)
+- [frontend/app/dashboard/inventory/page.tsx](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/frontend/app/dashboard/inventory/page.tsx)
+- [frontend/app/dashboard/stock-ledger/page.tsx](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/frontend/app/dashboard/stock-ledger/page.tsx)
+- [frontend/app/dashboard/stock-adjustments/page.tsx](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/frontend/app/dashboard/stock-adjustments/page.tsx)
+- [frontend/app/dashboard/quotations/page.tsx](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/frontend/app/dashboard/quotations/page.tsx)
+- [frontend/app/dashboard/production/page.tsx](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/frontend/app/dashboard/production/page.tsx)
+- [frontend/app/dashboard/profit-tracking/page.tsx](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/frontend/app/dashboard/profit-tracking/page.tsx)
+- [frontend/app/dashboard/reports/page.tsx](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/frontend/app/dashboard/reports/page.tsx)
+- [frontend/app/dashboard/users/page.tsx](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/frontend/app/dashboard/users/page.tsx)
+- [frontend/app/dashboard/roles/page.tsx](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/frontend/app/dashboard/roles/page.tsx)
+
+### Frontend Shell
+- [frontend/app/dashboard/layout.tsx](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/frontend/app/dashboard/layout.tsx)
+  - 负责侧边栏、权限可见性、页面级刷新反馈、全局 sticky table header host。
+- [frontend/lib/api.ts](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/frontend/lib/api.ts)
+  - 所有页面都应该优先走这里，而不是自己裸写 `fetch`。
+  - 统一做了 token 注入、错误信息翻译、日期字符串规范化、mutation 事件派发。
+- [frontend/components/StickyTableHeaderBridge.tsx](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/frontend/components/StickyTableHeaderBridge.tsx)
+  - 页面纵向滚动时，让表头悬浮跟随。
+
+## 5. Backend Entry Points
+
+### Core Files
+- [backend/src/index.ts](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/backend/src/index.ts)
+- [backend/src/db.ts](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/backend/src/db.ts)
+- [backend/src/auth.ts](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/backend/src/auth.ts)
+
+### Critical Backend Characteristic
+OMS 后端不是“路由拆很细”的结构，核心逻辑基本都在 `backend/src/index.ts` 一个文件里。新 AI 接手时要默认接受这件事，不要先急着重构。
+
+同时，这个后端大量依赖“运行时自动补表结构”的模式：
+- 启动后或 API 请求前，会执行 `ensure*` 系列函数
+- 这些函数会自动创建表、补列、补索引
+- 常见例子：软删除字段、BOM MOQ 阶梯价、利润追踪表、材料引用字段等
+
+这意味着：
+- 改 schema 时不能只看 `init.sql`
+- 必须同步搜索 `ensure`、`ALTER TABLE`、`CREATE TABLE IF NOT EXISTS`
+- 很多“为什么线上有这个列、本地 init.sql 却没有”的答案就在 `backend/src/index.ts`
+
+## 6. Business Modules And Logic
+
+### 6.1 Customer Orders
+- 客户订单是业务主线入口
+- 订单项支持 BOM 选择、数量、价格、备注等
+- 与出货、利润、采购、库存都会产生关联
+
+### 6.2 BOM / Materials
+- `materials` 是原材料主档
+- `bom` 是产品规格 / 成品结构
+- BOM 支持图片、MOQ 阶梯价、材料明细
+- 多处单据会通过 `material_id` / `bom_id` 做关联，而不是只靠名称
+
+### 6.3 Purchase Orders
+- PO 从 BOM/材料链路进入采购
+- 收货后会影响库存
+- 权限和状态流转要特别注意
+
+### 6.4 Goods Receipts / Delivery Notes / Delivery Sheets
+- 入库单和出货单都带库存影响
+- 出货相关页面与客户订单数量追踪联动
+- 打印格式有参考模板，且已存在真实打印逻辑
+
+### 6.5 Inventory / Stock Ledger / Stock Adjustments
+- 库存查询、流水、调整是独立模块，但本质上都依赖业务单据回写
+- 软删除后要注意列表查询是否排除了 `deleted_at`
+
+### 6.6 Quotations / Production / Profit Tracking
+- 报价单支持 MOQ 阶梯价
+- 生产单与 BOM、库存联动
+- 利润追踪依赖 `order_profit_entries` 及公司比例配置
+
+### 6.7 RBAC And Users
+- 角色被归一化为 `manager` / `employee`
+- 页面可见性和接口权限是两层控制
+- 后端通过 `requirePerm(...)` 做动态校验
+- 用户重置密码默认回到 `admin123`
+
+## 7. UI/UX Conventions Already In Use
+
+### Table Behavior
+这个项目近期已经统一过一批表格行为，新 AI 不要再按老写法倒回去。
+
+现有约定包括：
+- 表格支持横向滚动
+- 纵向滚动时表头可悬浮跟随
+- 某些宽表使用冻结列逻辑
+- 页面尽量保持和客户订单、BOM、PO 这些主页面一致的视觉节奏
+
+### Data Formatting
+- API 层会把 `YYYY-MM-DDT00:00:00.000Z` 这种日期自动规范成 `YYYY-MM-DD`
+- 改日期字段时，优先复用现有格式，而不是引入新格式
+
+## 8. Local Development
+
+### Install
+```bash
+cd oms-instance-v2/frontend && npm install
+cd ../backend && npm install
+```
+
+### Run Frontend
+```bash
+cd frontend
+npm run dev
+```
+- 默认地址: `http://localhost:3000`
+
+### Run Backend
+```bash
+cd backend
+npm run dev
+```
+- 默认地址: `http://localhost:3001`
+
+### Production Builds
+```bash
+cd frontend && npm run build
+cd ../backend && npm run build
+```
+
+## 9. Deployment
+
+### Source Of Truth
+主部署链路以 GitHub Actions 为准，不是本地 `deploy-local.sh`。
+
+### Workflow
+- 文件: [/.github/workflows/deploy.yml](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/.github/workflows/deploy.yml)
+- 触发条件: push 到 `stg` 或 `prd`
+- 流程:
+  1. checkout
+  2. 登录 Docker Hub
+  3. 构建并推送 `oms-backend:<branch>`
+  4. 构建并推送 `oms-frontend:<branch>`
+  5. 上传 `docker-compose.yml` 到目标服务器 `/opt/oms/`
+  6. SSH 到服务器执行 `/opt/oms/deploy.sh`
+  7. 成功或失败都发 Telegram 通知
+
+### Docker Compose Runtime
+- 文件: [docker-compose.yml](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/docker-compose.yml)
+- 容器:
+  - `oms-mysql`
+  - `oms-backend`
+  - `oms-frontend`
+
+### Environment Variables Used On Server
+- `MYSQL_ROOT_PASSWORD`
+- `MYSQL_DATABASE`
+- `MYSQL_USER`
+- `MYSQL_PASSWORD`
+- `JWT_SECRET`
+- `DOCKER_HUB_USER`
+- `IMAGE_TAG`
+
+### Legacy Scripts
+- [deploy-local.sh](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/deploy-local.sh)
+- [verify-deployment.sh](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/verify-deployment.sh)
+
+这些脚本可以帮助理解历史部署方式，但不应作为首选发布路径。
+
+## 10. Verification After Changes
+
+### Minimum Checks
+```bash
+cd frontend && npm run build
+cd ../backend && npm run build
+```
+
+### Recommended UI Checks
+优先检查这些页面，因为它们最容易连带回归：
+- 登录页
+- 客户订单
+- BOM
+- PO
+- 入库单
+- 出货单
+- 库存
+- 用户 / 权限
+
+### Existing Test Assets
+项目里已有大量 Playwright 和排查脚本，例如：
+- `test-full-flow.spec.ts`
+- `test-prod-crud-sweep.spec.ts`
+- `test-po-print-layout.spec.ts`
+- `test-quotation-crud.spec.ts`
+- `test-rbac.spec.ts`
+
+如果你改的是主流程，不要只看 build，至少补一次对应页面的真实点击验证。
+
+## 11. Common Pitfalls
+
+### 运行时 migration
+很多字段不是靠一次性 migration 管，而是靠后端请求时 `ensure*` 补齐。修改表结构时要全局搜索。
+
+### 单文件后端
+`backend/src/index.ts` 很大，但里面包含真实业务规则。先理解，再改。
+
+### 不要绕过 `frontend/lib/api.ts`
+自己散写 `fetch` 很容易漏 token、漏错误翻译、漏日期规范化、漏 mutation 刷新事件。
+
+### 打印功能不是演示代码
+采购单、出货单、报价单等打印链路都是真实业务需求，不要轻易破坏。
+
+## 12. AI Handoff Checklist
+
+新 AI 接手时，建议按这个顺序读：
+1. [README.md](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/README.md)
+2. [frontend/app/dashboard/layout.tsx](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/frontend/app/dashboard/layout.tsx)
+3. [frontend/lib/api.ts](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/frontend/lib/api.ts)
+4. [backend/src/index.ts](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/backend/src/index.ts)
+5. 目标业务页面对应的 `page.tsx`
+6. 相关 Playwright 脚本
+7. [/.github/workflows/deploy.yml](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/.github/workflows/deploy.yml)
+
+如果要动部署、表结构、权限、库存联动、打印，请默认这是高风险改动，先做最小闭环验证再提交。
