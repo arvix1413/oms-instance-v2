@@ -28,7 +28,7 @@ export default function DeliverySheetsPage() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<DS|null>(null)
-  const [editForm, setEditForm] = useState({ delivery_date: '', remark: '', items: [] as DSItem[] })
+  const [editForm, setEditForm] = useState({ ds_number: '', delivery_date: '', remark: '', items: [] as DSItem[] })
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
@@ -42,6 +42,7 @@ export default function DeliverySheetsPage() {
   const [selectedOrderId, setSelectedOrderId] = useState('')
   const [orderItems, setOrderItems] = useState<OrderItem[]>([])
   const [deliveryQtys, setDeliveryQtys] = useState<Record<number, number>>({})
+  const [dsNumber, setDsNumber] = useState('')
   const [deliveryDate, setDeliveryDate] = useState('')
   const [remark, setRemark] = useState('')
 
@@ -116,6 +117,7 @@ export default function DeliverySheetsPage() {
   }
 
   const save = async () => {
+    if (!dsNumber.trim()) { toast('請填寫送貨單號', 'error'); return }
     if (!selectedCustomerId) { toast('請選擇客戶', 'error'); return }
     if (!selectedOrderId) { toast('請選擇訂單', 'error'); return }
     const items = orderItems.map(i => ({
@@ -132,6 +134,7 @@ export default function DeliverySheetsPage() {
         body: JSON.stringify({
           customer_id: Number(selectedCustomerId),
           customer_order_id: Number(selectedOrderId),
+          ds_number: dsNumber,
           delivery_date: deliveryDate,
           remark,
           items,
@@ -148,7 +151,7 @@ export default function DeliverySheetsPage() {
   const resetForm = () => {
     setSelectedCustomerId(''); setSelectedOrderId('')
     setPendingOrders([]); setOrderItems([]); setDeliveryQtys({})
-    setDeliveryDate(''); setRemark(''); setPoSearch('')
+    setDsNumber(''); setDeliveryDate(''); setRemark(''); setPoSearch('')
   }
 
   const toggleExpand = async (id: number) => {
@@ -165,6 +168,7 @@ export default function DeliverySheetsPage() {
   const startEdit = async (sheet: DS) => {
     const d = await apiFetch<DS>(`/api/delivery-sheets/${sheet.id}`)
     setEditForm({
+      ds_number: d.ds_number || '',
       delivery_date: sheet.delivery_date ? String(sheet.delivery_date).slice(0,10) : '',
       remark: sheet.remark || '',
       items: d.items || []
@@ -247,6 +251,10 @@ export default function DeliverySheetsPage() {
           <h2 className="font-semibold text-slate-800 mb-5">新增送貨單</h2>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+            <div>
+              <label className="block text-[11px] text-slate-500 mb-1.5">送貨單號 *</label>
+              <input className="oms-input" value={dsNumber} onChange={e => setDsNumber(e.target.value)} placeholder="例如 DS-20260505-001" />
+            </div>
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">客戶</label>
               <select className="oms-input" value={selectedCustomerId} onChange={e => onSelectCustomer(e.target.value)}>
@@ -332,6 +340,10 @@ export default function DeliverySheetsPage() {
               <button onClick={() => setEditing(null)} className="btn-ghost border border-slate-200">返回列表</button>
             </div>
             <div className="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="block text-[11px] text-slate-500 mb-1.5">送貨單號 *</label>
+                <input className="oms-input" value={editForm.ds_number} onChange={e => setEditForm(p => ({ ...p, ds_number: e.target.value }))} />
+              </div>
               <div>
                 <label className="block text-[11px] text-slate-500 mb-1.5">送貨日期</label>
                 <input type="date" className="oms-input" value={editForm.delivery_date} onChange={e => setEditForm(p => ({ ...p, delivery_date: e.target.value }))} />

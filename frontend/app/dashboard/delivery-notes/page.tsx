@@ -49,7 +49,7 @@ export default function DeliveryNotesPage() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<DN|null>(null)
-  const [editForm, setEditForm] = useState({ delivery_date: '', remark: '', items: [] as EditableDNItem[] })
+  const [editForm, setEditForm] = useState({ dn_number: '', delivery_date: '', remark: '', items: [] as EditableDNItem[] })
   const [editOrderItems, setEditOrderItems] = useState<OrderItem[]>([])
   const [editItemPicker, setEditItemPicker] = useState('')
   const [editOriginalQtyByCode, setEditOriginalQtyByCode] = useState<Record<string, number>>({})
@@ -68,6 +68,7 @@ export default function DeliveryNotesPage() {
   const [selectedOrderId, setSelectedOrderId] = useState('')
   const [orderItems, setOrderItems] = useState<OrderItem[]>([])
   const [shippedQtys, setShippedQtys] = useState<Record<number, number>>({})
+  const [dnNumber, setDnNumber] = useState('')
   const [deliveryDate, setDeliveryDate] = useState('')
   const [remark, setRemark] = useState('')
 
@@ -134,6 +135,7 @@ export default function DeliveryNotesPage() {
   }
 
   const save = async () => {
+    if (!dnNumber.trim()) { toast('請填寫出貨單號', 'error'); return }
     if (!selectedCustomerId) { toast('請選擇客戶', 'error'); return }
     if (!selectedOrderId) { toast('請選擇訂單', 'error'); return }
     const items = orderItems.map(i => ({
@@ -150,6 +152,7 @@ export default function DeliveryNotesPage() {
         body: JSON.stringify({
           customer_id: Number(selectedCustomerId),
           customer_order_id: Number(selectedOrderId),
+          dn_number: dnNumber,
           delivery_date: deliveryDate,
           remark,
           items,
@@ -166,7 +169,7 @@ export default function DeliveryNotesPage() {
   const resetForm = () => {
     setSelectedCustomerId(''); setSelectedOrderId('')
     setPendingOrders([]); setOrderItems([]); setShippedQtys({})
-    setDeliveryDate(''); setRemark('')
+    setDnNumber(''); setDeliveryDate(''); setRemark('')
   }
 
   const toEditableItems = (items: DNItem[] = []): EditableDNItem[] =>
@@ -232,6 +235,7 @@ export default function DeliveryNotesPage() {
     setEditOrderItems(coItems)
     setEditOriginalQtyByCode(sumQtyByCode(d.items || []))
     setEditForm({
+      dn_number: d.dn_number || '',
       delivery_date: dn.delivery_date ? String(dn.delivery_date).slice(0,10) : '',
       remark: dn.remark || '',
       items: toEditableItems(d.items || [])
@@ -275,6 +279,7 @@ export default function DeliveryNotesPage() {
       await apiFetch(`/api/delivery-notes/${editing.id}`, {
         method: 'PUT',
         body: JSON.stringify({
+          dn_number: editForm.dn_number,
           delivery_date: editForm.delivery_date,
           remark: editForm.remark,
           items: nextItems,
@@ -420,6 +425,10 @@ export default function DeliveryNotesPage() {
           {/* Step 1: Select customer then order */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
             <div>
+              <label className="block text-[11px] text-slate-500 mb-1.5">出貨單號 *</label>
+              <input className="oms-input" value={dnNumber} onChange={e => setDnNumber(e.target.value)} placeholder="例如 DN-20260505-001" />
+            </div>
+            <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">客戶</label>
               <select className="oms-input" value={selectedCustomerId} onChange={e => onSelectCustomer(e.target.value)}>
                 <option value="">-- 選擇客戶 --</option>
@@ -516,6 +525,10 @@ export default function DeliveryNotesPage() {
 
             <div className="px-6 py-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                <div>
+                  <label className="block text-[11px] text-slate-500 mb-1.5">出貨單號 *</label>
+                  <input className="oms-input" value={editForm.dn_number} onChange={e => setEditForm(p => ({ ...p, dn_number: e.target.value }))} />
+                </div>
                 <div>
                   <label className="block text-[11px] text-slate-500 mb-1.5">出貨日期</label>
                   <input type="date" className="oms-input" value={editForm.delivery_date} onChange={e => setEditForm(p => ({ ...p, delivery_date: e.target.value }))} />

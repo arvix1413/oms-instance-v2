@@ -832,7 +832,10 @@ app.post('/api/po', authMiddleware, requirePerm('po.create'), async c => {
   try {
     const b = await c.req.json()
     const u = c.get('user')
-    const poNum = `PO${Date.now()}`
+    const poNum = String(b.po_number || '').trim()
+    if (!poNum) return c.json({ error: 'po_number is required' }, 400)
+    const duplicated = await queryOne<any>('SELECT id FROM purchase_orders WHERE po_number=? AND deleted_at IS NULL', [poNum])
+    if (duplicated) return c.json({ error: `採購單號「${poNum}」已存在，請使用不同編號` }, 409)
     const subTotal = (b.items||[]).reduce((s: number, i: any) => s + (i.total_price||0), 0)
     const taxRate = Math.min(25, Math.max(1, Number(b.tax_rate) || 8))
     const total = Math.round(subTotal * (1 + taxRate / 100) * 100) / 100
@@ -857,11 +860,15 @@ app.put('/api/po/:id', authMiddleware, requirePerm('po.create'), async c => {
     const po = await queryOne<any>('SELECT status FROM purchase_orders WHERE id=? AND deleted_at IS NULL', [id])
     if (!po) return c.json({ error: 'Not found' }, 404)
     if (po.status !== 'draft') return c.json({ error: '只能編輯草稿狀態的採購單' }, 400)
+    const poNum = String(b.po_number || '').trim()
+    if (!poNum) return c.json({ error: 'po_number is required' }, 400)
+    const duplicated = await queryOne<any>('SELECT id FROM purchase_orders WHERE po_number=? AND id<>? AND deleted_at IS NULL', [poNum, id])
+    if (duplicated) return c.json({ error: `採購單號「${poNum}」已存在，請使用不同編號` }, 409)
     const subTotal = (b.items||[]).reduce((s: number, i: any) => s + (i.total_price||0), 0)
     const taxRate = Math.min(25, Math.max(1, Number(b.tax_rate) || 8))
     const total = Math.round(subTotal * (1 + taxRate / 100) * 100) / 100
-    await execute('UPDATE purchase_orders SET supplier_id=?,supplier_name=?,total_amount=?,tax_rate=?,currency=?,remark=? WHERE id=?',
-      [b.supplier_id||null, b.supplier_name, total, taxRate, b.currency||'VND', b.remark||'', id])
+    await execute('UPDATE purchase_orders SET po_number=?,supplier_id=?,supplier_name=?,total_amount=?,tax_rate=?,currency=?,remark=? WHERE id=?',
+      [poNum, b.supplier_id||null, b.supplier_name, total, taxRate, b.currency||'VND', b.remark||'', id])
     await execute('DELETE FROM po_items WHERE po_id=?', [id])
     if (b.items?.length) {
       for (const item of b.items) {
@@ -871,7 +878,7 @@ app.put('/api/po/:id', authMiddleware, requirePerm('po.create'), async c => {
           [id,materialId,item.material_code,item.material_name,item.spec||'',item.unit||'PCS',item.quantity,item.unit_price||0,tp,item.currency||'VND',item.remark||'',item.po_ref||'',item.thickness||null])
       }
     }
-    await audit(u, 'UPDATE', '採購單', id, b.supplier_name)
+    await audit(u, 'UPDATE', '採購單', id, `${poNum} / ${b.supplier_name}`)
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
@@ -1730,7 +1737,10 @@ app.post('/api/delivery-notes', authMiddleware, requirePerm('delivery.create'), 
       const cust = await queryOne<any>('SELECT customer_name FROM customers WHERE id=? AND deleted_at IS NULL', [b.customer_id])
       customerName = cust?.customer_name || ''
     }
-    const dnNum = `DN${Date.now()}`
+    const dnNum = String(b.dn_number || '').trim()
+    if (!dnNum) return c.json({ error: 'dn_number is required' }, 400)
+    const duplicated = await queryOne<any>('SELECT id FROM delivery_notes WHERE dn_number=? AND deleted_at IS NULL', [dnNum])
+    if (duplicated) return c.json({ error: `出貨單號「${dnNum}」已存在，請使用不同編號` }, 409)
     const r = await execute('INSERT INTO delivery_notes (dn_number,customer_id,customer_name,customer_order_id,delivery_date,status,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?)',
       [dnNum, b.customer_id||null, customerName, b.customer_order_id||null, b.delivery_date||null, 'draft', b.remark||'', u.userId, now8()])
     const dnId = r.insertId
@@ -1751,8 +1761,12 @@ app.put('/api/delivery-notes/:id', authMiddleware, requirePerm('delivery.create'
     const existing = await queryOne<any>('SELECT status FROM delivery_notes WHERE id=? AND deleted_at IS NULL', [id])
     if (!existing) return c.json({ error: 'Not found' }, 404)
     if (existing.status !== 'draft') return c.json({ error: '只能編輯草稿狀態的出貨單' }, 400)
-    await execute('UPDATE delivery_notes SET delivery_date=?,remark=? WHERE id=?',
-      [b.delivery_date||null, b.remark||'', id])
+    const dnNum = String(b.dn_number || '').trim()
+    if (!dnNum) return c.json({ error: 'dn_number is required' }, 400)
+    const duplicated = await queryOne<any>('SELECT id FROM delivery_notes WHERE dn_number=? AND id<>? AND deleted_at IS NULL', [dnNum, id])
+    if (duplicated) return c.json({ error: `出貨單號「${dnNum}」已存在，請使用不同編號` }, 409)
+    await execute('UPDATE delivery_notes SET dn_number=?,delivery_date=?,remark=? WHERE id=?',
+      [dnNum, b.delivery_date||null, b.remark||'', id])
     await execute('DELETE FROM delivery_note_items WHERE dn_id=?', [id])
     if (b.items?.length) {
       for (const item of b.items) {
@@ -1761,7 +1775,7 @@ app.put('/api/delivery-notes/:id', authMiddleware, requirePerm('delivery.create'
           [id, materialId, item.item_name||'', item.material_code||'', item.spec||'', item.unit||'PCS', item.qty||0, item.remark||'', item.po_ref||'', item.thickness||null])
       }
     }
-    await audit(u, 'UPDATE', '出貨單', id, `id=${id}`)
+    await audit(u, 'UPDATE', '出貨單', id, dnNum)
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
@@ -1885,7 +1899,10 @@ app.post('/api/delivery-sheets', authMiddleware, requirePerm('delivery.create'),
       const cust = await queryOne<any>('SELECT customer_name FROM customers WHERE id=? AND deleted_at IS NULL', [b.customer_id])
       customerName = cust?.customer_name || ''
     }
-    const dsNum = `DS${Date.now()}`
+    const dsNum = String(b.ds_number || '').trim()
+    if (!dsNum) return c.json({ error: 'ds_number is required' }, 400)
+    const duplicated = await queryOne<any>('SELECT id FROM delivery_sheets WHERE ds_number=? AND deleted_at IS NULL', [dsNum])
+    if (duplicated) return c.json({ error: `送貨單號「${dsNum}」已存在，請使用不同編號` }, 409)
     const r = await execute('INSERT INTO delivery_sheets (ds_number,customer_id,customer_name,customer_order_id,delivery_date,status,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?)',
       [dsNum, b.customer_id||null, customerName, b.customer_order_id||null, b.delivery_date||null, 'draft', b.remark||'', u.userId, now8()])
     const dsId = r.insertId
@@ -1906,8 +1923,12 @@ app.put('/api/delivery-sheets/:id', authMiddleware, requirePerm('delivery.create
     const existing = await queryOne<any>('SELECT status FROM delivery_sheets WHERE id=? AND deleted_at IS NULL', [id])
     if (!existing) return c.json({ error: 'Not found' }, 404)
     if (existing.status !== 'draft') return c.json({ error: '只能編輯草稿狀態的送貨單' }, 400)
-    await execute('UPDATE delivery_sheets SET delivery_date=?,remark=? WHERE id=?',
-      [b.delivery_date||null, b.remark||'', id])
+    const dsNum = String(b.ds_number || '').trim()
+    if (!dsNum) return c.json({ error: 'ds_number is required' }, 400)
+    const duplicated = await queryOne<any>('SELECT id FROM delivery_sheets WHERE ds_number=? AND id<>? AND deleted_at IS NULL', [dsNum, id])
+    if (duplicated) return c.json({ error: `送貨單號「${dsNum}」已存在，請使用不同編號` }, 409)
+    await execute('UPDATE delivery_sheets SET ds_number=?,delivery_date=?,remark=? WHERE id=?',
+      [dsNum, b.delivery_date||null, b.remark||'', id])
     await execute('DELETE FROM delivery_sheet_items WHERE ds_id=?', [id])
     if (b.items?.length) {
       for (const item of b.items) {
@@ -1916,7 +1937,7 @@ app.put('/api/delivery-sheets/:id', authMiddleware, requirePerm('delivery.create
           [id, materialId, item.item_name||'', item.material_code||'', item.spec||'', item.unit||'PCS', item.qty||0, item.remark||'', item.po_ref||'', item.thickness||null])
       }
     }
-    await audit(u, 'UPDATE', '送貨單', id, `id=${id}`)
+    await audit(u, 'UPDATE', '送貨單', id, dsNum)
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
