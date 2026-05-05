@@ -27,9 +27,13 @@ type BOM = { id:number; product_sku:string; product_name:string; spec:string; un
 const emptyTiers = (): MoqTier[] => Array.from({length:5}, () => ({ moq: 0, price: 0 }))
 const emptyItem = (): QItem => ({ bom_id:null, item_name:'', material_code:'', spec:'', unit:'', qty:0, unit_price:0, total_price:0, remark:'', moq_tiers:emptyTiers(), image_url:'' })
 const DEFAULT_QUOTATION_REMARK = [
-  '1. 交易方式：越南胡志明本地',
-  '2. 單價確認樣品日期：7-12天',
-  '3. 訂單量產時間：12-18天，不包含列假日',
+  '1. 交易方式：現金轉款',
+  '2. 單價確認樣品日期：7-12天，訂單量產時間：12-18天，不包含列假日',
+  '3. 以上單價不包含8%VAT',
+  '4. 交易方式：越南胡志明本地',
+  '5. 如有問題根據樣品報價單',
+  '6. 三天內確認打樣費用，請簽回並確認',
+  '7. 收到量產訂單出貨後，打樣費將在8天內退還',
 ].join('\n')
 const normalizeTiers = (tiers: any): MoqTier[] => {
   const src = Array.isArray(tiers) ? tiers : []
