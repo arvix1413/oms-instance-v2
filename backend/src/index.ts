@@ -1545,7 +1545,8 @@ app.get('/api/quotations/:id', authMiddleware, async c => {
 app.post('/api/quotations', authMiddleware, requirePerm('customer_order.create'), async c => {
   try {
     const b = await c.req.json(); const u = c.get('user')
-    const qNum = `QT${Date.now()}`
+    const qNum = String(b.quotation_number || '').trim()
+    if (!qNum) return c.json({ error: 'quotation_number is required' }, 400)
     const total = (b.items||[]).reduce((s: number, i: any) => s + (i.total_price||0), 0)
     const r = await execute('INSERT INTO quotations (quotation_number,customer_id,customer_name,status,total_amount,currency,valid_until,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)',
       [qNum,b.customer_id||null,b.customer_name,'draft',total,b.currency||'VND',b.valid_until||null,b.remark||'',u.userId,now8()])
@@ -1567,9 +1568,11 @@ app.put('/api/quotations/:id', authMiddleware, requirePerm('customer_order.creat
     const existing = await queryOne<any>('SELECT status FROM quotations WHERE id=? AND deleted_at IS NULL', [id])
     if (!existing) return c.json({ error: 'Not found' }, 404)
     if (existing.status !== 'draft') return c.json({ error: '只能編輯草稿狀態的報價單' }, 400)
+    const qNum = String(b.quotation_number || '').trim()
+    if (!qNum) return c.json({ error: 'quotation_number is required' }, 400)
     const total = (b.items||[]).reduce((s: number, i: any) => s + (i.total_price||0), 0)
-    await execute('UPDATE quotations SET customer_id=?,customer_name=?,currency=?,valid_until=?,remark=?,total_amount=? WHERE id=?',
-      [b.customer_id||null, b.customer_name, b.currency||'VND', b.valid_until||null, b.remark||'', total, id])
+    await execute('UPDATE quotations SET quotation_number=?,customer_id=?,customer_name=?,currency=?,valid_until=?,remark=?,total_amount=? WHERE id=?',
+      [qNum, b.customer_id||null, b.customer_name, b.currency||'VND', b.valid_until||null, b.remark||'', total, id])
     await execute('DELETE FROM quotation_items WHERE quotation_id=?', [id])
     if (b.items?.length) {
       for (const item of b.items) {
@@ -1578,7 +1581,7 @@ app.put('/api/quotations/:id', authMiddleware, requirePerm('customer_order.creat
           [id,materialId,item.item_name,item.material_code||'',item.spec||'',item.unit||'PCS',item.qty,item.unit_price||0,(item.qty||0)*(item.unit_price||0),item.remark||'',item.moq||null,item.image_url||null])
       }
     }
-    await audit(u, 'UPDATE', '報價單', id, b.customer_name)
+    await audit(u, 'UPDATE', '報價單', id, `${qNum} / ${b.customer_name}`)
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })

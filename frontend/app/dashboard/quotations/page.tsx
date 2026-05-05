@@ -62,7 +62,7 @@ export default function QuotationsPage() {
   const [loadedItems, setLoadedItems] = useState<Record<number, QItem[]>>({})
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [form, setForm] = useState({ customer_id: '', customer_name:'', currency:'VND', valid_until:'', remark:'', items:[emptyItem()] })
+  const [form, setForm] = useState({ quotation_number:'', customer_id: '', customer_name:'', currency:'VND', valid_until:'', remark:'', items:[emptyItem()] })
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [search, setSearch] = useState('')
@@ -102,7 +102,7 @@ export default function QuotationsPage() {
   },[])
 
   const resetForm = (opts: { keepCreating?: boolean } = {}) => {
-    setForm({ customer_id:'', customer_name:'', currency:'VND', valid_until:'', remark:'', items:[emptyItem()] })
+    setForm({ quotation_number:'', customer_id:'', customer_name:'', currency:'VND', valid_until:'', remark:'', items:[emptyItem()] })
     if (!opts.keepCreating) setCreating(false)
     setEditingId(null)
   }
@@ -151,6 +151,7 @@ export default function QuotationsPage() {
     } catch(e:any){ toast('刪除失敗：'+e.message, 'error') }
   }
   const save = async () => {
+    if (!form.quotation_number.trim()) { toast('請輸入報價單號', 'error'); return }
     if (!form.customer_name) { toast('請選擇客戶', 'error'); return }
     const validItems = form.items.filter(item => item.bom_id)
     if (!validItems.length) { toast('請至少選擇一個 BOM 品項', 'error'); return }
@@ -193,6 +194,7 @@ export default function QuotationsPage() {
       ? customers.find(c => String(c.id) === String(rawCustomerId))
       : customers.find(c => c.customer_name === q.customer_name)
     setForm({
+      quotation_number: q.quotation_number || '',
       customer_id: cust ? String(cust.id) : (rawCustomerId ? String(rawCustomerId) : ''),
       customer_name: q.customer_name,
       currency: q.currency,
@@ -526,7 +528,11 @@ export default function QuotationsPage() {
             <h2 className="text-sm font-semibold text-slate-800">{editingId ? '編輯報價單' : '新增報價單'}</h2>
             <button onClick={() => resetForm()} className="btn-ghost border border-slate-200">返回列表</button>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+            <div>
+              <label className="block text-[11px] text-slate-500 mb-1.5">報價單號 *</label>
+              <input className={inp} value={form.quotation_number} onChange={e=>setForm(p=>({...p,quotation_number:e.target.value}))} placeholder="例如 QT1777953980447" />
+            </div>
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">客戶 *</label>
               <select className={inp} value={form.customer_id} onChange={e => {
