@@ -26,6 +26,11 @@ type BOM = { id:number; product_sku:string; product_name:string; spec:string; un
 
 const emptyTiers = (): MoqTier[] => Array.from({length:5}, () => ({ moq: 0, price: 0 }))
 const emptyItem = (): QItem => ({ bom_id:null, item_name:'', material_code:'', spec:'', unit:'', qty:0, unit_price:0, total_price:0, remark:'', moq_tiers:emptyTiers(), image_url:'' })
+const DEFAULT_QUOTATION_REMARK = [
+  '1. 交易方式：越南胡志明本地',
+  '2. 單價確認樣品日期：7-12天',
+  '3. 訂單量產時間：12-18天，不包含列假日',
+].join('\n')
 const normalizeTiers = (tiers: any): MoqTier[] => {
   const src = Array.isArray(tiers) ? tiers : []
   return Array.from({ length: 5 }, (_, i) => {
@@ -62,7 +67,7 @@ export default function QuotationsPage() {
   const [loadedItems, setLoadedItems] = useState<Record<number, QItem[]>>({})
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [form, setForm] = useState({ quotation_number:'', customer_id: '', customer_name:'', currency:'VND', valid_until:'', remark:'', items:[emptyItem()] })
+  const [form, setForm] = useState({ quotation_number:'', customer_id: '', customer_name:'', currency:'VND', valid_until:'', remark:DEFAULT_QUOTATION_REMARK, items:[emptyItem()] })
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [search, setSearch] = useState('')
@@ -102,7 +107,7 @@ export default function QuotationsPage() {
   },[])
 
   const resetForm = (opts: { keepCreating?: boolean } = {}) => {
-    setForm({ quotation_number:'', customer_id:'', customer_name:'', currency:'VND', valid_until:'', remark:'', items:[emptyItem()] })
+    setForm({ quotation_number:'', customer_id:'', customer_name:'', currency:'VND', valid_until:'', remark:DEFAULT_QUOTATION_REMARK, items:[emptyItem()] })
     if (!opts.keepCreating) setCreating(false)
     setEditingId(null)
   }
@@ -407,7 +412,7 @@ export default function QuotationsPage() {
 
       <div class="note-box">
         <div class="note-title">備註 / Ghi chú：</div>
-        <div style="white-space:pre-line">${txt(q.remark) || '1. 交易方式：現金轉款\n2. 樣品日期：8-10天\n3. 以上單價不包含8%VAT\n4. 交貨方式：越南當地門到門\n5. 如有問題根據樣品報價單\n6. 三天內確認打樣費用，請簽回並確認\n7. 收到量產訂單出貨後，打樣費將在8天內退還'}</div>
+        <div style="white-space:pre-line">${txt(q.remark) || DEFAULT_QUOTATION_REMARK}</div>
       </div>
 
       <div class="sign-row">
