@@ -419,11 +419,18 @@ export default function DeliveryNotesPage() {
 
       {creating && canWrite && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[1px] px-4 py-6 overflow-y-auto">
-        <div className="max-w-[1200px] mx-auto oms-card p-6">
-          <h2 className="font-semibold text-slate-800 mb-5">新增出貨單</h2>
+        <div className="max-w-[1200px] mx-auto oms-card p-0 overflow-hidden flex max-h-[88vh] flex-col">
+          <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-6 py-5 backdrop-blur">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="font-semibold text-slate-800">新增出貨單</h2>
+                <p className="mt-1 text-[11px] text-slate-400">單頭資訊固定顯示，長出貨明細可直接往下核對與輸入。</p>
+              </div>
+              <button onClick={() => { setCreating(false); resetForm() }} className="btn-ghost border border-slate-200 shrink-0">關閉</button>
+            </div>
 
           {/* Step 1: Select customer then order */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-5">
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">出貨單號 *</label>
               <input className="oms-input" value={dnNumber} onChange={e => setDnNumber(e.target.value)} placeholder="例如 DN-20260505-001" />
@@ -461,7 +468,9 @@ export default function DeliveryNotesPage() {
               <textarea className="oms-input" rows={3} value={remark} onChange={e => setRemark(e.target.value)} placeholder="可輸入交易條件、付款方式、交貨要求等資訊..." />
             </div>
           </div>
+          </div>
 
+          <div className="flex-1 overflow-y-auto px-6 py-5">
           {/* Step 2: Order items with shipped qty */}
           {orderItems.length > 0 && (
             <div className="mb-5">
@@ -496,10 +505,13 @@ export default function DeliveryNotesPage() {
               </div>
             </div>
           )}
+          </div>
 
+          <div className="sticky bottom-0 z-10 border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur">
           <div className="flex gap-2">
             <button onClick={save} className="btn-primary" disabled={!selectedOrderId || orderItems.length === 0}>建立出貨單</button>
             <button onClick={() => { setCreating(false); resetForm() }} className="btn-ghost border border-slate-200">取消</button>
+          </div>
           </div>
         </div>
         </div>
@@ -507,7 +519,7 @@ export default function DeliveryNotesPage() {
 
       {editing && canWrite && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[1px]">
-          <div className="absolute inset-y-0 right-0 w-[min(980px,95vw)] bg-white border-l border-slate-200 shadow-2xl overflow-y-auto animate-slide-up">
+          <div className="absolute inset-y-0 right-0 w-[min(980px,95vw)] bg-white border-l border-slate-200 shadow-2xl flex flex-col overflow-hidden animate-slide-up">
             <div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-slate-200 px-6 py-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -523,7 +535,7 @@ export default function DeliveryNotesPage() {
               </div>
             </div>
 
-            <div className="px-6 py-5">
+            <div className="flex-1 overflow-y-auto px-6 py-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                 <div>
                   <label className="block text-[11px] text-slate-500 mb-1.5">出貨單號 *</label>
@@ -633,7 +645,9 @@ export default function DeliveryNotesPage() {
                   </table>
                 </div>
               </div>
+            </div>
 
+            <div className="sticky bottom-0 z-10 border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur">
               <div className="flex gap-2">
                 <button onClick={saveEditDN} className="btn-primary">儲存修改</button>
                 <button

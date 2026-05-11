@@ -247,10 +247,17 @@ export default function DeliverySheetsPage() {
 
       {creating && canWrite && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[1px] px-4 py-6 overflow-y-auto">
-        <div className="max-w-[1200px] mx-auto oms-card p-6">
-          <h2 className="font-semibold text-slate-800 mb-5">新增送貨單</h2>
+        <div className="max-w-[1200px] mx-auto oms-card p-0 overflow-hidden flex max-h-[88vh] flex-col">
+          <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-6 py-5 backdrop-blur">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="font-semibold text-slate-800">新增送貨單</h2>
+                <p className="mt-1 text-[11px] text-slate-400">單頭資訊固定顯示，長送貨明細可直接往下輸入數量。</p>
+              </div>
+              <button onClick={() => { setCreating(false); resetForm() }} className="btn-ghost border border-slate-200 shrink-0">關閉</button>
+            </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-5">
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">送貨單號 *</label>
               <input className="oms-input" value={dsNumber} onChange={e => setDsNumber(e.target.value)} placeholder="例如 DS-20260505-001" />
@@ -293,7 +300,9 @@ export default function DeliverySheetsPage() {
               <textarea className="oms-input" rows={3} value={remark} onChange={e => setRemark(e.target.value)} placeholder="可輸入交易條件、付款方式、交貨要求等資訊..." />
             </div>
           </div>
+          </div>
 
+          <div className="flex-1 overflow-y-auto px-6 py-5">
           {orderItems.length > 0 && (
             <div className="mb-5">
               <div className="text-xs font-semibold text-slate-600 mb-2">送貨明細（可修改實際送貨數量）</div>
@@ -323,10 +332,13 @@ export default function DeliverySheetsPage() {
               </div>
             </div>
           )}
+          </div>
 
+          <div className="sticky bottom-0 z-10 border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur">
           <div className="flex gap-2">
             <button onClick={save} className="btn-primary" disabled={!selectedOrderId || orderItems.length === 0}>建立送貨單</button>
             <button onClick={() => { setCreating(false); resetForm() }} className="btn-ghost border border-slate-200">取消</button>
+          </div>
           </div>
         </div>
         </div>
@@ -334,12 +346,15 @@ export default function DeliverySheetsPage() {
 
       {editing && canWrite && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[1px] px-4 py-6 overflow-y-auto">
-        <div className="max-w-[1200px] mx-auto oms-card p-6">
-            <div className="flex items-center justify-between mb-4">
+        <div className="max-w-[1200px] mx-auto oms-card p-0 overflow-hidden flex max-h-[88vh] flex-col">
+            <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-6 py-4 backdrop-blur">
+            <div className="flex items-center justify-between">
               <h2 className="text-base font-bold">編輯送貨單 {editing.ds_number}</h2>
               <button onClick={() => setEditing(null)} className="btn-ghost border border-slate-200">返回列表</button>
             </div>
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
               <div>
                 <label className="block text-[11px] text-slate-500 mb-1.5">送貨單號 *</label>
                 <input className="oms-input" value={editForm.ds_number} onChange={e => setEditForm(p => ({ ...p, ds_number: e.target.value }))} />
@@ -380,9 +395,12 @@ export default function DeliverySheetsPage() {
                 </tbody>
               </table>
             </div>
+            </div>
+            <div className="sticky bottom-0 z-10 border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur">
             <div className="flex gap-2">
               <button onClick={saveEdit} className="btn-primary">儲存修改</button>
               <button onClick={() => setEditing(null)} className="btn-ghost border border-slate-200">取消</button>
+            </div>
             </div>
         </div>
         </div>

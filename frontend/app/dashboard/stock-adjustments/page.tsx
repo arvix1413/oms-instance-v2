@@ -110,68 +110,84 @@ export default function StockAdjustmentsPage() {
       </div>
 
       {creating && (
-        <div className="oms-card p-6 mb-5">
-          <h2 className="text-sm font-semibold mb-4">建立庫存調整單</h2>
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <div>
-              <label className="block text-[11px] text-slate-500 mb-1.5">調整類型</label>
-              <select className={inp} value={form.adj_type} onChange={e => setForm(p => ({ ...p, adj_type: e.target.value }))}>
-                <option value="count">盤點調整</option>
-                <option value="scrap">報廢</option>
-                <option value="other">其他</option>
-              </select>
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[1px] px-4 py-6 overflow-y-auto">
+          <div className="max-w-[1280px] mx-auto oms-card p-0 overflow-hidden flex max-h-[88vh] flex-col">
+            <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-6 py-5 backdrop-blur">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-900">建立庫存調整單</h2>
+                  <p className="mt-1 text-[11px] text-slate-400">調整主資訊與新增料號固定顯示，盤點明細可持續往下處理。</p>
+                </div>
+                <button onClick={() => setCreating(false)} className="btn-ghost border border-slate-200 shrink-0">關閉</button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+                <div>
+                  <label className="block text-[11px] text-slate-500 mb-1.5">調整類型</label>
+                  <select className={inp} value={form.adj_type} onChange={e => setForm(p => ({ ...p, adj_type: e.target.value }))}>
+                    <option value="count">盤點調整</option>
+                    <option value="scrap">報廢</option>
+                    <option value="other">其他</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-500 mb-1.5">調整日期</label>
+                  <input type="date" className={inp} value={form.adj_date} onChange={e => setForm(p => ({ ...p, adj_date: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-500 mb-1.5">備註</label>
+                  <input className={inp} value={form.remark} onChange={e => setForm(p => ({ ...p, remark: e.target.value }))} />
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="block text-[11px] text-slate-500 mb-1.5">調整日期</label>
-              <input type="date" className={inp} value={form.adj_date} onChange={e => setForm(p => ({ ...p, adj_date: e.target.value }))} />
+
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-slate-600">調整明細</span>
+                <button onClick={addItem} className="btn-ghost text-blue-600 shrink-0">+ 新增料號</button>
+              </div>
+              <div className="overflow-x-auto rounded-lg border border-slate-200">
+                <table className="w-full text-xs" style={{ minWidth: 980 }}>
+                  <thead>
+                    <tr className="border-b border-slate-200">
+                      {['料號','材料名稱','單位','系統庫存','實際數量','差異','批次號','備註',''].map(h => (
+                        <th key={h} className="px-2 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {form.items.map((item, i) => (
+                      <tr key={i} className="border-b border-slate-100">
+                        <td className="p-1">
+                          <select className={inp} style={{width:130}} value={item.material_code} onChange={e => onSelectMaterial(i, e.target.value)}>
+                            <option value="">-- 選擇 BOM 品項 --</option>
+                            {bomStocks.map(m => (
+                              <option key={m.product_sku} value={m.product_sku}>{m.product_sku} - {m.product_name}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="p-1"><input className={inp} value={item.material_name} onChange={e => updateItem(i, 'material_name', e.target.value)} /></td>
+                        <td className="p-1"><input className={inp} style={{width:45}} value={item.unit} onChange={e => updateItem(i, 'unit', e.target.value)} /></td>
+                        <td className="p-1 px-2 text-right text-slate-400">{item.system_qty}</td>
+                        <td className="p-1"><DecimalInput className={inp} style={{width:70}} value={item.actual_qty} onValueChange={value => updateItem(i, 'actual_qty', value ?? 0)} /></td>
+                        <td className={`p-1 px-2 text-right font-semibold ${item.diff_qty > 0 ? 'text-emerald-600' : item.diff_qty < 0 ? 'text-red-500' : 'text-slate-400'}`}>
+                          {item.diff_qty > 0 ? '+' : ''}{item.diff_qty}
+                        </td>
+                        <td className="p-1"><input className={inp} style={{width:80}} value={item.batch_no} placeholder="批次號" onChange={e => updateItem(i, 'batch_no', e.target.value)} /></td>
+                        <td className="p-1"><input className={inp} value={item.remark} onChange={e => updateItem(i, 'remark', e.target.value)} /></td>
+                        <td className="p-1 text-center"><button onClick={() => removeItem(i)} className="text-slate-300 hover:text-red-600">✕</button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <div>
-              <label className="block text-[11px] text-slate-500 mb-1.5">備註</label>
-              <input className={inp} value={form.remark} onChange={e => setForm(p => ({ ...p, remark: e.target.value }))} />
+
+            <div className="sticky bottom-0 z-10 border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur">
+              <div className="flex gap-2">
+                <button onClick={save} className="btn-primary">建立調整單</button>
+                <button onClick={() => setCreating(false)} className="btn-ghost border border-slate-200">取消</button>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-600">調整明細</span>
-            <button onClick={addItem} className="btn-ghost text-blue-600">+ 新增料號</button>
-          </div>
-          <div className="overflow-x-auto rounded-lg border border-slate-200">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  {['料號','材料名稱','單位','系統庫存','實際數量','差異','批次號','備註',''].map(h => (
-                    <th key={h} className="px-2 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {form.items.map((item, i) => (
-                  <tr key={i} className="border-b border-slate-100">
-                    <td className="p-1">
-                      <select className={inp} style={{width:130}} value={item.material_code} onChange={e => onSelectMaterial(i, e.target.value)}>
-                        <option value="">-- 選擇 BOM 品項 --</option>
-                        {bomStocks.map(m => (
-                          <option key={m.product_sku} value={m.product_sku}>{m.product_sku} - {m.product_name}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="p-1"><input className={inp} value={item.material_name} onChange={e => updateItem(i, 'material_name', e.target.value)} /></td>
-                    <td className="p-1"><input className={inp} style={{width:45}} value={item.unit} onChange={e => updateItem(i, 'unit', e.target.value)} /></td>
-                    <td className="p-1 px-2 text-right text-slate-400">{item.system_qty}</td>
-                    <td className="p-1"><DecimalInput className={inp} style={{width:70}} value={item.actual_qty} onValueChange={value => updateItem(i, 'actual_qty', value ?? 0)} /></td>
-                    <td className={`p-1 px-2 text-right font-semibold ${item.diff_qty > 0 ? 'text-emerald-600' : item.diff_qty < 0 ? 'text-red-500' : 'text-slate-400'}`}>
-                      {item.diff_qty > 0 ? '+' : ''}{item.diff_qty}
-                    </td>
-                    <td className="p-1"><input className={inp} style={{width:80}} value={item.batch_no} placeholder="批次號" onChange={e => updateItem(i, 'batch_no', e.target.value)} /></td>
-                    <td className="p-1"><input className={inp} value={item.remark} onChange={e => updateItem(i, 'remark', e.target.value)} /></td>
-                    <td className="p-1 text-center"><button onClick={() => removeItem(i)} className="text-slate-300 hover:text-red-600">✕</button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex gap-2 mt-4">
-            <button onClick={save} className="btn-primary">建立調整單</button>
-            <button onClick={() => setCreating(false)} className="btn-ghost border border-slate-200">取消</button>
           </div>
         </div>
       )}
