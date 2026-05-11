@@ -470,7 +470,7 @@ export default function DeliveryNotesPage() {
           </div>
           </div>
 
-          <div className="flex-1 min-h-0 px-6 py-5">
+          <div className="flex-1 min-h-0 overflow-hidden px-6 py-5">
           {/* Step 2: Order items with shipped qty */}
           {orderItems.length > 0 && (
             <div className="mb-5">
@@ -535,7 +535,7 @@ export default function DeliveryNotesPage() {
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 px-6 py-5">
+            <div className="flex-1 min-h-0 overflow-hidden px-6 py-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                 <div>
                   <label className="block text-[11px] text-slate-500 mb-1.5">出貨單號 *</label>
