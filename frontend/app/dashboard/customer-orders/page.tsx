@@ -326,16 +326,13 @@ export default function CustomerOrdersPage() {
       </div>
 
       {(creating || editingId !== null) && canWrite && (
-        <div className="fixed inset-0 z-50 bg-slate-950/35 p-3 backdrop-blur-sm">
-          <div className="grid h-full w-full grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-2xl">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/35 p-4 backdrop-blur-sm">
+          <div className="mx-auto w-full max-w-[1680px] overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-2xl">
           <div className="border-b border-slate-200 bg-white px-8 py-5">
             <div className="flex items-start justify-between gap-6">
               <div>
-                <div className="mb-2 inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-600">
-                  Full Screen Editor
-                </div>
                 <h2 className="text-xl font-semibold text-slate-900">{editingId ? '編輯客戶訂單' : '新增客戶訂單'}</h2>
-                <p className="mt-1 text-sm text-slate-500">把訂單表頭、品項列表與底部操作拆成工作台，長單據不用再跟彈窗高度打架。</p>
+                <p className="mt-1 text-sm text-slate-500">整頁可往下捲動，品項列表維持固定高度，長單據編輯時不用把所有內容塞進同一個可視區。</p>
               </div>
               <button onClick={()=>{ setCreating(false); setEditingId(null); setForm({ po_date:'', po_number:'', customer_id:'', remark:'', currency:'VND', delivery_date:'', delivery_address:'', person_in_charge:'', payment_terms:'', items:[emptyItem()] }) }} className="btn-ghost border border-slate-200 shrink-0">
                 關閉
@@ -405,15 +402,15 @@ export default function CustomerOrdersPage() {
             </div>
           </div>
 
-          <div className="flex min-h-0 flex-col overflow-hidden px-8 py-5">
+          <div className="px-8 py-5">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <div className="text-sm font-semibold text-slate-800">訂單品項</div>
-                <div className="mt-1 text-xs text-slate-500">列表區優先佔高度，適合長單據連續錄入與核對。</div>
+                <div className="mt-1 text-xs text-slate-500">上方資訊跟整頁一起滾動，下面列表預設保留固定高度。</div>
               </div>
               <button onClick={addItem} className="btn-ghost shrink-0 text-blue-600">+ 新增品項</button>
             </div>
-            <div className="min-h-0 flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white">
+            <div className="h-[420px] overflow-auto rounded-2xl border border-slate-200 bg-white">
             <table className="w-full text-xs oms-table">
               <thead><tr className="bg-slate-50 border-b border-slate-200">
                 <th className="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase shadow-sm">圖片</th>
@@ -486,7 +483,7 @@ export default function CustomerOrdersPage() {
             )
           })()}
           </div>
-          <div className="border-t border-slate-200 bg-white/95 px-8 py-4 backdrop-blur">
+          <div className="border-t border-slate-200 bg-white px-8 py-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="text-xs text-slate-500">
                 目前品項 <span className="font-semibold text-slate-700">{form.items.length}</span>
