@@ -110,9 +110,9 @@ export default function StockAdjustmentsPage() {
       </div>
 
       {creating && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[1px] px-4 py-6 overflow-y-auto">
-          <div className="max-w-[1280px] mx-auto oms-card grid max-h-[88vh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
-            <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-6 py-5 backdrop-blur">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 px-4 py-6 backdrop-blur-[1px]">
+          <div className="max-w-[1280px] mx-auto oms-card overflow-hidden p-0">
+            <div className="border-b border-slate-200 bg-white/95 px-6 py-5 backdrop-blur">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-sm font-semibold text-slate-900">建立庫存調整單</h2>
@@ -140,12 +140,12 @@ export default function StockAdjustmentsPage() {
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-hidden px-6 py-5">
+            <div className="px-6 py-5">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-semibold text-slate-600">調整明細</span>
                 <button onClick={addItem} className="btn-ghost text-blue-600 shrink-0">+ 新增料號</button>
               </div>
-              <div className="h-full overflow-auto rounded-lg border border-slate-200">
+              <div className="h-[420px] overflow-auto rounded-lg border border-slate-200">
                 <table className="w-full text-xs" style={{ minWidth: 980 }}>
                   <thead>
                     <tr className="border-b border-slate-200">
@@ -182,7 +182,7 @@ export default function StockAdjustmentsPage() {
               </div>
             </div>
 
-            <div className="sticky bottom-0 z-10 border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur">
+            <div className="border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur">
               <div className="flex gap-2">
                 <button onClick={save} className="btn-primary">建立調整單</button>
                 <button onClick={() => setCreating(false)} className="btn-ghost border border-slate-200">取消</button>

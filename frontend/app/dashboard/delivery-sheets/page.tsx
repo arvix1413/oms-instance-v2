@@ -247,8 +247,8 @@ export default function DeliverySheetsPage() {
 
       {creating && canWrite && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[1px] px-4 py-6 overflow-y-auto">
-        <div className="max-w-[1200px] mx-auto oms-card grid max-h-[88vh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
-          <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-6 py-5 backdrop-blur">
+        <div className="max-w-[1200px] mx-auto oms-card overflow-hidden p-0">
+          <div className="border-b border-slate-200 bg-white/95 px-6 py-5 backdrop-blur">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="font-semibold text-slate-800">新增送貨單</h2>
@@ -302,11 +302,11 @@ export default function DeliverySheetsPage() {
           </div>
           </div>
 
-          <div className="flex-1 min-h-0 overflow-hidden px-6 py-5">
+          <div className="px-6 py-5">
           {orderItems.length > 0 && (
             <div className="mb-5">
               <div className="text-xs font-semibold text-slate-600 mb-2">送貨明細（可修改實際送貨數量）</div>
-              <div className="max-h-[420px] overflow-auto rounded-lg border border-slate-200">
+              <div className="h-[420px] overflow-auto rounded-lg border border-slate-200">
                 <table className="w-full text-xs">
                   <thead><tr className="bg-slate-50 border-b border-slate-200">
                     <th className="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase shadow-sm">品名</th>
@@ -334,7 +334,7 @@ export default function DeliverySheetsPage() {
           )}
           </div>
 
-          <div className="sticky bottom-0 z-10 border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur">
+          <div className="border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur">
           <div className="flex gap-2">
             <button onClick={save} className="btn-primary" disabled={!selectedOrderId || orderItems.length === 0}>建立送貨單</button>
             <button onClick={() => { setCreating(false); resetForm() }} className="btn-ghost border border-slate-200">取消</button>
@@ -345,15 +345,15 @@ export default function DeliverySheetsPage() {
       )}
 
       {editing && canWrite && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[1px] px-4 py-6 overflow-y-auto">
-        <div className="max-w-[1200px] mx-auto oms-card grid max-h-[88vh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
-            <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-6 py-4 backdrop-blur">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 px-4 py-6 backdrop-blur-[1px]">
+        <div className="max-w-[1200px] mx-auto oms-card overflow-hidden p-0">
+            <div className="border-b border-slate-200 bg-white/95 px-6 py-4 backdrop-blur">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold">編輯送貨單 {editing.ds_number}</h2>
               <button onClick={() => setEditing(null)} className="btn-ghost border border-slate-200">返回列表</button>
             </div>
             </div>
-            <div className="flex-1 min-h-0 overflow-hidden px-6 py-5">
+            <div className="px-6 py-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
               <div>
                 <label className="block text-[11px] text-slate-500 mb-1.5">送貨單號 *</label>
@@ -396,7 +396,7 @@ export default function DeliverySheetsPage() {
               </table>
             </div>
             </div>
-            <div className="sticky bottom-0 z-10 border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur">
+            <div className="border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur">
             <div className="flex gap-2">
               <button onClick={saveEdit} className="btn-primary">儲存修改</button>
               <button onClick={() => setEditing(null)} className="btn-ghost border border-slate-200">取消</button>
