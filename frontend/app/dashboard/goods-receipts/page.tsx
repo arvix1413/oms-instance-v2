@@ -130,9 +130,9 @@ export default function GoodsReceiptsPage() {
               </div>
               <div className="overflow-x-auto rounded-lg border border-slate-200">
                 <table className="w-full text-xs" style={{ minWidth: 1080 }}>
-                  <thead><tr className="border-b border-slate-200">
+                  <thead className="sticky top-0 z-10 bg-white shadow-sm"><tr className="border-b border-slate-200">
                     {['料號','材料名稱','規格','單位','訂購數量','實收數量','單價','幣別','批次號','備註',''].map(h => (
-                      <th key={h} className="px-2 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
+                      <th key={h} className="bg-white px-2 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
                     ))}
                   </tr></thead>
                   <tbody>

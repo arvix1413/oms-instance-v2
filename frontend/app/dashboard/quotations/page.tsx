@@ -579,9 +579,9 @@ export default function QuotationsPage() {
           <div className="flex-1 overflow-y-auto px-6 py-4">
           <div className="no-sticky-cols overflow-x-auto overscroll-x-contain rounded-lg border border-slate-200 bg-white">
             <table className="w-full text-xs oms-table" style={{ minWidth: 1320 }}>
-              <thead><tr className="border-b border-slate-200">
+              <thead className="sticky top-0 z-10 bg-white shadow-sm"><tr className="border-b border-slate-200">
                 {['選擇BOM','品名','規格','單位','階梯報價（MOQ / 單價）','Remark',''].map(h=>(
-                  <th key={h} className="px-1.5 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
+                  <th key={h} className="bg-white px-1.5 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">{h}</th>
                 ))}
               </tr></thead>
               <tbody>

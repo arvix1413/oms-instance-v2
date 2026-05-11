@@ -477,13 +477,13 @@ export default function DeliveryNotesPage() {
               <div className="text-xs font-semibold text-slate-600 mb-2">出貨明細（可修改實際出貨數量）</div>
               <div className="border border-slate-200 rounded-lg overflow-hidden">
                 <table className="w-full text-xs">
-                  <thead><tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">品名</th>
-                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">物料編號</th>
-                    <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase">訂單數量</th>
-                    <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase">已出數量</th>
-                    <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase">剩餘可出</th>
-                    <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase">本次出貨</th>
+                  <thead className="sticky top-0 z-10 bg-slate-50 shadow-sm"><tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">品名</th>
+                    <th className="bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">物料編號</th>
+                    <th className="bg-slate-50 px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase">訂單數量</th>
+                    <th className="bg-slate-50 px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase">已出數量</th>
+                    <th className="bg-slate-50 px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase">剩餘可出</th>
+                    <th className="bg-slate-50 px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase">本次出貨</th>
                   </tr></thead>
                   <tbody>
                     {orderItems.map(item => (
@@ -569,15 +569,15 @@ export default function DeliveryNotesPage() {
               <div className="border border-slate-200 rounded-lg overflow-hidden mb-4">
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs" style={{ minWidth: 960 }}>
-                    <thead><tr className="bg-slate-50 border-b border-slate-200">
-                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">品名</th>
-                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">物料編號</th>
-                      <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">訂單數量</th>
-                      <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">已出貨</th>
-                      <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">可出上限</th>
-                      <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">本批數量</th>
-                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">備註</th>
-                      <th className="px-3 py-2 text-center text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">操作</th>
+                    <thead className="sticky top-0 z-10 bg-slate-50 shadow-sm"><tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">品名</th>
+                      <th className="bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">物料編號</th>
+                      <th className="bg-slate-50 px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">訂單數量</th>
+                      <th className="bg-slate-50 px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">已出貨</th>
+                      <th className="bg-slate-50 px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">可出上限</th>
+                      <th className="bg-slate-50 px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">本批數量</th>
+                      <th className="bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">備註</th>
+                      <th className="bg-slate-50 px-3 py-2 text-center text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">操作</th>
                     </tr></thead>
                     <tbody>
                       {editForm.items.map((item) => {

@@ -308,11 +308,11 @@ export default function DeliverySheetsPage() {
               <div className="text-xs font-semibold text-slate-600 mb-2">送貨明細（可修改實際送貨數量）</div>
               <div className="border border-slate-200 rounded-lg overflow-hidden">
                 <table className="w-full text-xs">
-                  <thead><tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">品名</th>
-                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">物料編號</th>
-                    <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase">訂單數量</th>
-                    <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase">本次送貨</th>
+                  <thead className="sticky top-0 z-10 bg-slate-50 shadow-sm"><tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">品名</th>
+                    <th className="bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">物料編號</th>
+                    <th className="bg-slate-50 px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase">訂單數量</th>
+                    <th className="bg-slate-50 px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase">本次送貨</th>
                   </tr></thead>
                   <tbody>
                     {orderItems.map(item => (
@@ -370,11 +370,11 @@ export default function DeliverySheetsPage() {
             </div>
             <div className="border border-slate-200 rounded-lg overflow-hidden mb-4">
               <table className="w-full text-xs">
-                <thead><tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">品名</th>
-                  <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">物料編號</th>
-                  <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase">數量</th>
-                  <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">備註</th>
+                <thead className="sticky top-0 z-10 bg-slate-50 shadow-sm"><tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">品名</th>
+                  <th className="bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">物料編號</th>
+                  <th className="bg-slate-50 px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase">數量</th>
+                  <th className="bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase">備註</th>
                 </tr></thead>
                 <tbody>
                   {editForm.items.map((item, i) => (
