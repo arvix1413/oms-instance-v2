@@ -523,7 +523,7 @@ export default function PoPage() {
 
       {(creating || editingId !== null) && canWrite && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[1px] px-4 py-6 overflow-y-auto">
-          <div className="max-w-[1400px] mx-auto oms-card p-0 overflow-hidden max-h-[calc(100vh-3rem)] flex flex-col">
+          <div className="max-w-[1400px] mx-auto oms-card grid max-h-[calc(100vh-3rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
           <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-6 pt-6 pb-4 shadow-sm">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
