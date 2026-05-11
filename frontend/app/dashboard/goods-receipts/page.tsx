@@ -93,7 +93,7 @@ export default function GoodsReceiptsPage() {
 
       {creating && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[1px] px-4 py-6 overflow-y-auto">
-          <div className="max-w-[1320px] mx-auto oms-card p-0 overflow-hidden flex max-h-[88vh] flex-col">
+          <div className="max-w-[1320px] mx-auto oms-card grid max-h-[88vh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
             <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-6 py-5 backdrop-blur">
               <div className="flex items-start justify-between gap-4">
                 <div>

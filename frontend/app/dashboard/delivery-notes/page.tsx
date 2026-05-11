@@ -419,7 +419,7 @@ export default function DeliveryNotesPage() {
 
       {creating && canWrite && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[1px] px-4 py-6 overflow-y-auto">
-        <div className="max-w-[1200px] mx-auto oms-card p-0 overflow-hidden flex max-h-[88vh] flex-col">
+        <div className="max-w-[1200px] mx-auto oms-card grid max-h-[88vh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
           <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-6 py-5 backdrop-blur">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -519,7 +519,7 @@ export default function DeliveryNotesPage() {
 
       {editing && canWrite && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[1px]">
-          <div className="absolute inset-y-0 right-0 w-[min(980px,95vw)] bg-white border-l border-slate-200 shadow-2xl flex flex-col overflow-hidden animate-slide-up">
+          <div className="absolute inset-y-0 right-0 grid w-[min(980px,95vw)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden border-l border-slate-200 bg-white shadow-2xl animate-slide-up">
             <div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-slate-200 px-6 py-4">
               <div className="flex items-center justify-between">
                 <div>
