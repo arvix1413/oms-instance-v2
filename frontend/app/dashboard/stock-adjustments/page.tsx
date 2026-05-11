@@ -140,12 +140,12 @@ export default function StockAdjustmentsPage() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-5">
+            <div className="flex-1 min-h-0 px-6 py-5">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-semibold text-slate-600">調整明細</span>
                 <button onClick={addItem} className="btn-ghost text-blue-600 shrink-0">+ 新增料號</button>
               </div>
-              <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <div className="h-full overflow-auto rounded-lg border border-slate-200">
                 <table className="w-full text-xs" style={{ minWidth: 980 }}>
                   <thead>
                     <tr className="border-b border-slate-200">

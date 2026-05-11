@@ -470,12 +470,12 @@ export default function DeliveryNotesPage() {
           </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-6 py-5">
+          <div className="flex-1 min-h-0 px-6 py-5">
           {/* Step 2: Order items with shipped qty */}
           {orderItems.length > 0 && (
             <div className="mb-5">
               <div className="text-xs font-semibold text-slate-600 mb-2">出貨明細（可修改實際出貨數量）</div>
-              <div className="border border-slate-200 rounded-lg overflow-hidden">
+              <div className="max-h-[420px] overflow-auto rounded-lg border border-slate-200">
                 <table className="w-full text-xs">
                   <thead><tr className="bg-slate-50 border-b border-slate-200">
                     <th className="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase shadow-sm">品名</th>
@@ -535,7 +535,7 @@ export default function DeliveryNotesPage() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-5">
+            <div className="flex-1 min-h-0 px-6 py-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                 <div>
                   <label className="block text-[11px] text-slate-500 mb-1.5">出貨單號 *</label>
@@ -566,8 +566,8 @@ export default function DeliveryNotesPage() {
                 <button onClick={addEditItemFromOrder} className="btn-ghost text-blue-600">+ 新增明細</button>
               </div>
 
-              <div className="border border-slate-200 rounded-lg overflow-hidden mb-4">
-                <div className="overflow-x-auto">
+              <div className="mb-4 rounded-lg border border-slate-200">
+                <div className="max-h-[420px] overflow-auto">
                   <table className="w-full text-xs" style={{ minWidth: 960 }}>
                     <thead><tr className="bg-slate-50 border-b border-slate-200">
                       <th className="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap shadow-sm">品名</th>
