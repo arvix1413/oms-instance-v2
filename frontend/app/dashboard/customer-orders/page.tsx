@@ -326,82 +326,94 @@ export default function CustomerOrdersPage() {
       </div>
 
       {(creating || editingId !== null) && canWrite && (
-        <div className="oms-card mb-5 grid max-h-[calc(100vh-3rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
-          <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-6 pt-6 pb-4 shadow-sm">
-          <div className="flex items-start justify-between gap-4 mb-4">
-            <div>
-              <h2 className="text-sm font-semibold text-slate-800">{editingId ? '編輯客戶訂單' : '新增客戶訂單'}</h2>
-              <p className="mt-1 text-[11px] text-slate-400">頂部資訊與新增品項固定顯示，長訂單編輯時不需反覆捲回最上方。</p>
-            </div>
-            <button onClick={()=>{ setCreating(false); setEditingId(null); setForm({ po_date:'', po_number:'', customer_id:'', remark:'', currency:'VND', delivery_date:'', delivery_address:'', person_in_charge:'', payment_terms:'', items:[emptyItem()] }) }} className="btn-ghost border border-slate-200 shrink-0">關閉</button>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-            <div>
-              <label className="block text-[11px] text-slate-500 mb-1.5">採購日期</label>
-              <input type="date" className={inp} value={form.po_date} onChange={e=>setForm(p=>({...p,po_date:e.target.value}))} />
-            </div>
-            <div>
-              <label className="flex items-center gap-1.5 text-[11px] text-slate-500 mb-1.5">
-                客戶訂單號 *
-                {editingId !== null && <FieldLockHint />}
-              </label>
-              <input
-                className={inp}
-                value={form.po_number}
-                onChange={e=>setForm(p=>({...p,po_number:e.target.value}))}
-                disabled={editingId !== null}
-              />
-              {editingId !== null && <p className="text-[10px] text-slate-400 mt-1">訂單編號建立後不可修改</p>}
-            </div>
-            <div>
-              <label className="block text-[11px] text-slate-500 mb-1.5">客戶 *</label>
-              <select className={inp} value={form.customer_id} onChange={e=>{
-                const cust = customers.find(c=>String(c.id)===e.target.value)
-                setForm(p=>({...p, customer_id:e.target.value, payment_terms: (cust as any)?.payment_terms||p.payment_terms }))
-              }}>
-                <option value="">-- 選擇客戶 --</option>
-                {customers.map(c=>(
-                  <option key={c.id} value={String(c.id)}>{c.customer_name}{c.customer_code?` (${c.customer_code})`:''}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-[11px] text-slate-500 mb-1.5">交貨日期</label>
-              <input type="date" className={inp} value={form.delivery_date} onChange={e=>setForm(p=>({...p,delivery_date:e.target.value}))} />
-            </div>
-            <div>
-              <label className="block text-[11px] text-slate-500 mb-1.5">交貨地點</label>
-              <input className={inp} value={form.delivery_address} onChange={e=>setForm(p=>({...p,delivery_address:e.target.value}))} placeholder="交貨地址" />
-            </div>
-            <div>
-              <label className="block text-[11px] text-slate-500 mb-1.5">負責人</label>
-              <input className={inp} value={form.person_in_charge} onChange={e=>setForm(p=>({...p,person_in_charge:e.target.value}))} />
-            </div>
-            <div>
-              <label className="block text-[11px] text-slate-500 mb-1.5">付款方式</label>
-              <input className={inp} value={form.payment_terms} onChange={e=>setForm(p=>({...p,payment_terms:e.target.value}))} placeholder="如：月結30天" />
-            </div>
-            <div>
-              <label className="block text-[11px] text-slate-500 mb-1.5">幣種</label>
-              <select className={inp} value={form.currency} onChange={e=>setForm(p=>({...p,currency:e.target.value}))}>
-                <option value="VND">VND</option>
-                <option value="USD">USD</option>
-                <option value="CNY">CNY</option>
-              </select>
-            </div>
-            <div className="md:col-span-4">
-              <label className="block text-[11px] text-slate-500 mb-1.5">備註（交易條件、特殊要求等）</label>
-              <textarea className={inp} rows={3} value={form.remark} onChange={e=>setForm(p=>({...p,remark:e.target.value}))} placeholder="可輸入交易條件、付款方式、交貨要求等資訊..." />
+        <div className="fixed inset-0 z-50 bg-slate-950/35 p-3 backdrop-blur-sm">
+          <div className="grid h-full w-full grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-2xl">
+          <div className="border-b border-slate-200 bg-white px-8 py-5">
+            <div className="flex items-start justify-between gap-6">
+              <div>
+                <div className="mb-2 inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-600">
+                  Full Screen Editor
+                </div>
+                <h2 className="text-xl font-semibold text-slate-900">{editingId ? '編輯客戶訂單' : '新增客戶訂單'}</h2>
+                <p className="mt-1 text-sm text-slate-500">把訂單表頭、品項列表與底部操作拆成工作台，長單據不用再跟彈窗高度打架。</p>
+              </div>
+              <button onClick={()=>{ setCreating(false); setEditingId(null); setForm({ po_date:'', po_number:'', customer_id:'', remark:'', currency:'VND', delivery_date:'', delivery_address:'', person_in_charge:'', payment_terms:'', items:[emptyItem()] }) }} className="btn-ghost border border-slate-200 shrink-0">
+                關閉
+              </button>
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-xs font-semibold text-slate-600">訂單品項</span>
-            <button onClick={addItem} className="btn-ghost text-blue-600 shrink-0">+ 新增品項</button>
+          <div className="border-b border-slate-200 bg-slate-50/70 px-8 py-5">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+              <div>
+                <label className="mb-1.5 block text-[11px] font-medium text-slate-500">採購日期</label>
+                <input type="date" className={inp} value={form.po_date} onChange={e=>setForm(p=>({...p,po_date:e.target.value}))} />
+              </div>
+              <div>
+                <label className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+                  客戶訂單號 *
+                  {editingId !== null && <FieldLockHint />}
+                </label>
+                <input
+                  className={inp}
+                  value={form.po_number}
+                  onChange={e=>setForm(p=>({...p,po_number:e.target.value}))}
+                  disabled={editingId !== null}
+                />
+                {editingId !== null && <p className="mt-1 text-[10px] text-slate-400">訂單編號建立後不可修改</p>}
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[11px] font-medium text-slate-500">客戶 *</label>
+                <select className={inp} value={form.customer_id} onChange={e=>{
+                  const cust = customers.find(c=>String(c.id)===e.target.value)
+                  setForm(p=>({...p, customer_id:e.target.value, payment_terms: (cust as any)?.payment_terms||p.payment_terms }))
+                }}>
+                  <option value="">-- 選擇客戶 --</option>
+                  {customers.map(c=>(
+                    <option key={c.id} value={String(c.id)}>{c.customer_name}{c.customer_code?` (${c.customer_code})`:''}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[11px] font-medium text-slate-500">交貨日期</label>
+                <input type="date" className={inp} value={form.delivery_date} onChange={e=>setForm(p=>({...p,delivery_date:e.target.value}))} />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[11px] font-medium text-slate-500">幣種</label>
+                <select className={inp} value={form.currency} onChange={e=>setForm(p=>({...p,currency:e.target.value}))}>
+                  <option value="VND">VND</option>
+                  <option value="USD">USD</option>
+                  <option value="CNY">CNY</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[11px] font-medium text-slate-500">交貨地點</label>
+                <input className={inp} value={form.delivery_address} onChange={e=>setForm(p=>({...p,delivery_address:e.target.value}))} placeholder="交貨地址" />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[11px] font-medium text-slate-500">負責人</label>
+                <input className={inp} value={form.person_in_charge} onChange={e=>setForm(p=>({...p,person_in_charge:e.target.value}))} />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[11px] font-medium text-slate-500">付款方式</label>
+                <input className={inp} value={form.payment_terms} onChange={e=>setForm(p=>({...p,payment_terms:e.target.value}))} placeholder="如：月結30天" />
+              </div>
+              <div className="xl:col-span-2">
+                <label className="mb-1.5 block text-[11px] font-medium text-slate-500">備註（交易條件、特殊要求等）</label>
+                <textarea className={inp} rows={2} value={form.remark} onChange={e=>setForm(p=>({...p,remark:e.target.value}))} placeholder="可輸入交易條件、付款方式、交貨要求等資訊..." />
+              </div>
+            </div>
           </div>
-          </div>
-          <div className="flex-1 min-h-[320px] overflow-hidden px-6 py-4">
-          <div className="h-full min-h-[260px] overflow-auto rounded-lg border border-slate-200 bg-white">
+
+          <div className="flex min-h-0 flex-col overflow-hidden px-8 py-5">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-slate-800">訂單品項</div>
+                <div className="mt-1 text-xs text-slate-500">列表區優先佔高度，適合長單據連續錄入與核對。</div>
+              </div>
+              <button onClick={addItem} className="btn-ghost shrink-0 text-blue-600">+ 新增品項</button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white">
             <table className="w-full text-xs oms-table">
               <thead><tr className="bg-slate-50 border-b border-slate-200">
                 <th className="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase shadow-sm">圖片</th>
@@ -464,18 +476,17 @@ export default function CustomerOrdersPage() {
               </tbody>
             </table>
           </div>
-          {/* Summary */}
           {(() => {
             const subtotal = form.items.reduce((s,i) => s + (i.qty||0)*(i.unit_price||0), 0)
             return (
-              <div className="flex justify-end mt-3 text-xs text-slate-500 gap-6">
+              <div className="mt-3 flex justify-end gap-6 text-xs text-slate-500">
                 <span>小計：<span className="font-semibold text-slate-700">{formatDecimal(subtotal)}</span></span>
                 <span>總計：<span className="font-bold text-slate-900 text-sm">{formatDecimal(subtotal)}</span></span>
               </div>
             )
           })()}
           </div>
-          <div className="sticky bottom-0 z-20 bg-white/95 backdrop-blur border-t border-slate-200 px-6 py-4">
+          <div className="border-t border-slate-200 bg-white/95 px-8 py-4 backdrop-blur">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="text-xs text-slate-500">
                 目前品項 <span className="font-semibold text-slate-700">{form.items.length}</span>
@@ -486,6 +497,7 @@ export default function CustomerOrdersPage() {
               </div>
             </div>
           </div>
+        </div>
         </div>
       )}
 
