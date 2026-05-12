@@ -750,19 +750,25 @@ app.put('/api/bom/:id', authMiddleware, requirePerm('bom.edit'), async c => {
     await ensureBomMoqTiersColumn()
     const id = c.req.param('id'); const b = await c.req.json(); const u = c.get('user')
     const existing = await queryOne<any>(
-      'SELECT product_sku,material_name,spec,unit,supplier_id,supplier_name,supplier_price,currency FROM bom WHERE id=? AND deleted_at IS NULL',
+      'SELECT product_sku FROM bom WHERE id=? AND deleted_at IS NULL',
       [id]
     )
     if (!existing) return c.json({ error: 'Not found' }, 404)
     const productName = normalizeRequiredText(b.product_name)
+    const unit = normalizeRequiredText(b.unit)
+    const currency = normalizeRequiredText(b.currency)
+    const supplierPrice = parseRequiredMoney(b.supplier_price)
     const companyPrice = parseRequiredMoney(b.company_price)
     if (!productName) return c.json({ error: 'product_name required' }, 400)
+    if (!unit) return c.json({ error: 'unit required' }, 400)
+    if (!currency) return c.json({ error: 'currency required' }, 400)
+    if (supplierPrice === null) return c.json({ error: 'supplier_price required and must be >= 0' }, 400)
     if (companyPrice === null) return c.json({ error: 'company_price required and must be >= 0' }, 400)
     const moqTiers = normalizeMoqTiers(b.moq_tiers)
     await execute(`UPDATE bom SET product_sku=?,product_name=?,material_name=?,spec=?,unit=?,supplier_id=?,supplier_name=?,supplier_price=?,company_price=?,currency=?,category=?,cert_code=?,brand=?,image_url=?,version=?,moq_tiers=? WHERE id=?`,
-      [existing.product_sku, productName, existing.material_name || '', existing.spec || '', normalizeRequiredText(existing.unit),
-       existing.supplier_id || null, existing.supplier_name || '', Number(existing.supplier_price) || 0, companyPrice,
-       normalizeRequiredText(existing.currency), b.category||'', b.cert_code||'', b.brand||'', b.image_url||'', b.version||'V1',
+      [existing.product_sku, productName, b.material_name||'', b.spec||'', unit,
+       b.supplier_id||null, b.supplier_name||'', supplierPrice, companyPrice,
+       currency, b.category||'', b.cert_code||'', b.brand||'', b.image_url||'', b.version||'V1',
        moqTiers.length ? JSON.stringify(moqTiers) : null,
        id])
     await execute('DELETE FROM bom_items WHERE bom_id=?', [id])

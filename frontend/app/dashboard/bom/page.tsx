@@ -71,10 +71,10 @@ export default function BomPage() {
     try {
       if (editing.id) {
         await apiFetch(`/api/bom/${editing.id}`, { method:'PUT', body:JSON.stringify(editing) })
-        toast('BOM 更新成功')
+        toast('材料明細更新成功')
       } else {
         await apiFetch('/api/bom', { method:'POST', body:JSON.stringify(editing) })
-        toast('BOM 建立成功')
+        toast('材料明細建立成功')
       }
       setEditing(null)
       await load()
@@ -83,7 +83,7 @@ export default function BomPage() {
 
   const del = async (id:number, e:React.MouseEvent) => {
     e.stopPropagation()
-    if (!await confirmDialog('確定刪除此 BOM？')) return
+    if (!await confirmDialog('確定刪除此材料明細？')) return
     try {
       await apiFetch(`/api/bom/${id}`, { method:'DELETE' })
       toast('已刪除')
@@ -114,15 +114,13 @@ export default function BomPage() {
   })
   const { page, setPage, totalPages, paged, total } = usePagination(filtered, 10)
   const inp = 'oms-input'
-  const lockedInp = `${inp} bom-locked-field`
-  const importedFieldLocked = Boolean(editing?.id)
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-slate-800">材料明細</h1>
-          <p className="text-xs text-slate-500 mt-0.5">物料編號、規格、供應商單價、公司售價</p>
+          <p className="text-xs text-slate-500 mt-0.5">物料編號、材料名稱、規格、供應商、價格與 MOQ 設定</p>
         </div>
         {canWrite && <button onClick={()=>setEditing(empty())} className="btn-primary">+ 建立材料</button>}
       </div>
@@ -154,29 +152,19 @@ export default function BomPage() {
                 <input className={inp} value={editing.product_name||''} onChange={e=>setEditing(p=>({...p,product_name:e.target.value}))} />
               </div>
               <div>
-                <label className="flex items-center gap-1.5 text-[11px] text-slate-500 mb-1.5">
-                  材料名稱
-                  {!!editing.id && <FieldLockHint title="已建立 BOM 的材料主数据字段不可直接修改" />}
-                </label>
-                <input className={importedFieldLocked ? lockedInp : inp} value={editing.material_name||''} onChange={e=>setEditing(p=>({...p,material_name:e.target.value}))} readOnly={importedFieldLocked} />
+                <label className="block text-[11px] text-slate-500 mb-1.5">材料名稱</label>
+                <input className={inp} value={editing.material_name||''} onChange={e=>setEditing(p=>({...p,material_name:e.target.value}))} />
               </div>
               <div>
-                <label className="flex items-center gap-1.5 text-[11px] text-slate-500 mb-1.5">
-                  規格
-                  {!!editing.id && <FieldLockHint title="已建立 BOM 的材料主数据字段不可直接修改" />}
-                </label>
-                <input className={importedFieldLocked ? lockedInp : inp} value={editing.spec||''} onChange={e=>setEditing(p=>({...p,spec:e.target.value}))} readOnly={importedFieldLocked} />
+                <label className="block text-[11px] text-slate-500 mb-1.5">規格</label>
+                <input className={inp} value={editing.spec||''} onChange={e=>setEditing(p=>({...p,spec:e.target.value}))} />
               </div>
               <div>
-                <label className="flex items-center gap-1.5 text-[11px] text-slate-500 mb-1.5">
-                  單位
-                  {!!editing.id && <FieldLockHint title="已建立 BOM 的材料主数据字段不可直接修改" />}
-                </label>
+                <label className="block text-[11px] text-slate-500 mb-1.5">單位</label>
                 <select
-                  className={importedFieldLocked ? lockedInp : inp}
+                  className={inp}
                   value={normalizeUnit(editing.unit)}
                   onChange={e=>setEditing(p=>({...p,unit:e.target.value}))}
-                  disabled={importedFieldLocked}
                 >
                   {UNIT_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}
                 </select>
@@ -186,34 +174,24 @@ export default function BomPage() {
                 <input className={inp} value={editing.category||''} onChange={e=>setEditing(p=>({...p,category:e.target.value}))} />
               </div>
               <div>
-                <label className="flex items-center gap-1.5 text-[11px] text-slate-500 mb-1.5">
-                  供應商
-                  {!!editing.id && <FieldLockHint title="已建立 BOM 的材料主数据字段不可直接修改" />}
-                </label>
-                <select className={importedFieldLocked ? lockedInp : inp} value={editing.supplier_id != null ? String(editing.supplier_id) : ''} onChange={e=>onSupplierChange(e.target.value)} disabled={importedFieldLocked}>
+                <label className="block text-[11px] text-slate-500 mb-1.5">供應商</label>
+                <select className={inp} value={editing.supplier_id != null ? String(editing.supplier_id) : ''} onChange={e=>onSupplierChange(e.target.value)}>
                   <option value="">-- 選擇供應商 --</option>
                   {suppliers.map(s=><option key={s.id} value={String(s.id)}>{s.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="flex items-center gap-1.5 text-[11px] text-slate-500 mb-1.5">
-                  幣別
-                  {!!editing.id && <FieldLockHint title="已建立 BOM 的材料主数据字段不可直接修改" />}
-                </label>
-                <select className={importedFieldLocked ? lockedInp : inp} value={editing.currency||'VND'} onChange={e=>setEditing(p=>({...p,currency:e.target.value}))} disabled={importedFieldLocked}>
+                <label className="block text-[11px] text-slate-500 mb-1.5">幣別</label>
+                <select className={inp} value={editing.currency||'VND'} onChange={e=>setEditing(p=>({...p,currency:e.target.value}))}>
                   <option>VND</option><option>TWD</option><option>CNY</option><option>USD</option>
                 </select>
               </div>
               <div>
-                <label className="flex items-center gap-1.5 text-[11px] text-slate-500 mb-1.5">
-                  供應商單價
-                  {!!editing.id && <FieldLockHint title="已建立 BOM 的材料主数据字段不可直接修改" />}
-                </label>
+                <label className="block text-[11px] text-slate-500 mb-1.5">供應商單價</label>
                 <DecimalInput
-                  className={importedFieldLocked ? lockedInp : inp}
+                  className={inp}
                   value={editing.supplier_price}
                   onValueChange={value=>setEditing(p=>({...p,supplier_price:value}))}
-                  readOnly={importedFieldLocked}
                 />
               </div>
               <div>
@@ -340,7 +318,7 @@ export default function BomPage() {
                       </td>
                     </tr>
                   ))}
-                  {paged.length===0 && <tr><td colSpan={14} className="text-center py-12 text-slate-400">尚無 BOM 資料</td></tr>}
+                  {paged.length===0 && <tr><td colSpan={14} className="text-center py-12 text-slate-400">尚無材料明細資料</td></tr>}
                 </tbody>
               </table>
             </div>
