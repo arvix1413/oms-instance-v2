@@ -42,6 +42,10 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     setConfirmState(p => ({ ...p, open: false }))
   }
 
+  const dismissAll = useCallback(() => {
+    if (confirmState.open) handleConfirm(false)
+  }, [confirmState.open])
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && confirmState.open) {
@@ -110,6 +114,13 @@ export function DialogProvider({ children }: { children: ReactNode }) {
       {confirmState.open && (
         <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={() => handleConfirm(false)} />
+          <button
+            type="button"
+            onClick={dismissAll}
+            className="absolute right-4 top-4 z-[9999] rounded-full border border-white/30 bg-black/55 px-3 py-1.5 text-xs font-semibold text-white shadow-lg backdrop-blur hover:bg-black/70"
+          >
+            關閉遮罩
+          </button>
           <div className="relative bg-white rounded-2xl shadow-2xl shadow-slate-300/50 w-full max-w-sm p-6 border border-slate-200">
             <div className="flex items-start gap-4 mb-5">
               <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
