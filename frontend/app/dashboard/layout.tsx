@@ -20,7 +20,7 @@ const NAV: NavEntry[] = [
     children: [
       { href: '/dashboard/customer-orders', label: '客戶訂單', icon: <IconDoc /> },
       { href: '/dashboard/quotations', label: '報價單', icon: <IconQuote /> },
-      { href: '/dashboard/bom', label: '材料明細', icon: <IconList /> },
+      { href: '/dashboard/material-details', label: '材料明細', icon: <IconList /> },
       { href: '/dashboard/po', label: '採購單', icon: <IconCart /> },
       { href: '/dashboard/production', label: '生產單', icon: <IconFactory /> },
       { href: '/dashboard/delivery-notes', label: '出貨單', icon: <IconTruck /> },

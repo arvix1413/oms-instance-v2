@@ -14,7 +14,7 @@ test.describe('BOM Image Upload', () => {
 
   test('should display image in BOM list', async ({ page }) => {
     // Navigate to BOM page
-    await page.goto(`${BASE_URL}/dashboard/bom`)
+    await page.goto(`${BASE_URL}/dashboard/material-details`)
     await page.waitForLoadState('networkidle')
 
     // Wait for table to load
@@ -39,7 +39,7 @@ test.describe('BOM Image Upload', () => {
 
   test('should show image upload in edit modal', async ({ page }) => {
     // Navigate to BOM page
-    await page.goto(`${BASE_URL}/dashboard/bom`)
+    await page.goto(`${BASE_URL}/dashboard/material-details`)
     await page.waitForLoadState('networkidle')
 
     // Wait for table to load
@@ -64,7 +64,7 @@ test.describe('BOM Image Upload', () => {
 
   test('should update image URL via text input', async ({ page }) => {
     // Navigate to BOM page
-    await page.goto(`${BASE_URL}/dashboard/bom`)
+    await page.goto(`${BASE_URL}/dashboard/material-details`)
     await page.waitForLoadState('networkidle')
 
     // Wait for table to load
