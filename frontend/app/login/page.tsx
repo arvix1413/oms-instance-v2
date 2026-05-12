@@ -15,6 +15,7 @@ export default function LoginPage() {
       const data = await apiFetch<{ token: string; user: any; permissions: string[] }>('/api/auth/login', {
         method: 'POST', body: JSON.stringify(form)
       })
+      if (typeof document !== 'undefined') (document.activeElement as HTMLElement | null)?.blur()
       setToken(data.token)
       localStorage.setItem('oms_user', JSON.stringify(data.user))
       localStorage.setItem('oms_permissions', JSON.stringify(data.permissions || []))
@@ -41,17 +42,17 @@ export default function LoginPage() {
               {error}
             </div>
           )}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">Email</label>
-              <input type="email" required value={form.email}
+              <input type="email" required name="oms-login-email" autoComplete="off" autoCapitalize="none" spellCheck={false} value={form.email}
                 onChange={e => setForm(p => ({...p, email: e.target.value}))}
                 className="oms-input" placeholder="name@company.com" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">密碼</label>
               <div className="relative">
-                <input type={showPw ? 'text' : 'password'} required value={form.password}
+                <input type={showPw ? 'text' : 'password'} required name="oms-login-password" autoComplete="new-password" value={form.password}
                   onChange={e => setForm(p => ({...p, password: e.target.value}))}
                   className="oms-input pr-12" placeholder="••••••••" />
                 <button type="button" onClick={()=>setShowPw(!showPw)}
