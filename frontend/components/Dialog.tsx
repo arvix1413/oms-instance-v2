@@ -1,5 +1,6 @@
 'use client'
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
 type ToastType = 'success' | 'error' | 'info'
@@ -18,6 +19,7 @@ const Ctx = createContext<DialogCtx>({ toast: () => {}, confirm: async () => fal
 export function useDialog() { return useContext(Ctx) }
 
 export function DialogProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname()
   const [toasts, setToasts] = useState<Toast[]>([])
   const [confirmState, setConfirmState] = useState<ConfirmState>({
     open: false, title: '', desc: '', confirmLabel: '確認', resolve: () => {}
@@ -39,6 +41,22 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     confirmState.resolve(val)
     setConfirmState(p => ({ ...p, open: false }))
   }
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && confirmState.open) {
+        handleConfirm(false)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [confirmState])
+
+  useEffect(() => {
+    if (confirmState.open) handleConfirm(false)
+    // Close any global confirm overlay on route changes to avoid stale backdrops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
 
   const ICONS = {
     success: (
