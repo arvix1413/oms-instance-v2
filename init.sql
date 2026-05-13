@@ -42,25 +42,6 @@ CREATE TABLE IF NOT EXISTS customers (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS materials (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  material_code VARCHAR(100) NOT NULL UNIQUE,
-  material_name VARCHAR(255) NOT NULL,
-  spec TEXT,
-  unit VARCHAR(50) DEFAULT 'PCS',
-  category VARCHAR(255),
-  product_category VARCHAR(255),
-  supplier_id INT,
-  supplier_name VARCHAR(255),
-  supplier_price DECIMAL(15,2) DEFAULT 0,
-  company_price DECIMAL(15,2) DEFAULT 0,
-  currency VARCHAR(20) DEFAULT 'VND',
-  stock INT DEFAULT 0,
-  image_url TEXT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL
-);
-
 CREATE TABLE IF NOT EXISTS bom (
   id INT AUTO_INCREMENT PRIMARY KEY,
   product_sku VARCHAR(100) NOT NULL,
@@ -121,6 +102,7 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
 CREATE TABLE IF NOT EXISTS po_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
   po_id INT NOT NULL,
+  bom_id INT NULL,
   material_id INT NULL,
   material_code VARCHAR(100) NOT NULL,
   material_name VARCHAR(255) NOT NULL,
@@ -210,6 +192,7 @@ CREATE TABLE IF NOT EXISTS quotations (
 CREATE TABLE IF NOT EXISTS quotation_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
   quotation_id INT NOT NULL,
+  bom_id INT NULL,
   material_id INT NULL,
   item_name VARCHAR(255),
   material_code VARCHAR(100),
@@ -241,6 +224,7 @@ CREATE TABLE IF NOT EXISTS delivery_notes (
 CREATE TABLE IF NOT EXISTS delivery_note_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
   dn_id INT NOT NULL,
+  bom_id INT NULL,
   material_id INT NULL,
   item_name VARCHAR(255),
   material_code VARCHAR(100),
@@ -270,6 +254,7 @@ CREATE TABLE IF NOT EXISTS delivery_sheets (
 CREATE TABLE IF NOT EXISTS delivery_sheet_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
   ds_id INT NOT NULL,
+  bom_id INT NULL,
   material_id INT NULL,
   item_name VARCHAR(255),
   material_code VARCHAR(100),

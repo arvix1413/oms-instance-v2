@@ -188,7 +188,6 @@ const ensureCompanyProfitRatesColumns = async () => {
 const SOFT_DELETE_TABLES = [
   'suppliers',
   'customers',
-  'materials',
   'bom',
   'purchase_orders',
   'customer_orders',
@@ -248,83 +247,78 @@ const ensureMaterialReferenceColumns = async () => {
             !msg.includes('duplicate key name') &&
             !msg.includes('duplicate index') &&
             !msg.includes("doesn't exist") &&
-            !msg.includes('unknown table')
+            !msg.includes('unknown table') &&
+            !msg.includes('unknown column')
           ) throw e
         }
       }
-      await alterSafe('ALTER TABLE po_items ADD COLUMN material_id INT NULL AFTER po_id')
-      await alterSafe('ALTER TABLE po_items ADD INDEX idx_po_items_material_id (material_id)')
-      await alterSafe('ALTER TABLE bom_items ADD COLUMN material_id INT NULL AFTER bom_id')
-      await alterSafe('ALTER TABLE bom_items ADD INDEX idx_bom_items_material_id (material_id)')
-      await alterSafe('ALTER TABLE quotation_items ADD COLUMN material_id INT NULL AFTER quotation_id')
-      await alterSafe('ALTER TABLE quotation_items ADD INDEX idx_quotation_items_material_id (material_id)')
-      await alterSafe('ALTER TABLE delivery_note_items ADD COLUMN material_id INT NULL AFTER dn_id')
-      await alterSafe('ALTER TABLE delivery_note_items ADD INDEX idx_delivery_note_items_material_id (material_id)')
-      await alterSafe('ALTER TABLE delivery_sheet_items ADD COLUMN material_id INT NULL AFTER ds_id')
-      await alterSafe('ALTER TABLE delivery_sheet_items ADD INDEX idx_delivery_sheet_items_material_id (material_id)')
-      await alterSafe('ALTER TABLE goods_receipt_items ADD COLUMN material_id INT NULL AFTER po_item_id')
-      await alterSafe('ALTER TABLE goods_receipt_items ADD INDEX idx_goods_receipt_items_material_id (material_id)')
-      await alterSafe('ALTER TABLE production_materials ADD COLUMN material_id INT NULL AFTER prod_id')
-      await alterSafe('ALTER TABLE production_materials ADD INDEX idx_production_materials_material_id (material_id)')
-      await alterSafe('ALTER TABLE stock_adjustment_items ADD COLUMN material_id INT NULL AFTER adj_id')
-      await alterSafe('ALTER TABLE stock_adjustment_items ADD INDEX idx_stock_adjustment_items_material_id (material_id)')
+      await alterSafe('ALTER TABLE po_items ADD COLUMN bom_id INT NULL AFTER po_id')
+      await alterSafe('ALTER TABLE quotation_items ADD COLUMN bom_id INT NULL AFTER quotation_id')
+      await alterSafe('ALTER TABLE delivery_note_items ADD COLUMN bom_id INT NULL AFTER dn_id')
+      await alterSafe('ALTER TABLE delivery_sheet_items ADD COLUMN bom_id INT NULL AFTER ds_id')
+      await alterSafe('ALTER TABLE goods_receipt_items ADD COLUMN bom_id INT NULL AFTER po_item_id')
+      await alterSafe('ALTER TABLE po_items ADD INDEX idx_po_items_bom_id (bom_id)')
+      await alterSafe('ALTER TABLE quotation_items ADD INDEX idx_quotation_items_bom_id (bom_id)')
+      await alterSafe('ALTER TABLE delivery_note_items ADD INDEX idx_delivery_note_items_bom_id (bom_id)')
+      await alterSafe('ALTER TABLE delivery_sheet_items ADD INDEX idx_delivery_sheet_items_bom_id (bom_id)')
+      await alterSafe('ALTER TABLE goods_receipt_items ADD INDEX idx_goods_receipt_items_bom_id (bom_id)')
 
       const backfillSafe = async (sql: string) => {
         try {
           await execute(sql)
         } catch (e: any) {
           const msg = String(e?.message || '').toLowerCase()
-          if (!msg.includes("doesn't exist") && !msg.includes('unknown table')) throw e
+          if (
+            !msg.includes("doesn't exist") &&
+            !msg.includes('unknown table') &&
+            !msg.includes('unknown column')
+          ) throw e
         }
       }
       await backfillSafe(`
-        UPDATE po_items pi
-        JOIN materials m ON m.material_code = pi.material_code AND m.deleted_at IS NULL
-        SET pi.material_id = m.id
-        WHERE pi.material_id IS NULL AND COALESCE(pi.material_code, '') <> ''
+        INSERT INTO bom (product_sku,product_name,spec,unit,supplier_id,supplier_name,supplier_price,company_price,currency,category,image_url,material_name,created_at)
+        SELECT m.material_code,m.material_name,m.spec,COALESCE(m.unit,'PCS'),m.supplier_id,m.supplier_name,COALESCE(m.supplier_price,0),COALESCE(m.company_price,0),COALESCE(m.currency,'VND'),m.category,m.image_url,m.material_name,COALESCE(m.created_at,CURRENT_TIMESTAMP)
+        FROM materials m
+        LEFT JOIN bom b ON b.product_sku = m.material_code AND b.deleted_at IS NULL
+        WHERE b.id IS NULL
       `)
       await backfillSafe(`
-        UPDATE bom_items bi
-        JOIN materials m ON m.material_code = bi.material_code AND m.deleted_at IS NULL
-        SET bi.material_id = m.id
-        WHERE bi.material_id IS NULL AND COALESCE(bi.material_code, '') <> ''
+        UPDATE customer_order_items coi
+        JOIN bom b ON b.product_sku = coi.material_code AND b.deleted_at IS NULL
+        SET coi.bom_id = b.id
+        WHERE COALESCE(coi.material_code, '') <> '' AND (coi.bom_id IS NULL OR coi.bom_id = 0)
+      `)
+      await backfillSafe(`
+        UPDATE po_items pi
+        JOIN bom b ON b.product_sku = pi.material_code AND b.deleted_at IS NULL
+        SET pi.bom_id = b.id
+        WHERE COALESCE(pi.material_code, '') <> '' AND (pi.bom_id IS NULL OR pi.bom_id = 0)
       `)
       await backfillSafe(`
         UPDATE quotation_items qi
-        JOIN materials m ON m.material_code = qi.material_code AND m.deleted_at IS NULL
-        SET qi.material_id = m.id
-        WHERE qi.material_id IS NULL AND COALESCE(qi.material_code, '') <> ''
+        JOIN bom b ON b.product_sku = qi.material_code AND b.deleted_at IS NULL
+        SET qi.bom_id = b.id
+        WHERE COALESCE(qi.material_code, '') <> '' AND (qi.bom_id IS NULL OR qi.bom_id = 0)
       `)
       await backfillSafe(`
         UPDATE delivery_note_items dni
-        JOIN materials m ON m.material_code = dni.material_code AND m.deleted_at IS NULL
-        SET dni.material_id = m.id
-        WHERE dni.material_id IS NULL AND COALESCE(dni.material_code, '') <> ''
+        JOIN bom b ON b.product_sku = dni.material_code AND b.deleted_at IS NULL
+        SET dni.bom_id = b.id
+        WHERE COALESCE(dni.material_code, '') <> '' AND (dni.bom_id IS NULL OR dni.bom_id = 0)
       `)
       await backfillSafe(`
         UPDATE delivery_sheet_items dsi
-        JOIN materials m ON m.material_code = dsi.material_code AND m.deleted_at IS NULL
-        SET dsi.material_id = m.id
-        WHERE dsi.material_id IS NULL AND COALESCE(dsi.material_code, '') <> ''
+        JOIN bom b ON b.product_sku = dsi.material_code AND b.deleted_at IS NULL
+        SET dsi.bom_id = b.id
+        WHERE COALESCE(dsi.material_code, '') <> '' AND (dsi.bom_id IS NULL OR dsi.bom_id = 0)
       `)
       await backfillSafe(`
         UPDATE goods_receipt_items gri
-        JOIN materials m ON m.material_code = gri.material_code AND m.deleted_at IS NULL
-        SET gri.material_id = m.id
-        WHERE gri.material_id IS NULL AND COALESCE(gri.material_code, '') <> ''
+        JOIN bom b ON b.product_sku = gri.material_code AND b.deleted_at IS NULL
+        SET gri.bom_id = b.id
+        WHERE COALESCE(gri.material_code, '') <> '' AND (gri.bom_id IS NULL OR gri.bom_id = 0)
       `)
-      await backfillSafe(`
-        UPDATE production_materials pm
-        JOIN materials m ON m.material_code = pm.material_code AND m.deleted_at IS NULL
-        SET pm.material_id = m.id
-        WHERE pm.material_id IS NULL AND COALESCE(pm.material_code, '') <> ''
-      `)
-      await backfillSafe(`
-        UPDATE stock_adjustment_items sai
-        JOIN materials m ON m.material_code = sai.material_code AND m.deleted_at IS NULL
-        SET sai.material_id = m.id
-        WHERE sai.material_id IS NULL AND COALESCE(sai.material_code, '') <> ''
-      `)
+      await backfillSafe('DROP TABLE materials')
     })().catch((e) => {
       ensureMaterialReferenceColumnsPromise = null
       throw e
@@ -334,25 +328,10 @@ const ensureMaterialReferenceColumns = async () => {
 }
 
 const resolveMaterialId = async (materialIdRaw: any, materialCodeRaw: any): Promise<number | null> => {
-  const materialId = Number(materialIdRaw || 0)
-  if (Number.isFinite(materialId) && materialId > 0) return materialId
-  const materialCode = String(materialCodeRaw || '').trim()
-  if (!materialCode) return null
-  const row = await queryOne<any>('SELECT id FROM materials WHERE material_code=? AND deleted_at IS NULL LIMIT 1', [materialCode])
-  const resolved = Number(row?.id || 0)
-  return Number.isFinite(resolved) && resolved > 0 ? resolved : null
+  return null
 }
 
 const liveFirst = (...exprs: string[]) => `COALESCE(${exprs.join(', ')})`
-
-const materialRefJoin = (itemAlias: string, materialAlias = 'm') => `
-  LEFT JOIN materials ${materialAlias}
-    ON (
-      (${itemAlias}.material_id IS NOT NULL AND ${itemAlias}.material_id > 0 AND ${itemAlias}.material_id = ${materialAlias}.id)
-      OR ((${itemAlias}.material_id IS NULL OR ${itemAlias}.material_id = 0) AND ${itemAlias}.material_code = ${materialAlias}.material_code)
-    )
-    AND ${materialAlias}.deleted_at IS NULL
-`
 
 const isMissingSchemaError = (error: any) => {
   const msg = String(error?.message || '').toLowerCase()
@@ -517,7 +496,6 @@ app.put('/api/suppliers/:id', authMiddleware, requirePerm('supplier.manage'), as
 app.delete('/api/suppliers/:id', authMiddleware, requirePerm('supplier.manage'), async c => {
   const id = c.req.param('id')
   const blockedBy = await blockIfReferenced(id, [
-    { label: '材料', sql: 'SELECT COUNT(*) as cnt FROM materials WHERE supplier_id=? AND deleted_at IS NULL' },
     { label: 'BOM', sql: 'SELECT COUNT(*) as cnt FROM bom WHERE supplier_id=? AND deleted_at IS NULL' },
     { label: '採購單', sql: 'SELECT COUNT(*) as cnt FROM purchase_orders WHERE supplier_id=? AND deleted_at IS NULL' },
     { label: '進貨單', sql: 'SELECT COUNT(*) as cnt FROM goods_receipts WHERE supplier_id=? AND deleted_at IS NULL' },
@@ -576,101 +554,6 @@ app.delete('/api/customers/:id', authMiddleware, requirePerm('customer.manage'),
   await softDeleteById('customers', id, c.get('user')?.userId)
   await audit(c.get('user'), 'DELETE', '客戶', id, row?.customer_name)
   return c.json({ ok: true })
-})
-
-// ── Materials ────────────────────────────────────────────────────────────────
-app.get('/api/materials', authMiddleware, async c => {
-  const url = new URL(c.req.url)
-  const supplierId = url.searchParams.get('supplier_id')
-  const supplierName = url.searchParams.get('supplier_name')
-  let sql = `SELECT m.*, s.name as supplier_name, s.supplier_code, s.currency as supplier_currency
-             FROM materials m LEFT JOIN suppliers s ON m.supplier_id = s.id AND s.deleted_at IS NULL`
-  const params: any[] = []
-  const where: string[] = ['m.deleted_at IS NULL']
-  if (supplierId) {
-    where.push('m.supplier_id=?')
-    params.push(supplierId)
-  } else if (supplierName) {
-    where.push('(s.name=? OR s.supplier_code=?)')
-    params.push(supplierName, supplierName)
-  }
-  sql += ` WHERE ${where.join(' AND ')}`
-  sql += ' ORDER BY m.created_at DESC'
-  const rows = await query(sql, params.length ? params : undefined)
-  return c.json(rows)
-})
-app.post('/api/materials', authMiddleware, requirePerm('bom.create'), async c => {
-  try {
-    const b = await c.req.json()
-    if (!b.material_code || !b.material_name) return c.json({ error: 'material_code and material_name required' }, 400)
-    const r = await execute('INSERT INTO materials (material_code,material_name,spec,unit,category,product_category,supplier_id,supplier_price,company_price,currency,stock,image_url,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
-      [b.material_code,b.material_name,b.spec||'',b.unit||'PCS',b.category||'',b.product_category||'',b.supplier_id||null,b.supplier_price||0,b.company_price||0,b.currency||'VND',b.stock||0,b.image_url||'',now8()])
-    return c.json({ id: r.insertId, ...b }, 201)
-  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
-})
-app.put('/api/materials/:id', authMiddleware, requirePerm('bom.edit'), async c => {
-  try {
-    const id = c.req.param('id')
-    const b = await c.req.json()
-    const existing = await queryOne<any>('SELECT material_code FROM materials WHERE id=? AND deleted_at IS NULL', [id])
-    if (!existing) return c.json({ error: 'Not found' }, 404)
-    await execute('UPDATE materials SET material_code=?,material_name=?,spec=?,unit=?,category=?,product_category=?,supplier_id=?,supplier_price=?,company_price=?,currency=?,stock=?,image_url=? WHERE id=?',
-      [existing.material_code,b.material_name,b.spec||'',b.unit||'PCS',b.category||'',b.product_category||'',b.supplier_id||null,b.supplier_price||0,b.company_price||0,b.currency||'VND',b.stock||0,b.image_url||'',id])
-    return c.json({ ok: true })
-  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
-})
-app.delete('/api/materials/:id', authMiddleware, requirePerm('bom.delete'), async c => {
-  const id = c.req.param('id')
-  const blockedBy = await blockIfReferenced(id, [
-    { label: 'BOM 用料', sql: 'SELECT COUNT(*) as cnt FROM bom_items bi JOIN bom b ON b.id = bi.bom_id WHERE bi.material_id=? AND b.deleted_at IS NULL' },
-    { label: '採購單', sql: 'SELECT COUNT(*) as cnt FROM po_items pi JOIN purchase_orders po ON po.id = pi.po_id WHERE pi.material_id=? AND po.deleted_at IS NULL' },
-    { label: '報價單', sql: 'SELECT COUNT(*) as cnt FROM quotation_items qi JOIN quotations q ON q.id = qi.quotation_id WHERE qi.material_id=? AND q.deleted_at IS NULL' },
-    { label: '出貨單', sql: 'SELECT COUNT(*) as cnt FROM delivery_note_items dni JOIN delivery_notes dn ON dn.id = dni.dn_id WHERE dni.material_id=? AND dn.deleted_at IS NULL' },
-    { label: '送貨單', sql: 'SELECT COUNT(*) as cnt FROM delivery_sheet_items dsi JOIN delivery_sheets ds ON ds.id = dsi.ds_id WHERE dsi.material_id=? AND ds.deleted_at IS NULL' },
-    { label: '進貨單', sql: 'SELECT COUNT(*) as cnt FROM goods_receipt_items gri JOIN goods_receipts gr ON gr.id = gri.gr_id WHERE gri.material_id=? AND gr.deleted_at IS NULL' },
-    { label: '生產領料', sql: 'SELECT COUNT(*) as cnt FROM production_materials pm JOIN production_orders po ON po.id = pm.prod_id WHERE pm.material_id=? AND po.deleted_at IS NULL' },
-    { label: '庫存調整', sql: 'SELECT COUNT(*) as cnt FROM stock_adjustment_items sai JOIN stock_adjustments sa ON sa.id = sai.adj_id WHERE sai.material_id=? AND sa.deleted_at IS NULL' },
-  ])
-  if (blockedBy) return c.json({ error: blockedBy }, 400)
-  const row = await queryOne<any>('SELECT material_code, material_name FROM materials WHERE id=? AND deleted_at IS NULL', [id])
-  if (!row) return c.json({ error: 'Not found' }, 404)
-  if (row.material_code) {
-    const releasedCode = `${String(row.material_code).trim()}#DEL${Date.now()}-${id}`
-    await execute('UPDATE materials SET material_code=? WHERE id=? AND deleted_at IS NULL', [releasedCode, id])
-  }
-  await softDeleteById('materials', id, c.get('user')?.userId)
-  await audit(c.get('user'), 'DELETE', '材料', id, `${row.material_code} ${row.material_name}`)
-  return c.json({ ok: true })
-})
-app.post('/api/materials/bulk', authMiddleware, requirePerm('bom.create'), async c => {
-  try {
-    const items = await c.req.json()
-    let success = 0, updated = 0, newSuppliers = 0
-    const errors: string[] = []
-    for (const item of items) {
-      try {
-        let supplierId = null
-        if (item.supplier_name) {
-          let sup = await queryOne<any>('SELECT id FROM suppliers WHERE name=? AND deleted_at IS NULL', [item.supplier_name])
-          if (!sup) {
-            const r = await execute('INSERT INTO suppliers (name,currency,status,created_at) VALUES (?,?,?,?)', [item.supplier_name,'VND','active',now8()])
-            supplierId = r.insertId; newSuppliers++
-          } else { supplierId = sup.id }
-        }
-        const existing = await queryOne<any>('SELECT id FROM materials WHERE material_code=? AND deleted_at IS NULL', [item.material_code])
-        if (existing) {
-          await execute('UPDATE materials SET material_name=?,spec=?,unit=?,category=?,product_category=?,supplier_id=?,supplier_price=?,currency=? WHERE material_code=?',
-            [item.material_name,item.spec||'',item.unit||'PCS',item.category||'',item.product_category||'',supplierId,item.supplier_price||0,item.currency||'VND',item.material_code])
-          updated++
-        } else {
-          await execute('INSERT INTO materials (material_code,material_name,spec,unit,category,product_category,supplier_id,supplier_price,currency,stock,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
-            [item.material_code,item.material_name,item.spec||'',item.unit||'PCS',item.category||'',item.product_category||'',supplierId,item.supplier_price||0,item.currency||'VND',0,now8()])
-          success++
-        }
-      } catch (e: any) { errors.push(`${item.material_code}: ${e.message}`) }
-    }
-    return c.json({ success, updated, new_suppliers: newSuppliers, errors })
-  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 
 // ── BOM ──────────────────────────────────────────────────────────────────────
@@ -824,13 +707,12 @@ app.get('/api/po/:id', authMiddleware, async c => {
   if (!po) return c.json({ error: 'Not found' }, 404)
   const items = await query(`
     SELECT pi.*,
-           ${liveFirst('NULLIF(m.material_name, \'\')', 'NULLIF(pi.material_name, \'\')', 'NULLIF(b.product_name, \'\')', '\'\'')} as material_name,
-           ${liveFirst('NULLIF(m.spec, \'\')', 'NULLIF(pi.spec, \'\')', 'NULLIF(b.spec, \'\')', '\'\'')} as spec,
-           ${liveFirst('NULLIF(m.unit, \'\')', 'NULLIF(pi.unit, \'\')', 'NULLIF(b.unit, \'\')', '\'PCS\'')} as unit,
-           COALESCE(m.image_url, b.image_url, '') as image_url
+           COALESCE(b.product_name, '') as material_name,
+           COALESCE(b.spec, '') as spec,
+           COALESCE(b.unit, 'PCS') as unit,
+           COALESCE(b.image_url, '') as image_url
     FROM po_items pi 
-    ${materialRefJoin('pi')}
-    LEFT JOIN bom b ON pi.material_code = b.product_sku
+    LEFT JOIN bom b ON pi.bom_id = b.id AND b.deleted_at IS NULL
     WHERE pi.po_id=?`, [c.req.param('id')])
   return c.json({ ...po, items })
 })
@@ -851,9 +733,8 @@ app.post('/api/po', authMiddleware, requirePerm('po.create'), async c => {
     if (b.items?.length) {
       for (const item of b.items) {
         const tp = (item.quantity||0)*(item.unit_price||0)
-        const materialId = await resolveMaterialId(item.material_id, item.material_code)
-        await execute('INSERT INTO po_items (po_id,material_id,material_code,material_name,spec,unit,quantity,unit_price,total_price,currency,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
-          [poId,materialId,item.material_code,item.material_name,item.spec||'',item.unit||'PCS',item.quantity,item.unit_price||0,tp,item.currency||'VND',item.remark||'',item.po_ref||'',item.thickness||null])
+        await execute('INSERT INTO po_items (po_id,bom_id,material_id,material_code,material_name,spec,unit,quantity,unit_price,total_price,currency,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          [poId,item.bom_id||null,null,item.material_code,item.material_name,item.spec||'',item.unit||'PCS',item.quantity,item.unit_price||0,tp,item.currency||'VND',item.remark||'',item.po_ref||'',item.thickness||null])
       }
     }
     await audit(u, 'CREATE', '採購單', poId, poNum)
@@ -879,9 +760,8 @@ app.put('/api/po/:id', authMiddleware, requirePerm('po.create'), async c => {
     if (b.items?.length) {
       for (const item of b.items) {
         const tp = (item.quantity||0)*(item.unit_price||0)
-        const materialId = await resolveMaterialId(item.material_id, item.material_code)
-        await execute('INSERT INTO po_items (po_id,material_id,material_code,material_name,spec,unit,quantity,unit_price,total_price,currency,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
-          [id,materialId,item.material_code,item.material_name,item.spec||'',item.unit||'PCS',item.quantity,item.unit_price||0,tp,item.currency||'VND',item.remark||'',item.po_ref||'',item.thickness||null])
+        await execute('INSERT INTO po_items (po_id,bom_id,material_id,material_code,material_name,spec,unit,quantity,unit_price,total_price,currency,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          [id,item.bom_id||null,null,item.material_code,item.material_name,item.spec||'',item.unit||'PCS',item.quantity,item.unit_price||0,tp,item.currency||'VND',item.remark||'',item.po_ref||'',item.thickness||null])
       }
     }
     await audit(u, 'UPDATE', '採購單', id, `${poNum} / ${b.supplier_name}`)
@@ -1082,10 +962,9 @@ app.post('/api/customer-orders', authMiddleware, requirePerm('customer_order.cre
         if (!item.bom_id) continue
         // Get BOM info for item_name, material_code, spec, unit
         const bom = await queryOne<any>('SELECT product_sku, product_name, spec, unit FROM bom WHERE id=? AND deleted_at IS NULL', [item.bom_id])
-        const materialId = await resolveMaterialId(null, bom?.product_sku || '')
         await execute(
-          'INSERT INTO delivery_note_items (dn_id,material_id,item_name,material_code,spec,unit,qty,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?,?)',
-          [dnId, materialId, bom?.product_name||'', bom?.product_sku||'', bom?.spec||'', bom?.unit||'PCS', item.qty||0, '', b.po_number||'', null]
+          'INSERT INTO delivery_note_items (dn_id,bom_id,material_id,item_name,material_code,spec,unit,qty,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+          [dnId, item.bom_id||null, null, bom?.product_name||'', bom?.product_sku||'', bom?.spec||'', bom?.unit||'PCS', item.qty||0, '', b.po_number||'', null]
         )
       }
     }
@@ -1142,10 +1021,9 @@ app.put('/api/customer-orders/:id', authMiddleware, requirePerm('customer_order.
         for (const item of b.items) {
           if (!item.bom_id) continue
           const bom = await queryOne<any>('SELECT product_sku, product_name, spec, unit FROM bom WHERE id=? AND deleted_at IS NULL', [item.bom_id])
-          const materialId = await resolveMaterialId(null, bom?.product_sku || '')
           await execute(
-            'INSERT INTO delivery_note_items (dn_id,material_id,item_name,material_code,spec,unit,qty,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?,?)',
-            [dn.id, materialId, bom?.product_name||'', bom?.product_sku||'', bom?.spec||'', bom?.unit||'PCS', item.qty||0, '', existing.po_number||'', null]
+            'INSERT INTO delivery_note_items (dn_id,bom_id,material_id,item_name,material_code,spec,unit,qty,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+            [dn.id, item.bom_id||null, null, bom?.product_name||'', bom?.product_sku||'', bom?.spec||'', bom?.unit||'PCS', item.qty||0, '', existing.po_number||'', null]
           )
         }
       }
@@ -1541,7 +1419,17 @@ app.get('/api/quotations/:id', authMiddleware, async c => {
     FROM quotations q LEFT JOIN customers c ON q.customer_id = c.id AND c.deleted_at IS NULL
     WHERE q.id=? AND q.deleted_at IS NULL`, [c.req.param('id')])
   if (!q) return c.json({ error: 'Not found' }, 404)
-  const rawItems = await query<any>('SELECT * FROM quotation_items WHERE quotation_id=?', [c.req.param('id')])
+  const rawItems = await query<any>(`
+    SELECT qi.*,
+           COALESCE(b.product_name, '') as item_name,
+           COALESCE(b.product_sku, qi.material_code, '') as material_code,
+           COALESCE(b.spec, '') as spec,
+           COALESCE(b.unit, 'PCS') as unit,
+           COALESCE(b.image_url, qi.image_url, '') as image_url
+    FROM quotation_items qi
+    LEFT JOIN bom b ON qi.bom_id = b.id AND b.deleted_at IS NULL
+    WHERE qi.quotation_id=?
+  `, [c.req.param('id')])
   // Parse moq JSON into moq_tiers array
   const items = rawItems.map((item: any) => {
     let moq_tiers: {moq:number;price:number}[] = []
@@ -1566,9 +1454,8 @@ app.post('/api/quotations', authMiddleware, requirePerm('customer_order.create')
     const qId = r.insertId
     if (b.items?.length) {
       for (const item of b.items) {
-        const materialId = await resolveMaterialId(item.material_id, item.material_code)
-        await execute('INSERT INTO quotation_items (quotation_id,material_id,item_name,material_code,spec,unit,qty,unit_price,total_price,remark,moq,image_url) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
-          [qId,materialId,item.item_name,item.material_code||'',item.spec||'',item.unit||'PCS',item.qty,item.unit_price||0,(item.qty||0)*(item.unit_price||0),item.remark||'',item.moq||null,item.image_url||null])
+        await execute('INSERT INTO quotation_items (quotation_id,bom_id,material_id,item_name,material_code,spec,unit,qty,unit_price,total_price,remark,moq,image_url) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          [qId,item.bom_id||null,null,item.item_name,item.material_code||'',item.spec||'',item.unit||'PCS',item.qty,item.unit_price||0,(item.qty||0)*(item.unit_price||0),item.remark||'',item.moq||null,item.image_url||null])
       }
     }
     await audit(u, 'CREATE', '報價單', qId, `${qNum} / ${b.customer_name}`)
@@ -1589,9 +1476,8 @@ app.put('/api/quotations/:id', authMiddleware, requirePerm('customer_order.creat
     await execute('DELETE FROM quotation_items WHERE quotation_id=?', [id])
     if (b.items?.length) {
       for (const item of b.items) {
-        const materialId = await resolveMaterialId(item.material_id, item.material_code)
-        await execute('INSERT INTO quotation_items (quotation_id,material_id,item_name,material_code,spec,unit,qty,unit_price,total_price,remark,moq,image_url) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
-          [id,materialId,item.item_name,item.material_code||'',item.spec||'',item.unit||'PCS',item.qty,item.unit_price||0,(item.qty||0)*(item.unit_price||0),item.remark||'',item.moq||null,item.image_url||null])
+        await execute('INSERT INTO quotation_items (quotation_id,bom_id,material_id,item_name,material_code,spec,unit,qty,unit_price,total_price,remark,moq,image_url) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          [id,item.bom_id||null,null,item.item_name,item.material_code||'',item.spec||'',item.unit||'PCS',item.qty,item.unit_price||0,(item.qty||0)*(item.unit_price||0),item.remark||'',item.moq||null,item.image_url||null])
       }
     }
     await audit(u, 'UPDATE', '報價單', id, `${qNum} / ${b.customer_name}`)
@@ -1718,19 +1604,11 @@ app.get('/api/delivery-notes/:id', authMiddleware, async c => {
   if (!dn) return c.json({ error: 'Not found' }, 404)
   const items = await query(`
     SELECT dni.*, 
-           ${liveFirst('NULLIF(dni.item_name, \'\')', 'NULLIF(m.material_name, \'\')', 'NULLIF(b.product_name, \'\')', '\'\'')} as item_name,
-           ${liveFirst('NULLIF(dni.spec, \'\')', 'NULLIF(m.spec, \'\')', 'NULLIF(b.spec, \'\')', '\'\'')} as spec,
-           ${liveFirst('NULLIF(dni.unit, \'\')', 'NULLIF(m.unit, \'\')', 'NULLIF(b.unit, \'\')', '\'PCS\'')} as unit
+           COALESCE(b.product_name, '') as item_name,
+           COALESCE(b.spec, '') as spec,
+           COALESCE(b.unit, 'PCS') as unit
     FROM delivery_note_items dni
-    ${materialRefJoin('dni')}
-    LEFT JOIN (
-      SELECT bom.id, bom.product_sku, bom.product_name, 
-             COALESCE(bom.spec, GROUP_CONCAT(DISTINCT bi.spec SEPARATOR ', ')) as spec,
-             COALESCE(bom.unit, MAX(bi.unit)) as unit
-      FROM bom
-      LEFT JOIN bom_items bi ON bom.id = bi.bom_id
-      GROUP BY bom.id, bom.product_sku, bom.product_name
-    ) b ON dni.material_code = b.product_sku
+    LEFT JOIN bom b ON dni.bom_id = b.id AND b.deleted_at IS NULL
     WHERE dni.dn_id=?`, [c.req.param('id')])
   return c.json({ ...dn, items })
 })
@@ -1752,9 +1630,8 @@ app.post('/api/delivery-notes', authMiddleware, requirePerm('delivery.create'), 
     const dnId = r.insertId
     if (b.items?.length) {
       for (const item of b.items) {
-        const materialId = await resolveMaterialId(item.material_id, item.material_code)
-        await execute('INSERT INTO delivery_note_items (dn_id,material_id,item_name,material_code,spec,unit,qty,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?,?)',
-          [dnId, materialId, item.item_name||'', item.material_code||'', item.spec||'', item.unit||'PCS', item.qty||0, item.remark||'', item.po_ref||'', item.thickness||null])
+        await execute('INSERT INTO delivery_note_items (dn_id,bom_id,material_id,item_name,material_code,spec,unit,qty,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+          [dnId, item.bom_id||null, null, item.item_name||'', item.material_code||'', item.spec||'', item.unit||'PCS', item.qty||0, item.remark||'', item.po_ref||'', item.thickness||null])
       }
     }
     await audit(u, 'CREATE', '出貨單', dnId, `${dnNum} / ${customerName}`)
@@ -1776,9 +1653,8 @@ app.put('/api/delivery-notes/:id', authMiddleware, requirePerm('delivery.create'
     await execute('DELETE FROM delivery_note_items WHERE dn_id=?', [id])
     if (b.items?.length) {
       for (const item of b.items) {
-        const materialId = await resolveMaterialId(item.material_id, item.material_code)
-        await execute('INSERT INTO delivery_note_items (dn_id,material_id,item_name,material_code,spec,unit,qty,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?,?)',
-          [id, materialId, item.item_name||'', item.material_code||'', item.spec||'', item.unit||'PCS', item.qty||0, item.remark||'', item.po_ref||'', item.thickness||null])
+        await execute('INSERT INTO delivery_note_items (dn_id,bom_id,material_id,item_name,material_code,spec,unit,qty,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+          [id, item.bom_id||null, null, item.item_name||'', item.material_code||'', item.spec||'', item.unit||'PCS', item.qty||0, item.remark||'', item.po_ref||'', item.thickness||null])
       }
     }
     await audit(u, 'UPDATE', '出貨單', id, dnNum)
@@ -1798,17 +1674,17 @@ app.patch('/api/delivery-notes/:id/status', authMiddleware, requirePerm('deliver
     if (status === 'shipped') {
       const items = await query<any>('SELECT * FROM delivery_note_items WHERE dn_id=?', [id])
       for (const item of items) {
-        if (!item.material_code) continue
+        if (!item.bom_id) continue
         const qty = parseFloat(item.qty) || 0
-        const bom = await queryOne<any>('SELECT id, current_stock, product_name FROM bom WHERE product_sku=?', [item.material_code])
+        const bom = await queryOne<any>('SELECT id, product_sku, product_name, unit, current_stock FROM bom WHERE id=?', [item.bom_id])
         const before = parseFloat(bom?.current_stock) || 0
         const after = Math.max(0, before - qty)
         if (bom) {
-          await execute('UPDATE bom SET current_stock=? WHERE product_sku=?', [after, item.material_code])
+          await execute('UPDATE bom SET current_stock=? WHERE id=?', [after, item.bom_id])
         }
         await execute(
           'INSERT INTO stock_ledger (material_code,material_name,transaction_type,ref_type,ref_id,ref_number,qty_change,qty_before,qty_after,unit,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
-          [item.material_code, item.item_name || bom?.product_name || '', 'DN_OUT', 'delivery_note', id, row.dn_number, -qty, before, after, item.unit || 'PCS', `出貨 ${row.dn_number}`, u.userId, now8()]
+          [bom?.product_sku || item.material_code, bom?.product_name || '', 'DN_OUT', 'delivery_note', id, row.dn_number, -qty, before, after, bom?.unit || 'PCS', `出貨 ${row.dn_number}`, u.userId, now8()]
         )
       }
     }
@@ -1822,20 +1698,19 @@ app.patch('/api/delivery-notes/:id/status', authMiddleware, requirePerm('deliver
         const coId = dn.customer_order_id
         // Sum all shipped delivery note items for this customer order
         const shippedItems = await query<any>(`
-          SELECT dni.material_code, SUM(dni.qty) as shipped_qty
+          SELECT dni.bom_id, SUM(dni.qty) as shipped_qty
           FROM delivery_note_items dni
           JOIN delivery_notes dn2 ON dni.dn_id = dn2.id
           WHERE dn2.customer_order_id = ? AND dn2.status = 'shipped' AND dn2.deleted_at IS NULL
-          GROUP BY dni.material_code
+          GROUP BY dni.bom_id
         `, [coId])
         // Update arrived_qty on each customer_order_item
         for (const s of shippedItems) {
           await execute(`
-            UPDATE customer_order_items ci
-            JOIN bom b ON ci.bom_id = b.id
-            SET ci.arrived_qty = ?, ci.balance = ci.qty - ?
-            WHERE ci.order_id = ? AND b.product_sku = ?
-          `, [s.shipped_qty, s.shipped_qty, coId, s.material_code])
+            UPDATE customer_order_items
+            SET arrived_qty = ?, balance = qty - ?
+            WHERE order_id = ? AND bom_id = ?
+          `, [s.shipped_qty, s.shipped_qty, coId, s.bom_id])
         }
         // Check if all items fully shipped → mark completed, else partial
         const coItems = await query<any>('SELECT qty, arrived_qty FROM customer_order_items WHERE order_id=?', [coId])
@@ -1881,19 +1756,11 @@ app.get('/api/delivery-sheets/:id', authMiddleware, async c => {
   if (!ds) return c.json({ error: 'Not found' }, 404)
   const items = await query(`
     SELECT dsi.*,
-           ${liveFirst('NULLIF(dsi.item_name, \'\')', 'NULLIF(m.material_name, \'\')', 'NULLIF(b.product_name, \'\')', '\'\'')} as item_name,
-           ${liveFirst('NULLIF(dsi.spec, \'\')', 'NULLIF(m.spec, \'\')', 'NULLIF(b.spec, \'\')', '\'\'')} as spec,
-           ${liveFirst('NULLIF(dsi.unit, \'\')', 'NULLIF(m.unit, \'\')', 'NULLIF(b.unit, \'\')', '\'PCS\'')} as unit
+           COALESCE(b.product_name, '') as item_name,
+           COALESCE(b.spec, '') as spec,
+           COALESCE(b.unit, 'PCS') as unit
     FROM delivery_sheet_items dsi
-    ${materialRefJoin('dsi')}
-    LEFT JOIN (
-      SELECT bom.id, bom.product_sku, bom.product_name,
-             COALESCE(bom.spec, GROUP_CONCAT(DISTINCT bi.spec SEPARATOR ', ')) as spec,
-             COALESCE(bom.unit, MAX(bi.unit)) as unit
-      FROM bom
-      LEFT JOIN bom_items bi ON bom.id = bi.bom_id
-      GROUP BY bom.id, bom.product_sku, bom.product_name
-    ) b ON dsi.material_code = b.product_sku
+    LEFT JOIN bom b ON dsi.bom_id = b.id AND b.deleted_at IS NULL
     WHERE dsi.ds_id=?`, [c.req.param('id')])
   return c.json({ ...ds, items })
 })
@@ -1914,9 +1781,8 @@ app.post('/api/delivery-sheets', authMiddleware, requirePerm('delivery.create'),
     const dsId = r.insertId
     if (b.items?.length) {
       for (const item of b.items) {
-        const materialId = await resolveMaterialId(item.material_id, item.material_code)
-        await execute('INSERT INTO delivery_sheet_items (ds_id,material_id,item_name,material_code,spec,unit,qty,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?,?)',
-          [dsId, materialId, item.item_name||'', item.material_code||'', item.spec||'', item.unit||'PCS', item.qty||0, item.remark||'', item.po_ref||'', item.thickness||null])
+        await execute('INSERT INTO delivery_sheet_items (ds_id,bom_id,material_id,item_name,material_code,spec,unit,qty,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+          [dsId, item.bom_id||null, null, item.item_name||'', item.material_code||'', item.spec||'', item.unit||'PCS', item.qty||0, item.remark||'', item.po_ref||'', item.thickness||null])
       }
     }
     await audit(u, 'CREATE', '送貨單', dsId, `${dsNum} / ${customerName}`)
@@ -1938,9 +1804,8 @@ app.put('/api/delivery-sheets/:id', authMiddleware, requirePerm('delivery.create
     await execute('DELETE FROM delivery_sheet_items WHERE ds_id=?', [id])
     if (b.items?.length) {
       for (const item of b.items) {
-        const materialId = await resolveMaterialId(item.material_id, item.material_code)
-        await execute('INSERT INTO delivery_sheet_items (ds_id,material_id,item_name,material_code,spec,unit,qty,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?,?)',
-          [id, materialId, item.item_name||'', item.material_code||'', item.spec||'', item.unit||'PCS', item.qty||0, item.remark||'', item.po_ref||'', item.thickness||null])
+        await execute('INSERT INTO delivery_sheet_items (ds_id,bom_id,material_id,item_name,material_code,spec,unit,qty,remark,po_ref,thickness) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+          [id, item.bom_id||null, null, item.item_name||'', item.material_code||'', item.spec||'', item.unit||'PCS', item.qty||0, item.remark||'', item.po_ref||'', item.thickness||null])
       }
     }
     await audit(u, 'UPDATE', '送貨單', id, dsNum)
@@ -2231,12 +2096,11 @@ app.get('/api/goods-receipts/:id', authMiddleware, async c => {
   if (!gr) return c.json({ error: 'Not found' }, 404)
   const items = await query(`
     SELECT gri.*,
-           ${liveFirst('NULLIF(m.material_name, \'\')', 'NULLIF(gri.material_name, \'\')', 'NULLIF(b.product_name, \'\')', '\'\'')} as material_name,
-           ${liveFirst('NULLIF(m.spec, \'\')', 'NULLIF(gri.spec, \'\')', 'NULLIF(b.spec, \'\')', '\'\'')} as spec,
-           ${liveFirst('NULLIF(m.unit, \'\')', 'NULLIF(gri.unit, \'\')', 'NULLIF(b.unit, \'\')', '\'PCS\'')} as unit
+           COALESCE(b.product_name, '') as material_name,
+           COALESCE(b.spec, '') as spec,
+           COALESCE(b.unit, 'PCS') as unit
     FROM goods_receipt_items gri
-    ${materialRefJoin('gri')}
-    LEFT JOIN bom b ON gri.material_code = b.product_sku
+    LEFT JOIN bom b ON gri.bom_id = b.id AND b.deleted_at IS NULL
     WHERE gri.gr_id=?`, [c.req.param('id')])
   return c.json({ ...gr, items })
 })
@@ -2251,7 +2115,7 @@ app.post('/api/goods-receipts', authMiddleware, requirePerm('po.create'), async 
     const grId = r.insertId
     if (b.items?.length) {
       for (const item of b.items) {
-        let materialId = await resolveMaterialId(item.material_id, item.material_code)
+        let bomId = item.bom_id || null
         let materialCode = item.material_code || ''
         let materialName = item.material_name || ''
         let spec = item.spec || ''
@@ -2262,14 +2126,14 @@ app.post('/api/goods-receipts', authMiddleware, requirePerm('po.create'), async 
 
         if (item.po_item_id) {
           const poItem = await queryOne<any>(`
-            SELECT pi.*, m.material_code as live_material_code, m.material_name as live_material_name, m.spec as live_spec, m.unit as live_unit, m.currency as live_currency
+            SELECT pi.*, b.product_sku as live_material_code, b.product_name as live_material_name, b.spec as live_spec, b.unit as live_unit, b.currency as live_currency
             FROM po_items pi
-            LEFT JOIN materials m ON pi.material_id = m.id AND m.deleted_at IS NULL
+            LEFT JOIN bom b ON pi.bom_id = b.id AND b.deleted_at IS NULL
             WHERE pi.id=?
             LIMIT 1
           `, [item.po_item_id])
           if (poItem) {
-            materialId = await resolveMaterialId(poItem.material_id, poItem.material_code)
+            bomId = poItem.bom_id || bomId
             materialCode = poItem.live_material_code || poItem.material_code || materialCode
             materialName = poItem.live_material_name || poItem.material_name || materialName
             spec = poItem.live_spec || poItem.spec || spec
@@ -2280,8 +2144,8 @@ app.post('/api/goods-receipts', authMiddleware, requirePerm('po.create'), async 
           }
         }
         await execute(
-          'INSERT INTO goods_receipt_items (gr_id,po_item_id,material_id,material_code,material_name,spec,unit,ordered_qty,received_qty,unit_price,currency,batch_no,remark) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
-          [grId,item.po_item_id||null,materialId,materialCode,materialName,spec,unit,orderedQty,item.received_qty,unitPrice,currency,item.batch_no||'',item.remark||'']
+          'INSERT INTO goods_receipt_items (gr_id,po_item_id,bom_id,material_id,material_code,material_name,spec,unit,ordered_qty,received_qty,unit_price,currency,batch_no,remark) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          [grId,item.po_item_id||null,bomId,null,materialCode,materialName,spec,unit,orderedQty,item.received_qty,unitPrice,currency,item.batch_no||'',item.remark||'']
         )
       }
     }
@@ -2298,16 +2162,16 @@ app.patch('/api/goods-receipts/:id/confirm', authMiddleware, requirePerm('po.app
     const items = await query<any>('SELECT * FROM goods_receipt_items WHERE gr_id=?', [id])
     // Update stock for each item
     for (const item of items) {
-      const bom = await queryOne<any>('SELECT id, current_stock FROM bom WHERE product_sku=?', [item.material_code])
+      const bom = item.bom_id ? await queryOne<any>('SELECT id, product_sku, product_name, unit, current_stock FROM bom WHERE id=?', [item.bom_id]) : null
       const before = parseFloat(bom?.current_stock) || 0
       const after = before + parseFloat(item.received_qty)
       if (bom) {
-        await execute('UPDATE bom SET current_stock=? WHERE product_sku=?', [after, item.material_code])
+        await execute('UPDATE bom SET current_stock=? WHERE id=?', [after, item.bom_id])
       }
       // Write stock ledger
       await execute(
         'INSERT INTO stock_ledger (material_code,material_name,transaction_type,ref_type,ref_id,ref_number,qty_change,qty_before,qty_after,unit,batch_no,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-        [item.material_code,item.material_name,'GR_IN','goods_receipt',id,gr.gr_number,item.received_qty,before,after,item.unit||'PCS',item.batch_no||'',`進貨確認 ${gr.gr_number}`,u.userId,now8()]
+        [bom?.product_sku || item.material_code,bom?.product_name || item.material_name,'GR_IN','goods_receipt',id,gr.gr_number,item.received_qty,before,after,bom?.unit || item.unit || 'PCS',item.batch_no||'',`進貨確認 ${gr.gr_number}`,u.userId,now8()]
       )
       // Update po_item received_qty if linked
       if (item.po_item_id) {

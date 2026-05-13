@@ -44,14 +44,13 @@ export default function DashboardPage() {
 
   const kpis = [
     { label: '客戶數', value: stats?.customers ?? '—', icon: '👥', color: 'text-blue-700', bg: 'bg-blue-100', border: 'border-blue-200' },
-    { label: '料號數', value: stats?.materials ?? '—', icon: '🔩', color: 'text-violet-700', bg: 'bg-violet-100', border: 'border-violet-200' },
+    { label: '材料明細', value: stats?.materials ?? '—', icon: '🔩', color: 'text-violet-700', bg: 'bg-violet-100', border: 'border-violet-200' },
     { label: '供應商', value: stats?.suppliers ?? '—', icon: '🏭', color: 'text-amber-700', bg: 'bg-amber-100', border: 'border-amber-200' },
     { label: '客戶訂單', value: stats?.orders_count ?? '—', icon: '📦', color: 'text-emerald-700', bg: 'bg-emerald-100', border: 'border-emerald-200' },
     { label: '零庫存品項', value: stats?.low_stock_count ?? '—', icon: '⚠️', color: stats?.low_stock_count > 0 ? 'text-red-600' : 'text-emerald-700', bg: stats?.low_stock_count > 0 ? 'bg-red-100' : 'bg-emerald-100', border: stats?.low_stock_count > 0 ? 'border-red-200' : 'border-emerald-200', href: '/dashboard/inventory' },
   ]
 
   const quick = [
-    // { href: '/dashboard/materials', label: '新增料號', desc: '建立物料主檔' }, // 暫時隱藏
     { href: '/dashboard/material-details', label: '建立材料明細', desc: '維護材料名稱、供應商與價格' },
     { href: '/dashboard/po', label: '建立採購單', desc: '向供應商採購' },
     { href: '/dashboard/customer-orders', label: '新增客戶訂單', desc: '記錄客戶需求' },
