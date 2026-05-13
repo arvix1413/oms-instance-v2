@@ -28,8 +28,8 @@ type Supplier = {
 type BOM = { id: number; product_sku: string; product_name: string; spec: string; unit: string; supplier_price: number; company_price: number; currency: string; image_url?: string; material_name?: string; supplier_id?: number; moq_tiers?: MoqTier[] }
 
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
-  draft:     { label:'草稿',   badge:'badge-gray'   },
-  approved:  { label:'已核准', badge:'badge-green'  },
+  draft:     { label:'尚未審核', badge:'badge-gray'   },
+  approved:  { label:'已審核', badge:'badge-green'  },
   sent:      { label:'已送出', badge:'badge-blue'   },
   received:  { label:'已收貨', badge:'badge-purple' },
   cancelled: { label:'已取消', badge:'badge-red'    },
@@ -37,8 +37,8 @@ const STATUS_MAP: Record<string,{label:string;badge:string}> = {
 
 const STATUS_FILTERS = [
   { value: '', label: '全部' },
-  { value: 'draft', label: '草稿' },
-  { value: 'approved', label: '已核准' },
+  { value: 'draft', label: '尚未審核' },
+  { value: 'approved', label: '已審核' },
   { value: 'sent', label: '已送出' },
   { value: 'received', label: '已收貨' },
 ] as const
@@ -181,10 +181,10 @@ export default function PoPage() {
     e.stopPropagation()
     try {
       await apiFetch(`/api/po/${id}/approve`, { method: 'PATCH' })
-      toast('已核准')
+      toast('已審核')
       await load()
       await refreshExpandedRows(Array.from(expanded))
-    } catch (e: any) { toast('核准失敗：' + e.message, 'error') }
+    } catch (e: any) { toast('審核失敗：' + e.message, 'error') }
   }
 
   const confirmReceipt = async (po: Po, e: React.MouseEvent) => {
@@ -560,7 +560,7 @@ export default function PoPage() {
           <div className="border-b border-slate-200 bg-white px-6 pt-6 pb-4 shadow-sm">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
-                <h2 className="text-sm font-semibold text-slate-800">{editingId ? '編輯採購單（草稿）' : '建立採購單'}</h2>
+                <h2 className="text-sm font-semibold text-slate-800">{editingId ? '編輯採購單（尚未審核）' : '建立採購單'}</h2>
                 <p className="mt-1 text-[11px] text-slate-400">上方資訊與新增操作固定顯示，往下檢查大量明細時不需再拉回頂部。</p>
               </div>
               <button

@@ -48,8 +48,8 @@ const normalizeTiers = (tiers: any): MoqTier[] => {
   })
 }
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
-  draft:    { label:'草稿',   badge:'badge-gray'  },
-  approved: { label:'已核准', badge:'badge-green' },
+  draft:    { label:'尚未審核', badge:'badge-gray'  },
+  approved: { label:'已審核', badge:'badge-green' },
   sent:     { label:'已送出', badge:'badge-blue'  },
   accepted: { label:'已接受', badge:'badge-green' },
   rejected: { label:'已拒絕', badge:'badge-red'   },
@@ -57,8 +57,8 @@ const STATUS_MAP: Record<string,{label:string;badge:string}> = {
 
 const STATUS_FILTERS = [
   { value: '', label: '全部' },
-  { value: 'draft', label: '草稿' },
-  { value: 'approved', label: '已核准' },
+  { value: 'draft', label: '尚未審核' },
+  { value: 'approved', label: '已審核' },
   { value: 'sent', label: '已送出' },
   { value: 'accepted', label: '已接受' },
   { value: 'rejected', label: '已拒絕' },
@@ -718,7 +718,7 @@ export default function QuotationsPage() {
                           <div className="flex items-center gap-1">
                             <button onClick={e=>{ e.stopPropagation(); printQuotation(q.id, q) }} className="btn-ghost" title="列印">🖨 列印</button>
                             {q.status==='draft' && canWrite && <button onClick={e=>startEdit(q,e)} className="btn-ghost text-blue-600">✏ 編輯</button>}
-                            {q.status==='draft' && canApprove && <button onClick={e=>changeStatus(q.id,'approved',e)} className="btn-ghost text-emerald-600">核准</button>}
+                            {q.status==='draft' && canApprove && <button onClick={e=>changeStatus(q.id,'approved',e)} className="btn-ghost text-emerald-600">審核</button>}
                             {q.status==='approved' && canWrite && <button onClick={e=>changeStatus(q.id,'sent',e)} className="btn-ghost">送出</button>}
                             {q.status==='sent' && canWrite && <button onClick={e=>changeStatus(q.id,'accepted',e)} className="btn-ghost text-emerald-600">接受</button>}
                             {q.status==='sent' && canWrite && <button onClick={e=>changeStatus(q.id,'rejected',e)} className="btn-danger">拒絕</button>}
