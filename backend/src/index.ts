@@ -752,7 +752,7 @@ app.put('/api/po/:id', authMiddleware, requirePerm('po.create'), async c => {
     const id = c.req.param('id'); const b = await c.req.json(); const u = c.get('user')
     const po = await queryOne<any>('SELECT status FROM purchase_orders WHERE id=? AND deleted_at IS NULL', [id])
     if (!po) return c.json({ error: 'Not found' }, 404)
-    if (po.status !== 'draft') return c.json({ error: '只能編輯草稿狀態的採購單' }, 400)
+    if (po.status !== 'draft') return c.json({ error: '只能編輯尚未審核狀態的採購單' }, 400)
     const poNum = String(b.po_number || '').trim()
     if (!poNum) return c.json({ error: 'po_number is required' }, 400)
     const duplicated = await queryOne<any>('SELECT id FROM purchase_orders WHERE po_number=? AND id<>? AND deleted_at IS NULL', [poNum, id])
@@ -779,7 +779,7 @@ app.patch('/api/po/:id/approve', authMiddleware, requirePerm('po.approve'), asyn
     const id = c.req.param('id'); const u = c.get('user')
     const row = await queryOne<any>('SELECT po_number, status FROM purchase_orders WHERE id=? AND deleted_at IS NULL', [id])
     if (!row) return c.json({ error: 'Not found' }, 404)
-    if (row.status !== 'draft') return c.json({ error: '只有草稿狀態的採購單才能核准' }, 400)
+    if (row.status !== 'draft') return c.json({ error: '只有尚未審核狀態的採購單才能審核' }, 400)
     await execute('UPDATE purchase_orders SET status=?,approved_by=?,approved_at=? WHERE id=?', ['approved',u.userId,now8(),id])
     await audit(u, 'APPROVE', '採購單', id, row?.po_number)
     return c.json({ ok: true })
@@ -814,7 +814,7 @@ app.patch('/api/po/:id/receive', authMiddleware, requirePerm('po.approve'), asyn
     const po = await queryOne<any>('SELECT * FROM purchase_orders WHERE id=? AND deleted_at IS NULL', [id])
     if (!po) return c.json({ error: 'Not found' }, 404)
     if (po.status === 'received') return c.json({ error: '此採購單已收貨，不可重複操作' }, 400)
-    if (!['approved', 'sent'].includes(po.status)) return c.json({ error: '只有已核准或已送出的採購單才能收貨' }, 400)
+    if (!['approved', 'sent'].includes(po.status)) return c.json({ error: '只有已審核或已送出的採購單才能收貨' }, 400)
     const items = await query<any>('SELECT * FROM po_items WHERE po_id=?', [id])
     for (const item of items) {
       const qty = parseFloat(item.quantity) || 0
@@ -1041,7 +1041,7 @@ app.put('/api/customer-orders/:id', authMiddleware, requirePerm('customer_order.
       'UPDATE',
       '客戶訂單',
       id,
-      `${existing.po_number}（同步草稿出貨單 ${draftDeliveryNotes.length} 筆，略過非草稿 ${Number(lockedDeliveryNotes?.cnt || 0)} 筆）`
+      `${existing.po_number}（同步尚未確認出貨單 ${draftDeliveryNotes.length} 筆，略過非尚未確認 ${Number(lockedDeliveryNotes?.cnt || 0)} 筆）`
     )
     return c.json({
       ok: true,
@@ -1473,7 +1473,7 @@ app.put('/api/quotations/:id', authMiddleware, requirePerm('customer_order.creat
     const id = c.req.param('id'); const b = await c.req.json(); const u = c.get('user')
     const existing = await queryOne<any>('SELECT status FROM quotations WHERE id=? AND deleted_at IS NULL', [id])
     if (!existing) return c.json({ error: 'Not found' }, 404)
-    if (existing.status !== 'draft') return c.json({ error: '只能編輯草稿狀態的報價單' }, 400)
+    if (existing.status !== 'draft') return c.json({ error: '只能編輯尚未審核狀態的報價單' }, 400)
     const qNum = String(b.quotation_number || '').trim()
     if (!qNum) return c.json({ error: 'quotation_number is required' }, 400)
     const total = (b.items||[]).reduce((s: number, i: any) => s + (i.total_price||0), 0)
@@ -1500,10 +1500,10 @@ app.patch('/api/quotations/:id/status', authMiddleware, async c => {
 
     if (status === 'approved') {
       if (!await hasPermission(user, 'quotation.approve')) return c.json({ error: '無此操作權限（quotation.approve）' }, 403)
-      if (row.status !== 'draft') return c.json({ error: '只有草稿狀態的報價單才能核准' }, 400)
+      if (row.status !== 'draft') return c.json({ error: '只有尚未審核狀態的報價單才能審核' }, 400)
     } else if (status === 'sent') {
       if (!await hasPermission(user, 'customer_order.create')) return c.json({ error: '無此操作權限（customer_order.create）' }, 403)
-      if (row.status !== 'approved') return c.json({ error: '只有已核准的報價單才能送出' }, 400)
+      if (row.status !== 'approved') return c.json({ error: '只有已審核的報價單才能送出' }, 400)
     } else {
       if (!await hasPermission(user, 'customer_order.create')) return c.json({ error: '無此操作權限（customer_order.create）' }, 403)
       if (row.status !== 'sent') return c.json({ error: '只有已送出的報價單才能更新結果' }, 400)
@@ -1661,7 +1661,7 @@ app.put('/api/delivery-notes/:id', authMiddleware, requirePerm('delivery.create'
     const id = c.req.param('id'); const b = await c.req.json(); const u = c.get('user')
     const existing = await queryOne<any>('SELECT status FROM delivery_notes WHERE id=? AND deleted_at IS NULL', [id])
     if (!existing) return c.json({ error: 'Not found' }, 404)
-    if (existing.status !== 'draft') return c.json({ error: '只能編輯草稿狀態的出貨單' }, 400)
+    if (existing.status !== 'draft') return c.json({ error: '只能編輯尚未確認狀態的出貨單' }, 400)
     const dnNum = String(b.dn_number || '').trim()
     if (!dnNum) return c.json({ error: 'dn_number is required' }, 400)
     const duplicated = await queryOne<any>('SELECT id FROM delivery_notes WHERE dn_number=? AND id<>? AND deleted_at IS NULL', [dnNum, id])
@@ -1812,7 +1812,7 @@ app.put('/api/delivery-sheets/:id', authMiddleware, requirePerm('delivery.create
     const id = c.req.param('id'); const b = await c.req.json(); const u = c.get('user')
     const existing = await queryOne<any>('SELECT status FROM delivery_sheets WHERE id=? AND deleted_at IS NULL', [id])
     if (!existing) return c.json({ error: 'Not found' }, 404)
-    if (existing.status !== 'draft') return c.json({ error: '只能編輯草稿狀態的送貨單' }, 400)
+    if (existing.status !== 'draft') return c.json({ error: '只能編輯尚未確認狀態的送貨單' }, 400)
     const dsNum = String(b.ds_number || '').trim()
     if (!dsNum) return c.json({ error: 'ds_number is required' }, 400)
     const duplicated = await queryOne<any>('SELECT id FROM delivery_sheets WHERE ds_number=? AND id<>? AND deleted_at IS NULL', [dsNum, id])
@@ -2025,7 +2025,7 @@ app.patch('/api/receivables/:id/payment', authMiddleware, async c => {
 })
 
 // ── 應付帳款 (Payables) ───────────────────────────────────────────────────────
-// 來源：採購單（所有非草稿狀態）→ 待付款；可標記已付款
+// 來源：採購單（所有非尚未審核狀態）→ 待付款；可標記已付款
 app.get('/api/payables', authMiddleware, async c => {
   try {
     const rows = await query<any>(`

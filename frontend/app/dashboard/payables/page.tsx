@@ -13,7 +13,7 @@ type AP = {
 }
 
 const PO_STATUS: Record<string, string> = {
-  approved: '已核准', sent: '已送出', received: '已收貨'
+  approved: '已審核', sent: '已送出', received: '已收貨'
 }
 
 const PAY_STATUS = {
@@ -167,7 +167,7 @@ export default function PayablesPage() {
                     </tr>
                   )
                 })}
-                {paged.length === 0 && <tr><td colSpan={9} className="text-center py-12 text-slate-400">尚無待付款記錄（採購單需已核准）</td></tr>}
+                {paged.length === 0 && <tr><td colSpan={9} className="text-center py-12 text-slate-400">尚無待付款記錄（採購單需已審核）</td></tr>}
               </tbody>
             </table>
             <Pagination page={page} totalPages={totalPages} setPage={setPage} total={total} />

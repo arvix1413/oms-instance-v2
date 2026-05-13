@@ -16,7 +16,7 @@ type PendingOrder = { id:number; po_number:string; po_date:string; items_summary
 type OrderItem = { id:number; bom_id:number|null; qty:number; unit_price:number; product_name:string; product_sku:string }
 
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
-  draft:     { label:'草稿', badge:'badge-gray' },
+  draft:     { label:'尚未確認', badge:'badge-gray' },
   confirmed: { label:'已確認', badge:'badge-blue' },
   shipped:   { label:'已送達', badge:'badge-green' },
 }
@@ -444,7 +444,7 @@ export default function DeliverySheetsPage() {
                             <td className="px-3 py-2.5 text-slate-400 text-xs whitespace-nowrap">{sheet.order_po_number || '—'}</td>
                             <td className="px-3 py-2.5 text-slate-400 whitespace-nowrap">{sheet.delivery_date ? String(sheet.delivery_date).slice(0,10) : '—'}</td>
                             <td className="px-3 py-2.5 text-slate-400 whitespace-normal break-words max-w-[220px]" title={sheet.remark}>{sheet.remark||'—'}</td>
-                            <td className="px-3 py-2.5 whitespace-nowrap"><span className={STATUS_MAP[sheet.status]?.badge || 'badge-gray'}>{STATUS_MAP[sheet.status]?.label || sheet.status || '草稿'}</span></td>
+                            <td className="px-3 py-2.5 whitespace-nowrap"><span className={STATUS_MAP[sheet.status]?.badge || 'badge-gray'}>{STATUS_MAP[sheet.status]?.label || sheet.status || '尚未確認'}</span></td>
                             <td className="px-3 py-2.5 whitespace-nowrap" onClick={e => e.stopPropagation()}>
                               <div className="flex gap-1 items-center">
                                 <button onClick={e => { e.stopPropagation(); printSheet(sheet) }} className="btn-ghost" title="列印">🧾 列印</button>

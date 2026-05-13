@@ -180,7 +180,7 @@ export default function GoodsReceiptsPage() {
                 {viewing.po_number && <div className="text-xs text-slate-400">關聯採購單：{viewing.po_number}</div>}
               </div>
               <div className="flex gap-2 items-center">
-                <span className={viewing.status === 'confirmed' ? 'badge-green' : 'badge-gray'}>{viewing.status === 'confirmed' ? '已確認' : '草稿'}</span>
+                <span className={viewing.status === 'confirmed' ? 'badge-green' : 'badge-gray'}>{viewing.status === 'confirmed' ? '已確認' : '尚未確認'}</span>
                 {viewing.status === 'draft' && <button onClick={() => confirm(viewing.id)} className="btn-primary">✓ 確認進貨</button>}
                 <button onClick={() => setViewing(null)} className="text-slate-400 hover:text-slate-600 text-xl ml-2">✕</button>
               </div>

@@ -32,7 +32,7 @@ type OrderDeliveryRow = {
 }
 
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
-  draft:     { label:'草稿',   badge:'badge-gray'  },
+  draft:     { label:'尚未確認', badge:'badge-gray'  },
   confirmed: { label:'已確認', badge:'badge-blue'  },
   shipped:   { label:'已出貨', badge:'badge-green' },
 }

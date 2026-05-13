@@ -25,7 +25,7 @@ const ACTION_LABEL: Record<string, string> = {
   CREATE: '新增',
   UPDATE: '修改',
   DELETE: '刪除',
-  APPROVE: '核准',
+  APPROVE: '審核',
   STATUS_CHANGE: '狀態變更',
 }
 

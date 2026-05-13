@@ -48,11 +48,11 @@ export default function StockAdjustmentsPage() {
 
   const approve = async (id: number) => {
     if (approving) return
-    if (!await confirmDialog('確認核准庫存調整？', '核准後將更新材料庫存，此操作不可撤銷', '確認核准')) return
+    if (!await confirmDialog('確認審核庫存調整？', '審核後將更新材料庫存，此操作不可撤銷', '確認審核')) return
     setApproving(id)
     try {
       await apiFetch(`/api/stock-adjustments/${id}/approve`, { method: 'PATCH' })
-      toast('庫存調整已核准，庫存已更新')
+      toast('庫存調整已審核，庫存已更新')
       load()
       if (viewing?.id === id) { viewAdj(id) }
     } catch (e: any) { toast(e.message, 'error') }
@@ -104,7 +104,7 @@ export default function StockAdjustmentsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-slate-800">庫存調整（盤點）</h1>
-          <p className="text-xs text-slate-400 mt-0.5">盤點調整、報廢處理，核准後更新庫存</p>
+          <p className="text-xs text-slate-400 mt-0.5">盤點調整、報廢處理，審核後更新庫存</p>
         </div>
         <button onClick={() => setCreating(true)} className="btn-primary">+ 建立調整單</button>
       </div>
@@ -202,10 +202,10 @@ export default function StockAdjustmentsPage() {
               </div>
               <div className="flex gap-2 items-center">
                 <span className={viewing.status === 'approved' ? 'badge-green' : 'badge-gray'}>
-                  {viewing.status === 'approved' ? '已核准' : '草稿'}
+                  {viewing.status === 'approved' ? '已審核' : '尚未審核'}
                 </span>
                 {viewing.status === 'draft' && (
-                  <button onClick={() => approve(viewing.id)} className="btn-primary">&#10003; 核准</button>
+                  <button onClick={() => approve(viewing.id)} className="btn-primary">&#10003; 審核</button>
                 )}
                 <button onClick={() => setViewing(null)} className="text-slate-400 hover:text-slate-600 text-xl ml-2">&#10005;</button>
               </div>
