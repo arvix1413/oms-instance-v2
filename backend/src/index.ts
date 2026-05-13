@@ -1718,9 +1718,9 @@ app.get('/api/delivery-notes/:id', authMiddleware, async c => {
   if (!dn) return c.json({ error: 'Not found' }, 404)
   const items = await query(`
     SELECT dni.*, 
-           ${liveFirst('NULLIF(m.material_name, \'\')', 'NULLIF(dni.item_name, \'\')', 'NULLIF(b.product_name, \'\')', '\'\'')} as item_name,
-           ${liveFirst('NULLIF(m.spec, \'\')', 'NULLIF(dni.spec, \'\')', 'NULLIF(b.spec, \'\')', '\'\'')} as spec,
-           ${liveFirst('NULLIF(m.unit, \'\')', 'NULLIF(dni.unit, \'\')', 'NULLIF(b.unit, \'\')', '\'PCS\'')} as unit
+           ${liveFirst('NULLIF(dni.item_name, \'\')', 'NULLIF(m.material_name, \'\')', 'NULLIF(b.product_name, \'\')', '\'\'')} as item_name,
+           ${liveFirst('NULLIF(dni.spec, \'\')', 'NULLIF(m.spec, \'\')', 'NULLIF(b.spec, \'\')', '\'\'')} as spec,
+           ${liveFirst('NULLIF(dni.unit, \'\')', 'NULLIF(m.unit, \'\')', 'NULLIF(b.unit, \'\')', '\'PCS\'')} as unit
     FROM delivery_note_items dni
     ${materialRefJoin('dni')}
     LEFT JOIN (
@@ -1881,9 +1881,9 @@ app.get('/api/delivery-sheets/:id', authMiddleware, async c => {
   if (!ds) return c.json({ error: 'Not found' }, 404)
   const items = await query(`
     SELECT dsi.*,
-           ${liveFirst('NULLIF(m.material_name, \'\')', 'NULLIF(dsi.item_name, \'\')', 'NULLIF(b.product_name, \'\')', '\'\'')} as item_name,
-           ${liveFirst('NULLIF(m.spec, \'\')', 'NULLIF(dsi.spec, \'\')', 'NULLIF(b.spec, \'\')', '\'\'')} as spec,
-           ${liveFirst('NULLIF(m.unit, \'\')', 'NULLIF(dsi.unit, \'\')', 'NULLIF(b.unit, \'\')', '\'PCS\'')} as unit
+           ${liveFirst('NULLIF(dsi.item_name, \'\')', 'NULLIF(m.material_name, \'\')', 'NULLIF(b.product_name, \'\')', '\'\'')} as item_name,
+           ${liveFirst('NULLIF(dsi.spec, \'\')', 'NULLIF(m.spec, \'\')', 'NULLIF(b.spec, \'\')', '\'\'')} as spec,
+           ${liveFirst('NULLIF(dsi.unit, \'\')', 'NULLIF(m.unit, \'\')', 'NULLIF(b.unit, \'\')', '\'PCS\'')} as unit
     FROM delivery_sheet_items dsi
     ${materialRefJoin('dsi')}
     LEFT JOIN (
