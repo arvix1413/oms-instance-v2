@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { getToken, clearToken } from '@/lib/api'
+import { getToken, clearToken, apiFetch } from '@/lib/api'
 import { getUser, ROLE_LABELS, type Role } from '@/lib/permissions'
 import { can } from '@/lib/usePermissions'
 import StickyTableHeaderBridge from '@/components/StickyTableHeaderBridge'
@@ -93,6 +93,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [syncCount, setSyncCount] = useState(0)
   const [softRefreshing, setSoftRefreshing] = useState(false)
+  const [poDraftCount, setPoDraftCount] = useState(0)
+  const [quotationDraftCount, setQuotationDraftCount] = useState(0)
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -142,6 +144,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
   const role = user?.role as Role
   const isAdmin = can('user.manage')
+  const canApprovePo = can('po.approve')
+  const canApproveQuotation = can('quotation.approve')
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(href + '/')
@@ -158,6 +162,88 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     `flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 ${
       active ? 'bg-blue-50 text-blue-700 border border-blue-100 shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
     }`
+
+  const loadReviewBadges = async () => {
+    if (!canApprovePo) setPoDraftCount(0)
+    if (!canApproveQuotation) setQuotationDraftCount(0)
+    if (!canApprovePo && !canApproveQuotation) return
+    try {
+      const [poRows, quotationRows] = await Promise.all([
+        canApprovePo ? apiFetch<Array<{ status: string }>>('/api/po') : Promise.resolve([]),
+        canApproveQuotation ? apiFetch<Array<{ status: string }>>('/api/quotations') : Promise.resolve([]),
+      ])
+      setPoDraftCount((poRows || []).filter((row) => row.status === 'draft').length)
+      setQuotationDraftCount((quotationRows || []).filter((row) => row.status === 'draft').length)
+    } catch {
+      setPoDraftCount(0)
+      setQuotationDraftCount(0)
+    }
+  }
+
+  useEffect(() => {
+    void loadReviewBadges()
+    const onMutation = (event: Event) => {
+      const detail = (event as CustomEvent).detail || {}
+      const path = String(detail.path || '')
+      if (detail.phase === 'end' && detail.ok && (path.startsWith('/api/po') || path.startsWith('/api/quotations'))) {
+        void loadReviewBadges()
+      }
+    }
+    const onFocus = () => void loadReviewBadges()
+    window.addEventListener('oms:mutation', onMutation as EventListener)
+    window.addEventListener('focus', onFocus)
+    return () => {
+      window.removeEventListener('oms:mutation', onMutation as EventListener)
+      window.removeEventListener('focus', onFocus)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canApprovePo, canApproveQuotation])
+
+  const renderNavBadge = (href: string) => {
+    if (href === '/dashboard/po' && canApprovePo && poDraftCount > 0) {
+      return (
+        <span className="ml-auto inline-flex min-w-[26px] items-center justify-center rounded-full bg-[#d93d2f] px-2 py-0.5 text-[11px] font-extrabold text-white shadow-[0_8px_18px_rgba(217,61,47,0.35)] ring-2 ring-[#ffd9cf]">
+          {poDraftCount > 99 ? '99+' : poDraftCount}
+        </span>
+      )
+    }
+    if (href === '/dashboard/quotations' && canApproveQuotation && quotationDraftCount > 0) {
+      return (
+        <span className="ml-auto inline-flex min-w-[26px] items-center justify-center rounded-full bg-[#c46b1f] px-2 py-0.5 text-[11px] font-extrabold text-white shadow-[0_8px_18px_rgba(196,107,31,0.35)] ring-2 ring-[#ffe2bf]">
+          {quotationDraftCount > 99 ? '99+' : quotationDraftCount}
+        </span>
+      )
+    }
+    return null
+  }
+
+  const renderTopReviewBadges = () => {
+    const badges = [
+      canApprovePo && poDraftCount > 0
+        ? { href: '/dashboard/po?status=draft', label: '採購單待核准', count: poDraftCount, tone: 'bg-[#d93d2f] text-white ring-[#ffd9cf]' }
+        : null,
+      canApproveQuotation && quotationDraftCount > 0
+        ? { href: '/dashboard/quotations?status=draft', label: '報價單待核准', count: quotationDraftCount, tone: 'bg-[#c46b1f] text-white ring-[#ffe2bf]' }
+        : null,
+    ].filter(Boolean) as Array<{ href: string; label: string; count: number; tone: string }>
+    if (!badges.length) return null
+    return (
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {badges.map((badge) => (
+          <Link
+            key={badge.href}
+            href={badge.href}
+            className={`inline-flex items-center gap-2.5 rounded-full px-4 py-2 text-[16px] font-black shadow-[0_10px_20px_rgba(41,30,20,0.12)] ring-2 ${badge.tone}`}
+          >
+            <span>{badge.label}</span>
+            <span className="rounded-full bg-white/18 px-2.5 py-1 text-[14px] font-black leading-none">
+              {badge.count > 99 ? '99+' : badge.count}
+            </span>
+          </Link>
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div className="relative flex h-screen bg-slate-50 text-slate-800">
@@ -242,7 +328,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           {n.children.map(c => (
                             <Link key={c.href} href={c.href} className={linkClass(isActive(c.href))}>
                               <span className={isActive(c.href) ? 'text-blue-600' : 'text-slate-400'}>{c.icon}</span>
-                              {c.label}
+                              <span>{c.label}</span>
+                              {renderNavBadge(c.href)}
                             </Link>
                           ))}
                         </div>
@@ -302,7 +389,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="text-[11px] font-semibold tracking-wide text-slate-500">FAN YONG OMS</div>
         </div>
         <StickyTableHeaderBridge />
-        <div className={`dashboard-content p-5 md:p-6 xl:p-7 ${softRefreshing ? 'oms-soft-refresh' : ''}`}>{children}</div>
+        <div className={`dashboard-content p-5 md:p-6 xl:p-7 ${softRefreshing ? 'oms-soft-refresh' : ''}`}>
+          {renderTopReviewBadges()}
+          {children}
+        </div>
       </main>
     </div>
   )

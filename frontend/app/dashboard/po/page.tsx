@@ -1,8 +1,9 @@
 'use client'
 import DecimalInput from '@/components/DecimalInput'
 import { useDialog } from '@/components/Dialog'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { apiFetch, getSignatureUrl } from '@/lib/api'
+import { useSearchParams } from 'next/navigation'
 import { formatDecimal, formatQuantity } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, PO_STEPS, getPOActions } from '@/components/StatusFlow'
@@ -34,6 +35,14 @@ const STATUS_MAP: Record<string,{label:string;badge:string}> = {
   cancelled: { label:'已取消', badge:'badge-red'    },
 }
 
+const STATUS_FILTERS = [
+  { value: '', label: '全部' },
+  { value: 'draft', label: '草稿' },
+  { value: 'approved', label: '已核准' },
+  { value: 'sent', label: '已送出' },
+  { value: 'received', label: '已收貨' },
+] as const
+
 const emptyItem = (): PoItem => ({ material_code:'', material_name:'', spec:'', unit:'', quantity:1, unit_price:0, total_price:0, currency:'VND', remark:'', po_ref:'' })
 
 function ChevronIcon({ open }: { open: boolean }) {
@@ -43,6 +52,16 @@ function ChevronIcon({ open }: { open: boolean }) {
       <polyline points="9 18 15 12 9 6" />
     </svg>
   )
+}
+
+function StatusFilterSync({ onChange }: { onChange: (value: string) => void }) {
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    onChange(searchParams.get('status') || '')
+  }, [onChange, searchParams])
+
+  return null
 }
 
 export default function PoPage() {
@@ -502,17 +521,31 @@ export default function PoPage() {
   }
 
   const formTotal = form.items.reduce((s, i) => s + (i.total_price || 0), 0)
-  const filteredPos = pos.filter(p => {
-    const matchSearch = !search || p.po_number.toLowerCase().includes(search.toLowerCase()) || p.supplier_name.toLowerCase().includes(search.toLowerCase())
-    const matchStatus = !statusFilter || p.status === statusFilter
-    return matchSearch && matchStatus
-  })
+  const normalizedSearch = search.trim().toLowerCase()
+  const searchedPos = useMemo(() => pos.filter((p) => (
+    !normalizedSearch ||
+    p.po_number.toLowerCase().includes(normalizedSearch) ||
+    p.supplier_name.toLowerCase().includes(normalizedSearch)
+  )), [pos, normalizedSearch])
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { '': searchedPos.length }
+    for (const row of searchedPos) counts[row.status] = (counts[row.status] || 0) + 1
+    return counts
+  }, [searchedPos])
+  const filteredPos = searchedPos.filter((p) => !statusFilter || p.status === statusFilter)
+  const statusFilterItems = useMemo(() => STATUS_FILTERS.map((item) => ({
+    ...item,
+    count: statusCounts[item.value] || 0,
+  })), [statusCounts])
   const { page, setPage, totalPages, paged, total } = usePagination(filteredPos, 10)
   const inp = 'oms-input text-xs py-1.5'
   const lockedInp = `${inp} bom-locked-field`
 
   return (
     <div>
+      <Suspense fallback={null}>
+        <StatusFilterSync onChange={setStatusFilter} />
+      </Suspense>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-slate-800">採購單管理</h1>
@@ -660,10 +693,13 @@ export default function PoPage() {
           <div className="list-controls">
             <input className="list-search" placeholder="搜尋採購單號或供應商..." value={search} onChange={e=>setSearch(e.target.value)} />
             <div className="flex gap-1">
-              {[['', '全部'], ['draft', '草稿'], ['approved', '已核准'], ['sent', '已送出'], ['received', '已收貨']].map(([val, label]) => (
-                <button key={val} onClick={() => setStatusFilter(val)}
-                  className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${statusFilter === val ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}>
-                  {label}
+              {statusFilterItems.map(({ value, label, count }) => (
+                <button key={value} onClick={() => setStatusFilter(value)}
+                  className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${statusFilter === value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}>
+                  <span>{label}</span>
+                  <span className={`inline-flex min-w-[24px] items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-black leading-none ${statusFilter === value ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                    {count}
+                  </span>
                 </button>
               ))}
             </div>

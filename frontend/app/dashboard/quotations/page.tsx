@@ -2,14 +2,16 @@
 import React from 'react'
 import DecimalInput from '@/components/DecimalInput'
 import { useDialog } from '@/components/Dialog'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { apiFetch, getSignatureUrl } from '@/lib/api'
+import { useSearchParams } from 'next/navigation'
 import { formatDecimal, formatInteger } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { getCompany } from '@/lib/useCompany'
 import { normalizeMoqTiers, resolveTierPrice } from '@/lib/moqPricing'
 import { SHARED_PRINT_ITEM_TABLE_CSS } from '@/lib/printItemTableStyles'
 import { SHARED_PRINT_PARTY_TABLE_CSS } from '@/lib/printPartyTableStyles'
+import { can } from '@/lib/usePermissions'
 
 type MoqTier = { moq: number; price: number }
 type QItem = { bom_id?:number|null; item_name:string; material_code:string; spec:string; unit:string; qty:number; unit_price:number; total_price:number; remark:string; moq_tiers:MoqTier[]; image_url?:string }
@@ -47,10 +49,20 @@ const normalizeTiers = (tiers: any): MoqTier[] => {
 }
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
   draft:    { label:'草稿',   badge:'badge-gray'  },
+  approved: { label:'已核准', badge:'badge-green' },
   sent:     { label:'已送出', badge:'badge-blue'  },
   accepted: { label:'已接受', badge:'badge-green' },
   rejected: { label:'已拒絕', badge:'badge-red'   },
 }
+
+const STATUS_FILTERS = [
+  { value: '', label: '全部' },
+  { value: 'draft', label: '草稿' },
+  { value: 'approved', label: '已核准' },
+  { value: 'sent', label: '已送出' },
+  { value: 'accepted', label: '已接受' },
+  { value: 'rejected', label: '已拒絕' },
+] as const
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -59,6 +71,16 @@ function ChevronIcon({ open }: { open: boolean }) {
       <polyline points="9 18 15 12 9 6" />
     </svg>
   )
+}
+
+function StatusFilterSync({ onChange }: { onChange: (value: string) => void }) {
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    onChange(searchParams.get('status') || '')
+  }, [onChange, searchParams])
+
+  return null
 }
 
 export default function QuotationsPage() {
@@ -75,6 +97,10 @@ export default function QuotationsPage() {
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const canWrite = can('customer_order.create')
+  const canApprove = can('quotation.approve')
+  const canDelete = can('customer_order.delete')
 
   const loadQuotationItems = async (id: number) => {
     const d = await apiFetch<Q>(`/api/quotations/${id}`)
@@ -515,7 +541,22 @@ export default function QuotationsPage() {
       ))}
     </div>
   )
-  const filtered = items.filter(q => !search || q.quotation_number.toLowerCase().includes(search.toLowerCase()) || q.customer_name.toLowerCase().includes(search.toLowerCase()))
+  const normalizedSearch = search.trim().toLowerCase()
+  const searchedItems = useMemo(() => items.filter((q) => (
+    !normalizedSearch ||
+    q.quotation_number.toLowerCase().includes(normalizedSearch) ||
+    q.customer_name.toLowerCase().includes(normalizedSearch)
+  )), [items, normalizedSearch])
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { '': searchedItems.length }
+    for (const row of searchedItems) counts[row.status] = (counts[row.status] || 0) + 1
+    return counts
+  }, [searchedItems])
+  const filtered = searchedItems.filter((q) => !statusFilter || q.status === statusFilter)
+  const statusFilterItems = useMemo(() => STATUS_FILTERS.map((item) => ({
+    ...item,
+    count: statusCounts[item.value] || 0,
+  })), [statusCounts])
   const { page, setPage, totalPages, paged, total: filteredTotal } = usePagination(filtered, 10)
   const inp = 'oms-input text-xs py-1.5'
   const lockedInp = `${inp} bom-locked-field`
@@ -523,12 +564,15 @@ export default function QuotationsPage() {
 
   return (
     <div>
+      <Suspense fallback={null}>
+        <StatusFilterSync onChange={setStatusFilter} />
+      </Suspense>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-slate-800">報價單</h1>
           <p className="section-hint">點選報價單列展開檢視品項明細</p>
         </div>
-        <button onClick={startCreate} className="btn-primary">+ 新增報價單</button>
+        {canWrite ? <button onClick={startCreate} className="btn-primary">+ 新增報價單</button> : null}
       </div>
 
       {mounted && (creating || editingId !== null) && (
@@ -621,7 +665,20 @@ export default function QuotationsPage() {
 
       {!creating && editingId === null && (
       <>
-      <div className="mb-4"><input className="oms-input w-64" placeholder="搜尋報價單號或客戶..." value={search} onChange={e=>setSearch(e.target.value)} /></div>
+      <div className="mb-4 flex flex-col gap-3">
+        <input className="oms-input w-64" placeholder="搜尋報價單號或客戶..." value={search} onChange={e=>setSearch(e.target.value)} />
+        <div className="flex flex-wrap gap-1">
+          {statusFilterItems.map(({ value, label, count }) => (
+            <button key={value} onClick={() => setStatusFilter(value)}
+              className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${statusFilter === value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}>
+              <span>{label}</span>
+              <span className={`inline-flex min-w-[24px] items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-black leading-none ${statusFilter === value ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                {count}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="oms-card">
         {loading ? <div className="flex justify-center py-16"><div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"/></div> : (
@@ -660,11 +717,12 @@ export default function QuotationsPage() {
                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center gap-1">
                             <button onClick={e=>{ e.stopPropagation(); printQuotation(q.id, q) }} className="btn-ghost" title="列印">🖨 列印</button>
-                            {q.status==='draft' && <button onClick={e=>startEdit(q,e)} className="btn-ghost text-blue-600">✏ 編輯</button>}
-                            {q.status==='draft' && <button onClick={e=>changeStatus(q.id,'sent',e)} className="btn-ghost">送出</button>}
-                            {q.status==='sent' && <button onClick={e=>changeStatus(q.id,'accepted',e)} className="btn-ghost text-emerald-600">接受</button>}
-                            {q.status==='sent' && <button onClick={e=>changeStatus(q.id,'rejected',e)} className="btn-danger">拒絕</button>}
-                            <button onClick={e=>del(q.id,e)} className="btn-danger">刪除</button>
+                            {q.status==='draft' && canWrite && <button onClick={e=>startEdit(q,e)} className="btn-ghost text-blue-600">✏ 編輯</button>}
+                            {q.status==='draft' && canApprove && <button onClick={e=>changeStatus(q.id,'approved',e)} className="btn-ghost text-emerald-600">核准</button>}
+                            {q.status==='approved' && canWrite && <button onClick={e=>changeStatus(q.id,'sent',e)} className="btn-ghost">送出</button>}
+                            {q.status==='sent' && canWrite && <button onClick={e=>changeStatus(q.id,'accepted',e)} className="btn-ghost text-emerald-600">接受</button>}
+                            {q.status==='sent' && canWrite && <button onClick={e=>changeStatus(q.id,'rejected',e)} className="btn-danger">拒絕</button>}
+                            {canDelete && <button onClick={e=>del(q.id,e)} className="btn-danger">刪除</button>}
                           </div>
                         </td>
                       </tr>
