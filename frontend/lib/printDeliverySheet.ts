@@ -2,7 +2,7 @@ import { type CompanySettings } from './useCompany'
 import { SHARED_PRINT_ITEM_TABLE_CSS } from './printItemTableStyles'
 import { formatQuantity } from './numberFormat'
 
-export function generateDeliverySheetHTML(data: any, company?: CompanySettings): string {
+export function generateDeliverySheetHTML(data: any, signatureUrl?: string, company?: CompanySettings): string {
   const txt = (v: any) => {
     if (v === null || v === undefined) return ''
     const s = String(v).trim()
@@ -67,6 +67,11 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
     .qty{text-align:center;font-weight:400}
     .right{text-align:center}
     .col-remark{width:1%}
+    .footer{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:8mm}
+    .sign-box{border:1px solid #bbb;padding:8px 10px;text-align:center;display:flex;flex-direction:column}
+    .sign-label{font-weight:600;font-size:10px;color:#333;padding-bottom:4px;border-bottom:1px solid #eee}
+    .sign-area{flex:1;min-height:50px;display:flex;align-items:center;justify-content:center}
+    .sign-line{border-top:1px solid #555;padding-top:4px;font-size:10px;font-weight:400;color:#333;margin-top:4px}
     @media print{body{padding:0}@page{size:A4;margin:4mm}}
   </style></head><body><div class="wrap">
     <div class="head">
@@ -112,6 +117,20 @@ export function generateDeliverySheetHTML(data: any, company?: CompanySettings):
         </tr>
       </tbody>
     </table>
+    <div class="footer">
+      <div class="sign-box">
+        <div class="sign-label">FAN YONG 確認 / Xác nhận</div>
+        <div class="sign-area">
+          ${signatureUrl ? `<img src="${signatureUrl}" style="max-height:44px;max-width:150px;object-fit:contain" />` : ''}
+        </div>
+        <div class="sign-line">${txt(co.company_name)}</div>
+      </div>
+      <div class="sign-box">
+        <div class="sign-label">客戶簽收 / Khách hàng ký</div>
+        <div class="sign-area"></div>
+        <div class="sign-line">${txt(data.customer_name)}</div>
+      </div>
+    </div>
   </div></body></html>`
 
   return html

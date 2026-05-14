@@ -5,6 +5,7 @@ import { apiFetch, apiFetchRaw, API } from '@/lib/api'
 import { can } from '@/lib/usePermissions'
 import { useRouter } from 'next/navigation'
 import { clearCompanyCache, type CompanySettings } from '@/lib/useCompany'
+import { getUser } from '@/lib/permissions'
 
 const DEFAULT: CompanySettings = {
   id: 1,
@@ -16,16 +17,21 @@ const DEFAULT: CompanySettings = {
   email: '',
   tax_id: '',
   logo_url: null,
+  signature_url: null,
 }
 
 export default function CompanyPage() {
   const router = useRouter()
   const { toast } = useDialog()
+  const me = getUser()
+  const canManageSignature = !!me?.is_admin
   const [form, setForm] = useState<CompanySettings>(DEFAULT)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [uploadingSignature, setUploadingSignature] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const signatureFileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!can('company.manage')) { router.replace('/dashboard'); return }
@@ -53,7 +59,8 @@ export default function CompanyPage() {
     if (!form.company_name) { toast('請填寫公司名稱', 'error'); return }
     setSaving(true)
     try {
-      await apiFetch('/api/company', { method: 'PUT', body: JSON.stringify(form) })
+      const payload = canManageSignature ? form : { ...form, signature_url: undefined }
+      await apiFetch('/api/company', { method: 'PUT', body: JSON.stringify(payload) })
       clearCompanyCache()
       toast('公司設定已儲存，所有列印表單將使用新資訊')
     } catch (e: any) { toast('儲存失敗：' + e.message, 'error') }
@@ -63,6 +70,23 @@ export default function CompanyPage() {
   const logoFullUrl = form.logo_url
     ? (form.logo_url.startsWith('http') ? form.logo_url : `${API}${form.logo_url}`)
     : null
+  const signatureFullUrl = form.signature_url
+    ? (form.signature_url.startsWith('http') ? form.signature_url : `${API}${form.signature_url}`)
+    : null
+
+  const uploadSignature = async (file: File) => {
+    if (!file.type.startsWith('image/')) { toast('請上傳圖片', 'error'); return }
+    setUploadingSignature(true)
+    try {
+      const fd = new FormData(); fd.append('file', file)
+      const res = await apiFetchRaw('/api/upload', { method: 'POST', body: fd })
+      if (!res.ok) throw new Error('上傳失敗')
+      const data = await res.json()
+      setForm(p => ({ ...p, signature_url: data.url || null }))
+      toast('主管簽名已上傳')
+    } catch (e: any) { toast('上傳失敗：' + e.message, 'error') }
+    finally { setUploadingSignature(false) }
+  }
 
   if (loading) return <div className="flex justify-center py-16"><div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"/></div>
 
@@ -99,6 +123,33 @@ export default function CompanyPage() {
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadLogo(f) }} />
             <p className="text-[11px] text-slate-400 mt-1">建議尺寸：200×80px，PNG/JPG，最大 2MB</p>
           </div>
+
+          {canManageSignature && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-2">統一主管簽名</label>
+              <div className="flex items-center gap-4">
+                {signatureFullUrl ? (
+                  <div className="w-36 h-20 border border-slate-200 rounded-lg flex items-center justify-center bg-slate-50 overflow-hidden">
+                    <img src={signatureFullUrl} alt="Manager Signature" className="max-w-full max-h-full object-contain"
+                      onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                  </div>
+                ) : (
+                  <div className="w-36 h-20 border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-300 text-xs">無簽名</div>
+                )}
+                <div className="flex flex-col gap-2">
+                  <button onClick={() => signatureFileRef.current?.click()} disabled={uploadingSignature}
+                    className="btn-ghost border border-slate-200 text-xs">
+                    {uploadingSignature ? '上傳中...' : '上傳主管簽名'}
+                  </button>
+                  {form.signature_url && (
+                    <button onClick={() => setForm(p => ({ ...p, signature_url: null }))} className="text-xs text-red-500 hover:underline">移除</button>
+                  )}
+                </div>
+              </div>
+              <input ref={signatureFileRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadSignature(f) }} />
+              <p className="text-[11px] text-slate-400 mt-1">只有 admin 可管理。所有列印都共用這一個簽名。</p>
+            </div>
+          )}
 
           {/* Fields */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -150,6 +201,13 @@ export default function CompanyPage() {
               {form.phone && <div>電話：{form.phone}</div>}
               {form.contact_person && <div>聯絡人：{form.contact_person}</div>}
             </div>
+            {canManageSignature && signatureFullUrl && (
+              <div className="mt-4 border-t border-slate-200 pt-3">
+                <div className="text-[10px] text-slate-400 mb-2">主管簽名預覽</div>
+                <img src={signatureFullUrl} alt="" className="h-10 object-contain"
+                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+              </div>
+            )}
           </div>
         </div>
       </div>

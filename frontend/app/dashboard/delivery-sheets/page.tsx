@@ -7,7 +7,7 @@ import { apiFetch } from '@/lib/api'
 import { formatQuantity } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { can } from '@/lib/usePermissions'
-import { getCompany } from '@/lib/useCompany'
+import { getCompany, getCompanySignatureUrl } from '@/lib/useCompany'
 
 type DSItem = { bom_id?:number|null; item_name:string; material_code:string; qty:number; remark:string; po_ref?: string; spec?: string; unit?: string }
 type DS = { id:number; ds_number:string; customer_name:string; delivery_date:string; status:string; remark:string; created_at:string; items?:DSItem[]; order_po_number?:string }
@@ -213,6 +213,9 @@ export default function DeliverySheetsPage() {
   const printSheet = async (sheet: DS) => {
     const detail = await apiFetch<DS & { po_ref?: string; address?: string }>(`/api/delivery-sheets/${sheet.id}`)
     const company = await getCompany()
+    const signatureUrl = (detail.status === 'confirmed' || detail.status === 'shipped')
+      ? (getCompanySignatureUrl(company) || undefined)
+      : undefined
     const html = generateDeliverySheetHTML({
       dn_number: sheet.ds_number,
       customer_name: sheet.customer_name,
@@ -221,7 +224,7 @@ export default function DeliverySheetsPage() {
       address: detail.address || '',
       remark: sheet.remark,
       items: detail.items || sheet.items || []
-    }, company)
+    }, signatureUrl, company)
     const w = window.open('', '_blank', 'width=800,height=1000')
     if (!w) {
       toast('瀏覽器已封鎖彈出視窗，請允許後再列印', 'error')

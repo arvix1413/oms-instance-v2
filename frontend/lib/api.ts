@@ -79,16 +79,6 @@ function mapApiErrorMessage(raw: string, status: number): string {
   return msg
 }
 
-/** Get the current user's full signature URL (handles relative paths) */
-export function getSignatureUrl(): string | null {
-  if (typeof window === 'undefined') return null
-  try {
-    const user = JSON.parse(localStorage.getItem('oms_user') || 'null')
-    if (!user?.signature_url) return null
-    return user.signature_url.startsWith('http') ? user.signature_url : `${API}${user.signature_url}`
-  } catch { return null }
-}
-
 function shouldReloadOnSuccess(_path: string, _method: string, mode: ReloadMode): boolean {
   if (mode === 'never') return false
   if (mode === 'always') return true

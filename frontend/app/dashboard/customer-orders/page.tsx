@@ -2,7 +2,7 @@
 import DecimalInput from '@/components/DecimalInput'
 import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
-import { apiFetch, getSignatureUrl } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
 import { formatDecimal, formatQuantity } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, CO_STEPS } from '@/components/StatusFlow'
@@ -228,7 +228,7 @@ export default function CustomerOrdersPage() {
       customer_phone: customerDetail?.phone || data.customer_phone || '',
       customer_address: customerDetail?.address || data.customer_address || '',
     }
-    const html = generateOrderHTML(printData, getSignatureUrl() || undefined, company)
+    const html = generateOrderHTML(printData, undefined, company)
     const w = window.open('', '_blank', 'width=800,height=1000')
     if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500) }
   }

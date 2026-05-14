@@ -38,7 +38,7 @@ export const PERMISSIONS = {
   canViewAuditLog: (role: Role) => role === 'manager',
 }
 
-export function getUser(): { id: number; email: string; name: string; role: Role; signature_url?: string } | null {
+export function getUser(): { id: number; email: string; name: string; role: Role; is_admin?: boolean } | null {
   if (typeof window === 'undefined') return null
   try {
     const u = JSON.parse(localStorage.getItem('oms_user') || 'null')

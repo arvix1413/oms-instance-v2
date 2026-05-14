@@ -1,7 +1,7 @@
 'use client'
 import { useDialog } from '@/components/Dialog'
-import { useState, useRef } from 'react'
-import { apiFetch, API } from '@/lib/api'
+import { useState } from 'react'
+import { apiFetch } from '@/lib/api'
 import { getUser, ROLE_LABELS, ROLE_COLORS, type Role } from '@/lib/permissions'
 
 export default function ProfilePage() {
@@ -11,10 +11,6 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [showCurrent, setShowCurrent] = useState(false)
   const [showNew, setShowNew] = useState(false)
-  const storedUser = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('oms_user') || 'null') : null
-  const [signatureUrl, setSignatureUrl] = useState<string>(storedUser?.signature_url || '')
-  const [uploadingSign, setUploadingSign] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleChangePw = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,37 +26,8 @@ export default function ProfilePage() {
     finally { setSaving(false) }
   }
 
-  const handleSignatureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (!file.type.startsWith('image/')) { toast('請上傳圖片檔案', 'error'); return }
-    if (file.size > 2 * 1024 * 1024) { toast('圖片大小不能超過 2MB', 'error'); return }
-    setUploadingSign(true)
-    try {
-      const form = new FormData()
-      form.append('file', file)
-      const res = await apiFetch<{ url: string }>('/api/upload', { method: 'POST', body: form })
-      const result = await apiFetch<{ ok: boolean; user: any }>('/api/auth/signature', { method: 'POST', body: JSON.stringify({ signature_url: res.url }) })
-      setSignatureUrl(res.url)
-      if (result.user) localStorage.setItem('oms_user', JSON.stringify(result.user))
-      toast('簽名已儲存')
-    } catch (e: any) { toast(e.message || '上傳失敗', 'error') }
-    finally { setUploadingSign(false); if (fileInputRef.current) fileInputRef.current.value = '' }
-  }
-
-  const handleRemoveSignature = async () => {
-    try {
-      const result = await apiFetch<{ ok: boolean; user: any }>('/api/auth/signature', { method: 'POST', body: JSON.stringify({ signature_url: null }) })
-      setSignatureUrl('')
-      if (result.user) localStorage.setItem('oms_user', JSON.stringify(result.user))
-      toast('簽名已移除')
-    } catch (e: any) { toast(e.message, 'error') }
-  }
-
   if (!me) return null
   const inp = 'oms-input'
-  const apiBase = API || 'https://oms-backend.arvix1413.workers.dev'
-  const fullSignUrl = signatureUrl ? (signatureUrl.startsWith('http') ? signatureUrl : `${apiBase}${signatureUrl}`) : ''
 
   return (
     <div className="max-w-4xl">
@@ -80,53 +47,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="oms-card p-6">
-          <div className="flex items-center gap-2 mb-1">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4 text-blue-500">
-              <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-            </svg>
-            <h2 className="text-sm font-semibold text-slate-800">電子簽名</h2>
-          </div>
-          <p className="text-xs text-slate-400 mb-5">列印採購單、出貨單、送貨單時自動顯示在簽名欄</p>
-          {fullSignUrl ? (
-            <div className="space-y-4">
-              <div className="rounded-xl border-2 border-slate-100 bg-slate-50 flex items-center justify-center p-6" style={{ minHeight: 100 }}>
-                <img src={fullSignUrl} alt="簽名預覽" className="max-h-24 max-w-full object-contain"
-                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => fileInputRef.current?.click()} disabled={uploadingSign}
-                  className="flex-1 btn-ghost border border-slate-200 text-xs">更換簽名</button>
-                <button onClick={handleRemoveSignature}
-                  className="flex-1 btn-ghost text-red-500 hover:bg-red-50 border border-red-100 text-xs">移除</button>
-              </div>
-            </div>
-          ) : (
-            <div onClick={() => fileInputRef.current?.click()}
-              className="rounded-xl border-2 border-dashed border-slate-200 p-8 text-center cursor-pointer hover:border-blue-300 hover:bg-blue-50/40 transition-all group">
-              {uploadingSign ? (
-                <div className="flex flex-col items-center gap-2">
-                  <div className="w-6 h-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-                  <span className="text-xs text-slate-400">上傳中...</span>
-                </div>
-              ) : (
-                <>
-                  <div className="w-12 h-12 rounded-full bg-slate-100 group-hover:bg-blue-100 flex items-center justify-center mx-auto mb-3 transition-colors">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-6 h-6 text-slate-400 group-hover:text-blue-500 transition-colors">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                      <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                  </div>
-                  <p className="text-sm font-medium text-slate-600 group-hover:text-blue-600 transition-colors">點選上傳簽名圖片</p>
-                  <p className="text-xs text-slate-400 mt-1">PNG / JPG，最大 2MB</p>
-                </>
-              )}
-            </div>
-          )}
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleSignatureUpload} />
-        </div>
-
-        <div className="oms-card p-6">
+        <div className="oms-card p-6 lg:col-span-2">
           <div className="flex items-center gap-2 mb-1">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4 text-blue-500">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>

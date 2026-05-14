@@ -2,14 +2,14 @@
 import DecimalInput from '@/components/DecimalInput'
 import { useDialog } from '@/components/Dialog'
 import { Suspense, useEffect, useMemo, useState } from 'react'
-import { apiFetch, getSignatureUrl } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
 import { useSearchParams } from 'next/navigation'
 import { formatDecimal, formatQuantity } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, PO_STEPS, getPOActions } from '@/components/StatusFlow'
 import { SearchableSelect } from '@/components/SearchableSelect'
 import { can } from '@/lib/usePermissions'
-import { getCompany } from '@/lib/useCompany'
+import { getCompany, getCompanySignatureUrl } from '@/lib/useCompany'
 import { resolveTierPrice, type MoqTier } from '@/lib/moqPricing'
 import { SHARED_PRINT_ITEM_TABLE_CSS } from '@/lib/printItemTableStyles'
 import { SHARED_PRINT_PARTY_TABLE_CSS } from '@/lib/printPartyTableStyles'
@@ -339,7 +339,7 @@ export default function PoPage() {
     const taxRate = Math.min(25, Math.max(1, Number((data as any).tax_rate || 8)))
     const total = Math.round(subTotal * (1 + taxRate / 100) * 100) / 100
     const currency = txt(items[0]?.currency) || txt(data.currency) || 'VND'
-    const signatureUrl = getSignatureUrl()
+    const signatureUrl = data.status !== 'draft' ? (getCompanySignatureUrl(company) || '') : ''
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://43.160.199.226')
     const logoUrl = company.logo_url ? (company.logo_url.startsWith('http') ? company.logo_url : `${API_BASE}${company.logo_url}`) : null
     const supplierId = (data as any).supplier_id

@@ -3,11 +3,11 @@ import React from 'react'
 import DecimalInput from '@/components/DecimalInput'
 import { useDialog } from '@/components/Dialog'
 import { Suspense, useEffect, useMemo, useState } from 'react'
-import { apiFetch, getSignatureUrl } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
 import { useSearchParams } from 'next/navigation'
 import { formatDecimal, formatInteger } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
-import { getCompany } from '@/lib/useCompany'
+import { getCompany, getCompanySignatureUrl } from '@/lib/useCompany'
 import { normalizeMoqTiers, resolveTierPrice } from '@/lib/moqPricing'
 import { SHARED_PRINT_ITEM_TABLE_CSS } from '@/lib/printItemTableStyles'
 import { SHARED_PRINT_PARTY_TABLE_CSS } from '@/lib/printPartyTableStyles'
@@ -287,7 +287,7 @@ export default function QuotationsPage() {
       getCompany(),
     ])
     const items = data.items || []
-    const signUrl = getSignatureUrl()
+    const signUrl = data.status !== 'draft' ? (getCompanySignatureUrl(company) || '') : ''
     const apiBase = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://43.160.199.226')
     const logoUrl = company.logo_url ? (company.logo_url.startsWith('http') ? company.logo_url : `${apiBase}${company.logo_url}`) : null
     const rawCustomerId = (data as any).customer_id ?? q.customer_id
