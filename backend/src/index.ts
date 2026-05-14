@@ -8,7 +8,7 @@ import path from 'path'
 
 type Variables = { user: any }
 const app = new Hono<{ Variables: Variables }>()
-const normalizeUserRole = (role: any): 'manager' | 'employee' => (role === 'manager' || role === 'admin' ? 'manager' : 'employee')
+const normalizeUserRole = (role: any): 'manager' | 'employee' => (role === 'manager' ? 'manager' : 'employee')
 
 app.use('/api/*', cors({
   origin: '*',
@@ -32,17 +32,6 @@ const authMiddleware = async (c: any, next: () => Promise<void>) => {
   if (!payload) return c.json({ error: 'Invalid token' }, 401)
   c.set('user', payload)
   await next()
-}
-
-const isAdmin = async (c: any, next: () => Promise<void>) => {
-  const user = c.get('user')
-  if (user?.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
-  await next()
-}
-
-const isAdminUserId = async (userId: any) => {
-  const row = await queryOne<any>('SELECT role FROM users WHERE id=? AND deleted_at IS NULL', [userId])
-  return row?.role === 'admin'
 }
 
 // Dynamic RBAC permission check — manager always pass, employee checks role_permissions
@@ -438,7 +427,6 @@ app.post('/api/auth/login', async c => {
     if (!user) return c.json({ error: 'Invalid credentials' }, 401)
     if (hashPw(password) !== user.password_hash) return c.json({ error: 'Invalid credentials' }, 401)
     const normalizedRole = normalizeUserRole(user.role)
-    const isAdminAccount = user.role === 'admin'
     const token = await signJwt({ userId: user.id, email: user.email, name: user.name, role: normalizedRole })
     // Load role permissions
     let permissions: string[] = []
@@ -448,7 +436,7 @@ app.post('/api/auth/login', async c => {
       const rows = await query<any>('SELECT permission FROM role_permissions WHERE role=? AND allowed=1', ['employee'])
       permissions = rows.map((r: any) => r.permission)
     }
-    return c.json({ token, user: { id: user.id, email: user.email, name: user.name, role: normalizedRole, is_admin: isAdminAccount }, permissions })
+    return c.json({ token, user: { id: user.id, email: user.email, name: user.name, role: normalizedRole }, permissions })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 
@@ -456,7 +444,7 @@ app.get('/api/auth/me', authMiddleware, async c => {
   const u = c.get('user')
   const user = await queryOne<any>('SELECT id,email,name,role FROM users WHERE id=? AND deleted_at IS NULL', [u.userId])
   if (!user) return c.json({ error: 'Not found' }, 404)
-  return c.json({ user: { ...user, role: normalizeUserRole(user.role), is_admin: user.role === 'admin' } })
+  return c.json({ user: { ...user, role: normalizeUserRole(user.role) } })
 })
 
 // Change own password
@@ -1910,7 +1898,7 @@ app.delete('/api/inventory/:id', authMiddleware, requirePerm('stock.adjust'), as
 app.get('/api/users', authMiddleware, requirePerm('user.manage'), async c => {
   return c.json(await query(`
     SELECT id,email,name,
-           CASE WHEN role IN ('manager','admin') THEN 'manager' ELSE 'employee' END as role,
+           CASE WHEN role='manager' THEN 'manager' ELSE 'employee' END as role,
            created_at
     FROM users
     WHERE deleted_at IS NULL
@@ -2445,14 +2433,10 @@ app.get('/api/company', authMiddleware, async c => {
 app.put('/api/company', authMiddleware, requirePerm('company.manage'), async c => {
   try {
     const b = await c.req.json(); const u = c.get('user')
-    const adminAccount = await isAdminUserId(u?.userId)
     const existing = await queryOne<any>('SELECT signature_url FROM company_settings WHERE id=1')
     const nextSignatureUrl = Object.prototype.hasOwnProperty.call(b || {}, 'signature_url')
-      ? (adminAccount ? (b.signature_url || null) : existing?.signature_url || null)
+      ? (b.signature_url || null)
       : (existing?.signature_url || null)
-    if (Object.prototype.hasOwnProperty.call(b || {}, 'signature_url') && !adminAccount) {
-      return c.json({ error: '只有 admin 可以修改公司簽名' }, 403)
-    }
     // Upsert
     await execute(`INSERT INTO company_settings (id,company_name,company_name_local,address,phone,contact_person,email,tax_id,logo_url,signature_url)
       VALUES (1,?,?,?,?,?,?,?,?,?)

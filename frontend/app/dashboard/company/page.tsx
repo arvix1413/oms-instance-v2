@@ -24,7 +24,7 @@ export default function CompanyPage() {
   const router = useRouter()
   const { toast } = useDialog()
   const me = getUser()
-  const canManageSignature = !!me?.is_admin
+  const canManageSignature = me?.role === 'manager'
   const [form, setForm] = useState<CompanySettings>(DEFAULT)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -59,8 +59,7 @@ export default function CompanyPage() {
     if (!form.company_name) { toast('請填寫公司名稱', 'error'); return }
     setSaving(true)
     try {
-      const payload = canManageSignature ? form : { ...form, signature_url: undefined }
-      await apiFetch('/api/company', { method: 'PUT', body: JSON.stringify(payload) })
+      await apiFetch('/api/company', { method: 'PUT', body: JSON.stringify(form) })
       clearCompanyCache()
       toast('公司設定已儲存，所有列印表單將使用新資訊')
     } catch (e: any) { toast('儲存失敗：' + e.message, 'error') }
@@ -147,7 +146,7 @@ export default function CompanyPage() {
                 </div>
               </div>
               <input ref={signatureFileRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadSignature(f) }} />
-              <p className="text-[11px] text-slate-400 mt-1">只有 admin 可管理。所有列印都共用這一個簽名。</p>
+              <p className="text-[11px] text-slate-400 mt-1">只有主管可管理。所有列印都共用這一個簽名。</p>
             </div>
           )}
 

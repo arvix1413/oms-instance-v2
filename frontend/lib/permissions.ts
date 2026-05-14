@@ -1,7 +1,7 @@
 export type Role = 'manager' | 'employee'
 
 export function normalizeRole(role: any): Role {
-  return role === 'manager' || role === 'admin' ? 'manager' : 'employee'
+  return role === 'manager' ? 'manager' : 'employee'
 }
 
 export const ROLE_LABELS: Record<string, string> = {
@@ -38,7 +38,7 @@ export const PERMISSIONS = {
   canViewAuditLog: (role: Role) => role === 'manager',
 }
 
-export function getUser(): { id: number; email: string; name: string; role: Role; is_admin?: boolean } | null {
+export function getUser(): { id: number; email: string; name: string; role: Role } | null {
   if (typeof window === 'undefined') return null
   try {
     const u = JSON.parse(localStorage.getItem('oms_user') || 'null')
