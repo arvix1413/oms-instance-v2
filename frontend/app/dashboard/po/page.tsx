@@ -339,7 +339,7 @@ export default function PoPage() {
     const taxRate = Math.min(25, Math.max(1, Number((data as any).tax_rate || 8)))
     const total = Math.round(subTotal * (1 + taxRate / 100) * 100) / 100
     const currency = txt(items[0]?.currency) || txt(data.currency) || 'VND'
-    const signatureUrl = getCompanySignatureUrl(company) || ''
+    const signatureUrl = data.status !== 'draft' ? (getCompanySignatureUrl(company) || '') : ''
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://43.160.199.226')
     const logoUrl = company.logo_url ? (company.logo_url.startsWith('http') ? company.logo_url : `${API_BASE}${company.logo_url}`) : null
     const supplierId = (data as any).supplier_id
