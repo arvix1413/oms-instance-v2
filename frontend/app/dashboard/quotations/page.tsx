@@ -621,7 +621,7 @@ export default function QuotationsPage() {
           </div>
           </div>
           <div className="px-6 py-4">
-          <div className="no-sticky-cols h-[420px] overflow-auto overscroll-x-contain rounded-lg border border-slate-200 bg-white">
+          <div className="no-sticky-cols detail-scroll-panel overscroll-x-contain rounded-lg border border-slate-200 bg-white">
             <table className="w-full text-xs oms-table" style={{ minWidth: 1320 }}>
               <thead><tr className="border-b border-slate-200">
                 {['選擇BOM','品名','規格','單位','階梯報價（MOQ / 單價）','Remark',''].map(h=>(

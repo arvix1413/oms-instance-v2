@@ -145,7 +145,7 @@ export default function StockAdjustmentsPage() {
                 <span className="text-xs font-semibold text-slate-600">調整明細</span>
                 <button onClick={addItem} className="btn-ghost text-blue-600 shrink-0">+ 新增料號</button>
               </div>
-              <div className="h-[420px] overflow-auto rounded-lg border border-slate-200">
+              <div className="detail-scroll-panel rounded-lg border border-slate-200">
                 <table className="w-full text-xs" style={{ minWidth: 980 }}>
                   <thead>
                     <tr className="border-b border-slate-200">

@@ -478,7 +478,7 @@ export default function DeliveryNotesPage() {
           {orderItems.length > 0 && (
             <div className="mb-5">
               <div className="text-xs font-semibold text-slate-600 mb-2">出貨明細（可修改實際出貨數量）</div>
-              <div className="h-[420px] overflow-auto rounded-lg border border-slate-200">
+              <div className="detail-scroll-panel rounded-lg border border-slate-200">
                 <table className="w-full text-xs">
                   <thead><tr className="bg-slate-50 border-b border-slate-200">
                     <th className="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase shadow-sm">品名</th>
@@ -570,7 +570,7 @@ export default function DeliveryNotesPage() {
               </div>
 
               <div className="mb-4 rounded-lg border border-slate-200">
-                <div className="max-h-[420px] overflow-auto">
+                <div className="detail-scroll-panel">
                   <table className="w-full text-xs" style={{ minWidth: 960 }}>
                     <thead><tr className="bg-slate-50 border-b border-slate-200">
                       <th className="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap shadow-sm">品名</th>

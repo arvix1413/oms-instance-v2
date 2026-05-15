@@ -128,7 +128,7 @@ export default function GoodsReceiptsPage() {
                 <span className="text-xs font-semibold text-slate-600">收貨明細</span>
                 <button onClick={addItem} className="btn-ghost text-blue-600 shrink-0">+ 新增料號</button>
               </div>
-              <div className="h-[420px] overflow-auto rounded-lg border border-slate-200">
+              <div className="detail-scroll-panel rounded-lg border border-slate-200">
                 <table className="w-full text-xs" style={{ minWidth: 1080 }}>
                   <thead><tr className="border-b border-slate-200">
                     {['料號','材料名稱','規格','單位','訂購數量','實收數量','單價','幣別','批次號','備註',''].map(h => (
