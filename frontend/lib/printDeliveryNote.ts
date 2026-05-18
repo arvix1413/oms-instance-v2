@@ -112,9 +112,6 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
   // Footer signatures
   parts.push('<div class="footer">')
   parts.push('<div class="sign-box"><div class="sign-label">FAN YONG 確認 / Xác nhận</div><div class="sign-area">')
-  if (signatureUrl) {
-    parts.push('<img src="' + signatureUrl + '" style="max-height:44px;max-width:150px;object-fit:contain" />')
-  }
   parts.push('</div><div class="sign-line">' + txt(co.company_name) + '</div></div>')
   parts.push('<div class="sign-box"><div class="sign-label">客戶簽收 / Khách hàng ký</div><div class="sign-area"></div><div class="sign-line">' + txt(data.customer_name) + '</div></div>')
   parts.push('</div>')
