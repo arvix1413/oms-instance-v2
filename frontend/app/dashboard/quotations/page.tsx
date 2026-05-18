@@ -26,7 +26,12 @@ type Customer = {
 }
 type BOM = { id:number; product_sku:string; product_name:string; spec:string; unit:string; company_price:number; image_url?:string; moq_tiers?: MoqTier[] }
 
-const emptyTiers = (): MoqTier[] => Array.from({length:5}, () => ({ moq: 0, price: 0 }))
+const emptyTier = (): MoqTier => ({ moq: 0, price: 0 })
+const emptyTiers = (count = 1): MoqTier[] => Array.from({ length: Math.min(5, Math.max(1, count)) }, emptyTier)
+const ensureTierList = (tiers: any): MoqTier[] => {
+  const normalized = normalizeMoqTiers(tiers)
+  return normalized.length ? normalized.slice(0, 5) : emptyTiers()
+}
 const emptyItem = (): QItem => ({ bom_id:null, item_name:'', material_code:'', spec:'', unit:'', qty:0, unit_price:0, total_price:0, remark:'', moq_tiers:emptyTiers(), image_url:'' })
 const DEFAULT_QUOTATION_REMARK = [
   '1. 交易方式：現金轉款',
@@ -38,14 +43,7 @@ const DEFAULT_QUOTATION_REMARK = [
   '7. 收到量產訂單出貨後，打樣費將在8天內退還',
 ].join('\n')
 const normalizeTiers = (tiers: any): MoqTier[] => {
-  const src = Array.isArray(tiers) ? tiers : []
-  return Array.from({ length: 5 }, (_, i) => {
-    const t = src[i] || {}
-    return {
-      moq: Number(t.moq) || 0,
-      price: Number(t.price) || 0,
-    }
-  })
+  return ensureTierList(tiers)
 }
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
   draft:    { label:'尚未審核', badge:'badge-gray'  },
@@ -481,9 +479,29 @@ export default function QuotationsPage() {
       ...p,
       items: p.items.map((item, idx) => {
         if (idx !== itemIdx) return item
-        const tiers = [...item.moq_tiers]
+        const tiers = item.moq_tiers.length ? [...item.moq_tiers] : emptyTiers()
         tiers[tierIdx] = { ...tiers[tierIdx], [field]: val }
         return { ...item, moq_tiers: tiers }
+      })
+    }))
+  }
+  const addItemTier = (itemIdx:number) => {
+    setForm(p => ({
+      ...p,
+      items: p.items.map((item, idx) => {
+        if (idx !== itemIdx) return item
+        if (item.moq_tiers.length >= 5) return item
+        return { ...item, moq_tiers: [...(item.moq_tiers.length ? item.moq_tiers : emptyTiers()), emptyTier()] }
+      })
+    }))
+  }
+  const removeItemTier = (itemIdx:number, tierIdx:number) => {
+    setForm(p => ({
+      ...p,
+      items: p.items.map((item, idx) => {
+        if (idx !== itemIdx) return item
+        if (item.moq_tiers.length <= 1) return item
+        return { ...item, moq_tiers: item.moq_tiers.filter((_, currentIdx) => currentIdx !== tierIdx) }
       })
     }))
   }
@@ -497,7 +515,7 @@ export default function QuotationsPage() {
           return { ...item, bom_id: null, material_code: '', item_name: '', spec: '', unit: '', unit_price: 0, image_url: '' }
         }
         const bomTiers = normalizeMoqTiers(bom.moq_tiers)
-        const tiers = normalizeTiers(bomTiers.length ? bomTiers : item.moq_tiers)
+        const tiers = ensureTierList(bomTiers.length ? bomTiers : item.moq_tiers)
         const matchedPrice = resolveTierPrice(tiers, Number(item.qty) || 0, bom.company_price || 0)
         return {
           ...item,
@@ -521,8 +539,19 @@ export default function QuotationsPage() {
   }
   const renderTierEditor = (item: QItem, itemIndex: number) => (
     <div className="min-w-[260px] space-y-1">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] text-slate-400">最多 5 組，至少 1 組</span>
+        <button
+          type="button"
+          className="text-[11px] font-medium text-blue-600 transition hover:text-blue-700 disabled:cursor-not-allowed disabled:text-slate-300"
+          onClick={() => addItemTier(itemIndex)}
+          disabled={item.moq_tiers.length >= 5}
+        >
+          + 新增 MOQ
+        </button>
+      </div>
       {item.moq_tiers.map((tier, t) => (
-        <div key={t} className="grid grid-cols-[26px_1fr_1fr] gap-1 items-center">
+        <div key={t} className="grid grid-cols-[26px_1fr_1fr_auto] gap-1 items-center">
           <span className="text-[10px] text-slate-400 text-center">#{t + 1}</span>
           <DecimalInput
             className={inp}
@@ -537,6 +566,14 @@ export default function QuotationsPage() {
             placeholder="單價"
             onValueChange={value => updateTier(itemIndex, t, 'price', value ?? 0)}
           />
+          <button
+            type="button"
+            className="text-[11px] text-slate-400 transition hover:text-red-600 disabled:cursor-not-allowed disabled:text-slate-300"
+            onClick={() => removeItemTier(itemIndex, t)}
+            disabled={item.moq_tiers.length <= 1}
+          >
+            刪除
+          </button>
         </div>
       ))}
     </div>
