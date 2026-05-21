@@ -1,6 +1,7 @@
 import { type CompanySettings } from './useCompany'
 import { SHARED_PRINT_ITEM_TABLE_CSS } from './printItemTableStyles'
 import { formatQuantity } from './numberFormat'
+import { getPrintSignatureConfig } from './printSignature'
 
 export function generateDeliverySheetHTML(data: any, signatureUrl?: string, company?: CompanySettings): string {
   const txt = (v: any) => {
@@ -26,6 +27,7 @@ export function generateDeliverySheetHTML(data: any, signatureUrl?: string, comp
     id: 1,
     tax_id: '',
   }
+  const signatureConfig = getPrintSignatureConfig(company)
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://43.160.199.226')
   const logoUrl = co.logo_url ? (String(co.logo_url).startsWith('http') ? co.logo_url : `${API_BASE}${co.logo_url}`) : null
   const items: any[] = Array.isArray(data.items) ? data.items : []
@@ -70,7 +72,7 @@ export function generateDeliverySheetHTML(data: any, signatureUrl?: string, comp
     .footer{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:8mm}
     .sign-box{border:1px solid #bbb;padding:8px 10px;text-align:center;display:flex;flex-direction:column}
     .sign-label{font-weight:600;font-size:10px;color:#333;padding-bottom:4px;border-bottom:1px solid #eee}
-    .sign-area{flex:1;min-height:50px;display:flex;align-items:center;justify-content:center}
+    .sign-area{flex:1;min-height:${signatureConfig.areaMinHeight}px;display:flex;align-items:center;justify-content:center}
     .sign-line{border-top:1px solid #555;padding-top:4px;font-size:10px;font-weight:400;color:#333;margin-top:4px}
     @media print{body{padding:0}@page{size:A4;margin:4mm}}
   </style></head><body><div class="wrap">
@@ -121,7 +123,7 @@ export function generateDeliverySheetHTML(data: any, signatureUrl?: string, comp
       <div class="sign-box">
         <div class="sign-label">FAN YONG 確認 / Xác nhận</div>
         <div class="sign-area">
-          ${signatureUrl ? `<img src="${signatureUrl}" style="max-height:44px;max-width:150px;object-fit:contain" />` : ''}
+          ${signatureUrl ? `<img src="${signatureUrl}" style="${signatureConfig.imgStyle}" />` : ''}
         </div>
         <div class="sign-line">${txt(co.company_name)}</div>
       </div>

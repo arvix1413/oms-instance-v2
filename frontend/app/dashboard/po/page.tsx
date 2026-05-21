@@ -10,6 +10,7 @@ import { StatusFlow, PO_STEPS, getPOActions } from '@/components/StatusFlow'
 import { SearchableSelect } from '@/components/SearchableSelect'
 import { can } from '@/lib/usePermissions'
 import { getCompany, getCompanySignatureUrl } from '@/lib/useCompany'
+import { getPrintSignatureConfig } from '@/lib/printSignature'
 import { resolveTierPrice, type MoqTier } from '@/lib/moqPricing'
 import { SHARED_PRINT_ITEM_TABLE_CSS } from '@/lib/printItemTableStyles'
 import { SHARED_PRINT_PARTY_TABLE_CSS } from '@/lib/printPartyTableStyles'
@@ -340,6 +341,7 @@ export default function PoPage() {
     const total = Math.round(subTotal * (1 + taxRate / 100) * 100) / 100
     const currency = txt(items[0]?.currency) || txt(data.currency) || 'VND'
     const signatureUrl = data.status !== 'draft' ? (getCompanySignatureUrl(company) || '') : ''
+    const signatureConfig = getPrintSignatureConfig(company)
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://43.160.199.226')
     const logoUrl = company.logo_url ? (company.logo_url.startsWith('http') ? company.logo_url : `${API_BASE}${company.logo_url}`) : null
     const supplierId = (data as any).supplier_id
@@ -393,7 +395,7 @@ export default function PoPage() {
       .sign-section { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; margin-top: 8mm; }
       .sign-box { border: 1px solid #bbb; padding: 8px 10px; text-align: center; display: flex; flex-direction: column; }
       .sign-label { font-weight: 600; font-size: 10px; color: #333; padding-bottom: 4px; border-bottom: 1px solid #eee; margin-bottom: 0; }
-      .sign-area { flex: 1; min-height: 50px; display: flex; align-items: center; justify-content: center; }
+      .sign-area { flex: 1; min-height: ${signatureConfig.areaMinHeight}px; display: flex; align-items: center; justify-content: center; }
       .sign-line { border-top: 1px solid #555; padding-top: 4px; font-size: 10px; font-weight: 400; color: #333; margin-top: 4px; }
       @media print { body { -webkit-print-color-adjust: exact; } @page { size: A4; margin: 0; } }
     </style></head><body>
@@ -508,7 +510,7 @@ export default function PoPage() {
         <div class="sign-box">
           <div class="sign-label">採購確認 / Người lập biểu xác nhận</div>
           <div class="sign-area">
-            ${signatureUrl ? `<img src="${signatureUrl}" style="max-height:44px;max-width:150px;object-fit:contain" />` : ''}
+            ${signatureUrl ? `<img src="${signatureUrl}" style="${signatureConfig.imgStyle}" />` : ''}
           </div>
           <div class="sign-line">${txt(company.company_name)}</div>
         </div>

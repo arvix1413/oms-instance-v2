@@ -8,6 +8,7 @@ import { useSearchParams } from 'next/navigation'
 import { formatDecimal, formatInteger } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { getCompany, getCompanySignatureUrl } from '@/lib/useCompany'
+import { getPrintSignatureConfig } from '@/lib/printSignature'
 import { normalizeMoqTiers, resolveTierPrice } from '@/lib/moqPricing'
 import { SHARED_PRINT_ITEM_TABLE_CSS } from '@/lib/printItemTableStyles'
 import { SHARED_PRINT_PARTY_TABLE_CSS } from '@/lib/printPartyTableStyles'
@@ -286,6 +287,7 @@ export default function QuotationsPage() {
     ])
     const items = data.items || []
     const signUrl = data.status !== 'draft' ? (getCompanySignatureUrl(company) || '') : ''
+    const signatureConfig = getPrintSignatureConfig(company)
     const apiBase = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://43.160.199.226')
     const logoUrl = company.logo_url ? (company.logo_url.startsWith('http') ? company.logo_url : `${apiBase}${company.logo_url}`) : null
     const rawCustomerId = (data as any).customer_id ?? q.customer_id
@@ -353,7 +355,7 @@ export default function QuotationsPage() {
       .sign-row{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:8mm}
       .sign-box{border:1px solid #bbb;padding:8px 10px;text-align:center;display:flex;flex-direction:column}
       .sign-label{font-weight:600;font-size:10px;color:#333;padding-bottom:4px;border-bottom:1px solid #eee}
-      .sign-area{flex:1;min-height:50px;display:flex;align-items:center;justify-content:center}
+      .sign-area{flex:1;min-height:${signatureConfig.areaMinHeight}px;display:flex;align-items:center;justify-content:center}
       .sign-line{border-top:1px solid #555;padding-top:4px;font-size:10px;font-weight:400;color:#333;margin-top:4px}
       @media print{body{-webkit-print-color-adjust:exact}@page{size:A4;margin:0}}
     </style></head><body>
@@ -447,7 +449,7 @@ export default function QuotationsPage() {
         <div class="sign-box">
           <div class="sign-label">FAN YONG 確認 / Xác nhận</div>
           <div class="sign-area">
-            ${signUrl ? `<img src="${signUrl}" style="max-height:44px;max-width:150px;object-fit:contain"/>` : ''}
+            ${signUrl ? `<img src="${signUrl}" style="${signatureConfig.imgStyle}"/>` : ''}
           </div>
           <div class="sign-line">${txt(company.company_name)}</div>
         </div>

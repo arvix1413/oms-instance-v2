@@ -6,6 +6,7 @@ import { can } from '@/lib/usePermissions'
 import { useRouter } from 'next/navigation'
 import { clearCompanyCache, type CompanySettings } from '@/lib/useCompany'
 import { getUser } from '@/lib/permissions'
+import { getPrintSignatureConfig } from '@/lib/printSignature'
 
 const DEFAULT: CompanySettings = {
   id: 1,
@@ -18,6 +19,8 @@ const DEFAULT: CompanySettings = {
   tax_id: '',
   logo_url: null,
   signature_url: null,
+  signature_print_width: 220,
+  signature_print_height: 72,
 }
 
 export default function CompanyPage() {
@@ -72,6 +75,7 @@ export default function CompanyPage() {
   const signatureFullUrl = form.signature_url
     ? (form.signature_url.startsWith('http') ? form.signature_url : `${API}${form.signature_url}`)
     : null
+  const signatureConfig = getPrintSignatureConfig(form)
 
   const uploadSignature = async (file: File) => {
     if (!file.type.startsWith('image/')) { toast('請上傳圖片', 'error'); return }
@@ -128,12 +132,20 @@ export default function CompanyPage() {
               <label className="block text-xs font-semibold text-slate-600 mb-2">統一主管簽名</label>
               <div className="flex items-center gap-4">
                 {signatureFullUrl ? (
-                  <div className="w-36 h-20 border border-slate-200 rounded-lg flex items-center justify-center bg-slate-50 overflow-hidden">
+                  <div
+                    className="border border-slate-200 rounded-lg flex items-center justify-center bg-slate-50 overflow-hidden"
+                    style={{ width: `${signatureConfig.width}px`, height: `${signatureConfig.height}px` }}
+                  >
                     <img src={signatureFullUrl} alt="Manager Signature" className="max-w-full max-h-full object-contain"
                       onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                   </div>
                 ) : (
-                  <div className="w-36 h-20 border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-300 text-xs">無簽名</div>
+                  <div
+                    className="border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-300 text-xs"
+                    style={{ width: `${signatureConfig.width}px`, height: `${signatureConfig.height}px` }}
+                  >
+                    無簽名
+                  </div>
                 )}
                 <div className="flex flex-col gap-2">
                   <button onClick={() => signatureFileRef.current?.click()} disabled={uploadingSignature}
@@ -147,6 +159,35 @@ export default function CompanyPage() {
               </div>
               <input ref={signatureFileRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadSignature(f) }} />
               <p className="text-[11px] text-slate-400 mt-1">只有主管可管理。所有列印都共用這一個簽名。</p>
+            </div>
+          )}
+
+          {canManageSignature && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">列印簽名寬度</label>
+                <input
+                  type="number"
+                  min={120}
+                  max={320}
+                  className="oms-input"
+                  value={form.signature_print_width || 220}
+                  onChange={e => setForm(p => ({ ...p, signature_print_width: Number(e.target.value || 220) }))}
+                />
+                <p className="mt-1 text-[11px] text-slate-400">單位 px，建議 180 到 240</p>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">列印簽名高度</label>
+                <input
+                  type="number"
+                  min={48}
+                  max={140}
+                  className="oms-input"
+                  value={form.signature_print_height || 72}
+                  onChange={e => setForm(p => ({ ...p, signature_print_height: Number(e.target.value || 72) }))}
+                />
+                <p className="mt-1 text-[11px] text-slate-400">單位 px，建議 64 到 88</p>
+              </div>
             </div>
           )}
 
@@ -203,8 +244,17 @@ export default function CompanyPage() {
             {canManageSignature && signatureFullUrl && (
               <div className="mt-4 border-t border-slate-200 pt-3">
                 <div className="text-[10px] text-slate-400 mb-2">主管簽名預覽</div>
-                <img src={signatureFullUrl} alt="" className="h-10 object-contain"
-                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                <div
+                  className="border border-slate-200 rounded-lg bg-slate-50 flex items-center justify-center overflow-hidden"
+                  style={{ width: `${signatureConfig.width}px`, minHeight: `${signatureConfig.areaMinHeight}px` }}
+                >
+                  <img
+                    src={signatureFullUrl}
+                    alt=""
+                    style={{ maxWidth: `${signatureConfig.width}px`, maxHeight: `${signatureConfig.height}px`, objectFit: 'contain' }}
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  />
+                </div>
               </div>
             )}
           </div>

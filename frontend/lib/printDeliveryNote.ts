@@ -1,6 +1,7 @@
 import { type CompanySettings } from './useCompany'
 import { SHARED_PRINT_ITEM_TABLE_CSS } from './printItemTableStyles'
 import { formatQuantity } from './numberFormat'
+import { getPrintSignatureConfig } from './printSignature'
 
 export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, company?: CompanySettings): string {
   const txt = (v: any) => {
@@ -20,6 +21,7 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
     company_name_local: 'CÔNG TY TNHH FAN YONG VIỆT NAM',
     address: '', phone: '', contact_person: '', logo_url: null,
   }
+  const signatureConfig = getPrintSignatureConfig(company)
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://43.160.199.226')
   const logoUrl = co.logo_url ? (co.logo_url.startsWith('http') ? co.logo_url : `${API_BASE}${co.logo_url}`) : null
   const items: any[] = data.items || []
@@ -62,7 +64,7 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
   parts.push('.footer{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:8mm}')
   parts.push('.sign-box{border:1px solid #bbb;padding:8px 10px;text-align:center;display:flex;flex-direction:column}')
   parts.push('.sign-label{font-weight:600;font-size:10px;color:#333;padding-bottom:4px;border-bottom:1px solid #eee}')
-  parts.push('.sign-area{flex:1;min-height:50px;display:flex;align-items:center;justify-content:center}')
+  parts.push(`.sign-area{flex:1;min-height:${signatureConfig.areaMinHeight}px;display:flex;align-items:center;justify-content:center}`)
   parts.push('.sign-line{border-top:1px solid #555;padding-top:4px;font-size:10px;font-weight:400;color:#333;margin-top:4px}')
   parts.push('@media print{body{padding:8mm 6mm}@page{size:A4;margin:0}}')
   parts.push('</style></head><body>')

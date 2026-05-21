@@ -203,6 +203,28 @@ const ensureCompanySignatureColumn = async () => {
   await ensureCompanySignaturePromise
 }
 
+let ensureCompanySignaturePrintPromise: Promise<void> | null = null
+const ensureCompanySignaturePrintColumns = async () => {
+  if (!ensureCompanySignaturePrintPromise) {
+    ensureCompanySignaturePrintPromise = (async () => {
+      const alterSafe = async (sql: string) => {
+        try {
+          await execute(sql)
+        } catch (e: any) {
+          const msg = String(e?.message || '').toLowerCase()
+          if (!msg.includes('duplicate column')) throw e
+        }
+      }
+      await alterSafe('ALTER TABLE company_settings ADD COLUMN signature_print_width INT NOT NULL DEFAULT 220')
+      await alterSafe('ALTER TABLE company_settings ADD COLUMN signature_print_height INT NOT NULL DEFAULT 72')
+    })().catch((e) => {
+      ensureCompanySignaturePrintPromise = null
+      throw e
+    })
+  }
+  await ensureCompanySignaturePrintPromise
+}
+
 const SOFT_DELETE_TABLES = [
   'suppliers',
   'customers',
@@ -2422,27 +2444,33 @@ app.delete('/api/stock-adjustments/:id', authMiddleware, requirePerm('stock.adju
 // ── Company Settings ──────────────────────────────────────────────────────────
 app.get('/api/company', authMiddleware, async c => {
   try {
+    await ensureCompanySignatureColumn()
+    await ensureCompanySignaturePrintColumns()
     const row = await queryOne<any>('SELECT * FROM company_settings WHERE id=1')
     if (!row) {
       // Return defaults if not set
-      return c.json({ id: 1, company_name: 'FAN YONG CO., LTD', company_name_local: 'CÔNG TY TNHH FAN YONG VIỆT NAM', address: '', phone: '', contact_person: '', email: '', tax_id: '', logo_url: null, signature_url: null })
+      return c.json({ id: 1, company_name: 'FAN YONG CO., LTD', company_name_local: 'CÔNG TY TNHH FAN YONG VIỆT NAM', address: '', phone: '', contact_person: '', email: '', tax_id: '', logo_url: null, signature_url: null, signature_print_width: 220, signature_print_height: 72 })
     }
     return c.json(row)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 app.put('/api/company', authMiddleware, requirePerm('company.manage'), async c => {
   try {
+    await ensureCompanySignatureColumn()
+    await ensureCompanySignaturePrintColumns()
     const b = await c.req.json(); const u = c.get('user')
     const existing = await queryOne<any>('SELECT signature_url FROM company_settings WHERE id=1')
     const nextSignatureUrl = Object.prototype.hasOwnProperty.call(b || {}, 'signature_url')
       ? (b.signature_url || null)
       : (existing?.signature_url || null)
+    const signaturePrintWidth = Math.max(120, Math.min(320, Number(b.signature_print_width) || 220))
+    const signaturePrintHeight = Math.max(48, Math.min(140, Number(b.signature_print_height) || 72))
     // Upsert
-    await execute(`INSERT INTO company_settings (id,company_name,company_name_local,address,phone,contact_person,email,tax_id,logo_url,signature_url)
-      VALUES (1,?,?,?,?,?,?,?,?,?)
-      ON DUPLICATE KEY UPDATE company_name=?,company_name_local=?,address=?,phone=?,contact_person=?,email=?,tax_id=?,logo_url=?,signature_url=?`,
-      [b.company_name,b.company_name_local||'',b.address||'',b.phone||'',b.contact_person||'',b.email||'',b.tax_id||'',b.logo_url||null,nextSignatureUrl,
-       b.company_name,b.company_name_local||'',b.address||'',b.phone||'',b.contact_person||'',b.email||'',b.tax_id||'',b.logo_url||null,nextSignatureUrl])
+    await execute(`INSERT INTO company_settings (id,company_name,company_name_local,address,phone,contact_person,email,tax_id,logo_url,signature_url,signature_print_width,signature_print_height)
+      VALUES (1,?,?,?,?,?,?,?,?,?,?,?)
+      ON DUPLICATE KEY UPDATE company_name=?,company_name_local=?,address=?,phone=?,contact_person=?,email=?,tax_id=?,logo_url=?,signature_url=?,signature_print_width=?,signature_print_height=?`,
+      [b.company_name,b.company_name_local||'',b.address||'',b.phone||'',b.contact_person||'',b.email||'',b.tax_id||'',b.logo_url||null,nextSignatureUrl,signaturePrintWidth,signaturePrintHeight,
+       b.company_name,b.company_name_local||'',b.address||'',b.phone||'',b.contact_person||'',b.email||'',b.tax_id||'',b.logo_url||null,nextSignatureUrl,signaturePrintWidth,signaturePrintHeight])
     await audit(u, 'UPDATE', '公司設定', 1, b.company_name)
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
