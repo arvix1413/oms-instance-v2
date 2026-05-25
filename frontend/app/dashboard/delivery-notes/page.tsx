@@ -135,7 +135,7 @@ export default function DeliveryNotesPage() {
       unit_price: Number(i.unit_price),
       product_name: i.product_name || '',
       product_sku: i.product_sku || '',
-    })).filter(i => i.remaining_qty > 0)
+    })).filter((i: OrderItem) => i.remaining_qty > 0)
     setOrderItems(items)
     const qtys: Record<number, number> = {}
     items.forEach(i => { qtys[i.id] = i.remaining_qty })
