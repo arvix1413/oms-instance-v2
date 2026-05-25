@@ -112,6 +112,7 @@ export default function DeliveryNotesPage() {
   }, [])
 
   const onSelectCustomer = async (customerId: string) => {
+    if (lockedCreateOrder) return
     setSelectedCustomerId(customerId)
     setSelectedOrderId('')
     setOrderItems([])
@@ -121,7 +122,7 @@ export default function DeliveryNotesPage() {
     setPendingOrders(orders)
   }
 
-  const onSelectOrder = async (orderId: string) => {
+  const loadOrderItemsForCreate = async (orderId: string) => {
     setSelectedOrderId(orderId)
     setOrderItems([])
     setShippedQtys({})
@@ -139,6 +140,11 @@ export default function DeliveryNotesPage() {
     const qtys: Record<number, number> = {}
     items.forEach(i => { qtys[i.id] = i.remaining_qty })
     setShippedQtys(qtys)
+  }
+
+  const onSelectOrder = async (orderId: string) => {
+    if (lockedCreateOrder) return
+    await loadOrderItemsForCreate(orderId)
   }
 
   const save = async () => {
@@ -186,38 +192,38 @@ export default function DeliveryNotesPage() {
   }
 
   const openCreateForOrder = async (order: OrderDeliveryRow) => {
+    const customerId = order.customer_id ? String(order.customer_id) : ''
+    const orderId = String(order.customer_order_id)
+    resetForm()
     setLockedCreateOrder({
       customer_order_id: order.customer_order_id,
       customer_id: order.customer_id,
       order_po_number: order.order_po_number,
       customer_name: order.customer_name,
     })
-    setCreating(true)
-    setDnNumber('')
-    setDeliveryDate('')
-    setRemark('')
-    const customerId = order.customer_id ? String(order.customer_id) : ''
-    const orderId = String(order.customer_order_id)
     setSelectedCustomerId(customerId)
     setSelectedOrderId(orderId)
-    setOrderItems([])
-    setShippedQtys({})
-    if (customerId) {
-      const orders = await apiFetch<PendingOrder[]>(`/api/customer-orders/pending?customer_id=${customerId}`)
-      if (!orders.some(o => o.id === order.customer_order_id)) {
-        setPendingOrders([{
-          id: order.customer_order_id,
-          po_number: order.order_po_number || '',
-          po_date: '',
-          items_summary: '',
-        }, ...orders])
-      } else {
-        setPendingOrders(orders)
+    setCreating(true)
+    try {
+      if (customerId) {
+        const orders = await apiFetch<PendingOrder[]>(`/api/customer-orders/pending?customer_id=${customerId}`)
+        if (!orders.some(o => o.id === order.customer_order_id)) {
+          setPendingOrders([{
+            id: order.customer_order_id,
+            po_number: order.order_po_number || '',
+            po_date: '',
+            items_summary: '',
+          }])
+        } else {
+          setPendingOrders(orders)
+        }
       }
-    } else {
-      setPendingOrders([])
+      await loadOrderItemsForCreate(orderId)
+    } catch (e: any) {
+      toast('載入訂單明細失敗：' + e.message, 'error')
+      setCreating(false)
+      setLockedCreateOrder(null)
     }
-    await onSelectOrder(orderId)
   }
 
   const toEditableItems = (items: DNItem[] = []): EditableDNItem[] =>
@@ -551,59 +557,69 @@ export default function DeliveryNotesPage() {
           <div className="border-b border-slate-200 bg-white/95 px-6 py-5 backdrop-blur">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="font-semibold text-slate-800">新增出貨單</h2>
-                <p className="mt-1 text-[11px] text-slate-400">單頭資訊固定顯示，長出貨明細可直接往下核對與輸入。</p>
+                <h2 className="font-semibold text-slate-800">
+                  {lockedCreateOrder ? '建立出貨批次' : '新增出貨單'}
+                </h2>
+                <p className="mt-1 text-[11px] text-slate-400">
+                  {lockedCreateOrder
+                    ? '已固定本筆訂單，僅填寫出貨單號、日期與本次出貨數量。'
+                    : '請先選擇客戶與待出貨訂單，再填寫出貨明細。'}
+                </p>
               </div>
               <button onClick={() => { setCreating(false); resetForm() }} className="btn-ghost border border-slate-200 shrink-0">關閉</button>
             </div>
 
-          {/* Step 1: Select customer then order */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-5">
-            <div>
-              <label className="block text-[11px] text-slate-500 mb-1.5">出貨單號 *</label>
-              <input className="oms-input" value={dnNumber} onChange={e => setDnNumber(e.target.value)} placeholder="例如 DN-20260505-001" />
-            </div>
-            <div>
-              <label className="block text-[11px] text-slate-500 mb-1.5">客戶</label>
-              {lockedCreateOrder ? (
-                <div className="oms-input bg-slate-50 text-slate-700 cursor-not-allowed">{lockedCreateOrder.customer_name || '—'}</div>
-              ) : (
-                <select className="oms-input" value={selectedCustomerId} onChange={e => onSelectCustomer(e.target.value)}>
-                  <option value="">-- 選擇客戶 --</option>
-                  {customers.map(c => (
-                    <option key={c.id} value={String(c.id)}>{c.customer_name}</option>
-                  ))}
-                </select>
-              )}
-            </div>
-            <div>
-              <label className="block text-[11px] text-slate-500 mb-1.5">
-                {lockedCreateOrder ? '所屬訂單' : '待出貨訂單 *'}
-                {!lockedCreateOrder && selectedCustomerId && pendingOrders.length === 0 && (
-                  <span className="text-orange-500 ml-1">（無待出貨訂單）</span>
-                )}
-              </label>
-              {lockedCreateOrder ? (
-                <div className="oms-input bg-slate-50 font-mono text-sm text-blue-700 cursor-not-allowed">
-                  {lockedCreateOrder.order_po_number || '—'}
+          <div className="mt-5 space-y-4">
+            {lockedCreateOrder && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-blue-900">
+                <div className="font-medium">本批次已綁定訂單（不可更換）</div>
+                <div className="mt-1 flex flex-wrap gap-x-6 gap-y-1 text-slate-700">
+                  <span>客戶：{lockedCreateOrder.customer_name || '—'}</span>
+                  <span className="font-mono text-blue-700">訂單：{lockedCreateOrder.order_po_number || '—'}</span>
                 </div>
-              ) : (
-                <select className="oms-input" value={selectedOrderId} onChange={e => onSelectOrder(e.target.value)}
-                  disabled={pendingOrders.length === 0}>
-                  <option value="">-- 選擇訂單 --</option>
-                  {pendingOrders.map(o => (
-                    <option key={o.id} value={String(o.id)}>{o.po_number}{o.items_summary ? ` (${o.items_summary.slice(0,25)})` : ''}</option>
-                  ))}
-                </select>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-[11px] text-slate-500 mb-1.5">出貨單號 *</label>
+                <input className="oms-input" value={dnNumber} onChange={e => setDnNumber(e.target.value)} placeholder="例如 DN-20260505-001" />
+              </div>
+              {!lockedCreateOrder && (
+                <>
+                  <div>
+                    <label className="block text-[11px] text-slate-500 mb-1.5">客戶</label>
+                    <select className="oms-input" value={selectedCustomerId} onChange={e => onSelectCustomer(e.target.value)}>
+                      <option value="">-- 選擇客戶 --</option>
+                      {customers.map(c => (
+                        <option key={c.id} value={String(c.id)}>{c.customer_name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-500 mb-1.5">
+                      待出貨訂單 *
+                      {selectedCustomerId && pendingOrders.length === 0 && (
+                        <span className="text-orange-500 ml-1">（無待出貨訂單）</span>
+                      )}
+                    </label>
+                    <select className="oms-input" value={selectedOrderId} onChange={e => onSelectOrder(e.target.value)}
+                      disabled={pendingOrders.length === 0}>
+                      <option value="">-- 選擇訂單 --</option>
+                      {pendingOrders.map(o => (
+                        <option key={o.id} value={String(o.id)}>{o.po_number}{o.items_summary ? ` (${o.items_summary.slice(0,25)})` : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
               )}
-            </div>
-            <div>
-              <label className="block text-[11px] text-slate-500 mb-1.5">出貨日期</label>
-              <input type="date" className="oms-input" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} />
-            </div>
-            <div>
-              <label className="block text-[11px] text-slate-500 mb-1.5">備註（交易條件、特殊要求等）</label>
-              <textarea className="oms-input" rows={3} value={remark} onChange={e => setRemark(e.target.value)} placeholder="可輸入交易條件、付款方式、交貨要求等資訊..." />
+              <div>
+                <label className="block text-[11px] text-slate-500 mb-1.5">出貨日期</label>
+                <input type="date" className="oms-input" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} />
+              </div>
+              <div className={lockedCreateOrder ? 'md:col-span-3' : ''}>
+                <label className="block text-[11px] text-slate-500 mb-1.5">備註（交易條件、特殊要求等）</label>
+                <textarea className="oms-input" rows={lockedCreateOrder ? 2 : 3} value={remark} onChange={e => setRemark(e.target.value)} placeholder="可輸入交易條件、付款方式、交貨要求等資訊..." />
+              </div>
             </div>
           </div>
           </div>
