@@ -30,6 +30,7 @@ type OrderDeliveryRow = {
   progress_status:'pending'|'partial'|'completed'
   notes: DNBatch[]
 }
+type LockedCreateOrder = Pick<OrderDeliveryRow, 'customer_order_id' | 'customer_id' | 'order_po_number' | 'customer_name'>
 
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
   draft:     { label:'尚未確認', badge:'badge-gray'  },
@@ -40,6 +41,11 @@ const ORDER_PROGRESS_MAP: Record<string, { label: string; badge: string }> = {
   pending: { label: '未出貨', badge: 'badge-gray' },
   partial: { label: '部分出貨', badge: 'badge-yellow' },
   completed: { label: '已完成', badge: 'badge-green' },
+}
+
+/** 僅在尚有可出數量且訂單未全部出完時允許新建批次 */
+function canCreateBatchForOrder(order: OrderDeliveryRow) {
+  return order.progress_status !== 'completed' && order.remaining_qty > 0
 }
 
 export default function DeliveryNotesPage() {
@@ -58,6 +64,7 @@ export default function DeliveryNotesPage() {
   const [actionLoading, setActionLoading] = useState<number | null>(null)
   const [expandedOrders, setExpandedOrders] = useState<Set<number>>(new Set())
   const [expandedDns, setExpandedDns] = useState<Set<number>>(new Set())
+  const [expandedShippedHistory, setExpandedShippedHistory] = useState<Set<number>>(new Set())
   const [loadedItems, setLoadedItems] = useState<Record<number, DNItem[]>>({})
   const canWrite = can('delivery.create')
   const canDel = can('delivery.delete')
@@ -71,6 +78,7 @@ export default function DeliveryNotesPage() {
   const [dnNumber, setDnNumber] = useState('')
   const [deliveryDate, setDeliveryDate] = useState('')
   const [remark, setRemark] = useState('')
+  const [lockedCreateOrder, setLockedCreateOrder] = useState<LockedCreateOrder | null>(null)
 
   const loadDnItems = async (id: number) => {
     const d = await apiFetch<DN>(`/api/delivery-notes/${id}`)
@@ -126,9 +134,8 @@ export default function DeliveryNotesPage() {
       unit_price: Number(i.unit_price),
       product_name: i.product_name || '',
       product_sku: i.product_sku || '',
-    }))
+    })).filter(i => i.remaining_qty > 0)
     setOrderItems(items)
-    // Default shipped qty = remaining qty
     const qtys: Record<number, number> = {}
     items.forEach(i => { qtys[i.id] = i.remaining_qty })
     setShippedQtys(qtys)
@@ -167,9 +174,50 @@ export default function DeliveryNotesPage() {
   }
 
   const resetForm = () => {
+    setLockedCreateOrder(null)
     setSelectedCustomerId(''); setSelectedOrderId('')
     setPendingOrders([]); setOrderItems([]); setShippedQtys({})
     setDnNumber(''); setDeliveryDate(''); setRemark('')
+  }
+
+  const openCreateNew = () => {
+    resetForm()
+    setCreating(true)
+  }
+
+  const openCreateForOrder = async (order: OrderDeliveryRow) => {
+    setLockedCreateOrder({
+      customer_order_id: order.customer_order_id,
+      customer_id: order.customer_id,
+      order_po_number: order.order_po_number,
+      customer_name: order.customer_name,
+    })
+    setCreating(true)
+    setDnNumber('')
+    setDeliveryDate('')
+    setRemark('')
+    const customerId = order.customer_id ? String(order.customer_id) : ''
+    const orderId = String(order.customer_order_id)
+    setSelectedCustomerId(customerId)
+    setSelectedOrderId(orderId)
+    setOrderItems([])
+    setShippedQtys({})
+    if (customerId) {
+      const orders = await apiFetch<PendingOrder[]>(`/api/customer-orders/pending?customer_id=${customerId}`)
+      if (!orders.some(o => o.id === order.customer_order_id)) {
+        setPendingOrders([{
+          id: order.customer_order_id,
+          po_number: order.order_po_number || '',
+          po_date: '',
+          items_summary: '',
+        }, ...orders])
+      } else {
+        setPendingOrders(orders)
+      }
+    } else {
+      setPendingOrders([])
+    }
+    await onSelectOrder(orderId)
   }
 
   const toEditableItems = (items: DNItem[] = []): EditableDNItem[] =>
@@ -197,6 +245,15 @@ export default function DeliveryNotesPage() {
 
   const toggleOrderExpand = (orderId: number) => {
     setExpandedOrders(prev => {
+      const next = new Set(prev)
+      if (next.has(orderId)) next.delete(orderId)
+      else next.add(orderId)
+      return next
+    })
+  }
+
+  const toggleShippedHistory = (orderId: number) => {
+    setExpandedShippedHistory(prev => {
       const next = new Set(prev)
       if (next.has(orderId)) next.delete(orderId)
       else next.add(orderId)
@@ -410,11 +467,82 @@ export default function DeliveryNotesPage() {
   const { page, setPage, totalPages, paged, total } = usePagination(filtered, 10)
   const inp = 'oms-input text-xs py-1.5'
 
+  const renderDnRows = (notes: DNBatch[]) => notes.map((dn) => {
+    const isDnOpen = expandedDns.has(dn.id)
+    const items = loadedItems[dn.id] || []
+    return (
+      <Fragment key={dn.id}>
+        <tr className={`border-b border-blue-200 last:border-0 cursor-pointer transition-colors ${isDnOpen ? 'layer-row-l2-open' : 'layer-row-l2-hover'}`} onClick={() => toggleDnExpand(dn.id)}>
+          <td className="pl-3 py-2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isDnOpen ? 'rotate-90' : ''}`}>
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </td>
+          <td className="px-3 py-2 font-mono text-xs text-blue-600 whitespace-nowrap">{dn.dn_number}</td>
+          <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{dn.delivery_date ? String(dn.delivery_date).slice(0, 10) : '—'}</td>
+          <td className="px-3 py-2 text-right text-slate-700 font-medium">{formatQuantity(dn.batch_qty || 0)}</td>
+          <td className="px-3 py-2 text-slate-400 max-w-[220px] truncate" title={dn.remark || ''}>{dn.remark || '—'}</td>
+          <td className="px-3 py-2 whitespace-nowrap"><span className={STATUS_MAP[dn.status]?.badge}>{STATUS_MAP[dn.status]?.label || dn.status}</span></td>
+          <td className="px-3 py-2 whitespace-nowrap min-w-[380px]" onClick={e => e.stopPropagation()}>
+            <div className="flex flex-wrap gap-1 items-center">
+              <StatusFlow compact steps={DN_STEPS} current={dn.status}
+                actions={actionLoading === dn.id ? [] : getDNActions(dn.status)}
+                onAction={(toStatus) => changeStatus(dn.id, toStatus)} />
+              {actionLoading === dn.id && <span className="text-xs text-slate-400 px-1">處理中...</span>}
+              <button onClick={e => { e.stopPropagation(); printDN(dn) }} className="btn-ghost" title="列印">🖨 列印</button>
+              {canWrite && dn.status === 'draft' && <button onClick={e => { e.stopPropagation(); startEditDN(dn) }} className="btn-ghost text-blue-600">✏ 編輯</button>}
+              {canDel && <button onClick={e => { e.stopPropagation(); del(dn.id) }} className="btn-danger">刪除</button>}
+            </div>
+          </td>
+        </tr>
+        {isDnOpen && (
+          <tr className="border-b border-slate-100">
+            <td colSpan={7} className="px-0 py-0">
+              <div className="layer-panel-l3">
+              {items.length === 0 ? (
+                <div className="expand-row-loading">
+                  <div className="w-3 h-3 border border-slate-300 border-t-slate-500 rounded-full animate-spin"/>載入中...
+                </div>
+              ) : (
+                <div className="no-sticky-cols table-scroll-x">
+                  <table className="w-full text-xs">
+                    <thead><tr className="layer-head-l3">
+                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">品名</th>
+                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">物料編號</th>
+                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">規格</th>
+                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">單位</th>
+                      <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">數量</th>
+                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">備註</th>
+                    </tr></thead>
+                    <tbody>
+                      {items.map((item, i) => (
+                        <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                          <td className="px-3 py-2 text-slate-700">{item.item_name}</td>
+                          <td className="px-3 py-2 font-mono text-xs text-blue-600 whitespace-nowrap">{item.material_code}</td>
+                          <td className="px-3 py-2 text-slate-400">{(item as any).spec || '—'}</td>
+                          <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.unit || 'PCS'}</td>
+                          <td className="px-3 py-2 text-right font-medium">{formatQuantity(item.qty)}</td>
+                          <td className="px-3 py-2 text-slate-400">{item.remark}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              </div>
+            </td>
+          </tr>
+        )}
+      </Fragment>
+    )
+  })
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold text-slate-800">出貨單</h1>
-        {canWrite && <button onClick={() => setCreating(true)} className="btn-primary">+ 新增出貨單</button>}
+        {canWrite && <button onClick={openCreateNew} className="btn-primary">+ 新增出貨單</button>}
       </div>
 
       {creating && canWrite && (
@@ -437,27 +565,37 @@ export default function DeliveryNotesPage() {
             </div>
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">客戶</label>
-              <select className="oms-input" value={selectedCustomerId} onChange={e => onSelectCustomer(e.target.value)}>
-                <option value="">-- 選擇客戶 --</option>
-                {customers.map(c => (
-                  <option key={c.id} value={String(c.id)}>{c.customer_name}</option>
-                ))}
-              </select>
+              {lockedCreateOrder ? (
+                <div className="oms-input bg-slate-50 text-slate-700 cursor-not-allowed">{lockedCreateOrder.customer_name || '—'}</div>
+              ) : (
+                <select className="oms-input" value={selectedCustomerId} onChange={e => onSelectCustomer(e.target.value)}>
+                  <option value="">-- 選擇客戶 --</option>
+                  {customers.map(c => (
+                    <option key={c.id} value={String(c.id)}>{c.customer_name}</option>
+                  ))}
+                </select>
+              )}
             </div>
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">
-                待出貨訂單 *
-                {selectedCustomerId && pendingOrders.length === 0 && (
+                {lockedCreateOrder ? '所屬訂單' : '待出貨訂單 *'}
+                {!lockedCreateOrder && selectedCustomerId && pendingOrders.length === 0 && (
                   <span className="text-orange-500 ml-1">（無待出貨訂單）</span>
                 )}
               </label>
-              <select className="oms-input" value={selectedOrderId} onChange={e => onSelectOrder(e.target.value)}
-                disabled={pendingOrders.length === 0}>
-                <option value="">-- 選擇訂單 --</option>
-                {pendingOrders.map(o => (
-                  <option key={o.id} value={String(o.id)}>{o.po_number}{o.items_summary ? ` (${o.items_summary.slice(0,25)})` : ''}</option>
-                ))}
-              </select>
+              {lockedCreateOrder ? (
+                <div className="oms-input bg-slate-50 font-mono text-sm text-blue-700 cursor-not-allowed">
+                  {lockedCreateOrder.order_po_number || '—'}
+                </div>
+              ) : (
+                <select className="oms-input" value={selectedOrderId} onChange={e => onSelectOrder(e.target.value)}
+                  disabled={pendingOrders.length === 0}>
+                  <option value="">-- 選擇訂單 --</option>
+                  {pendingOrders.map(o => (
+                    <option key={o.id} value={String(o.id)}>{o.po_number}{o.items_summary ? ` (${o.items_summary.slice(0,25)})` : ''}</option>
+                  ))}
+                </select>
+              )}
             </div>
             <div>
               <label className="block text-[11px] text-slate-500 mb-1.5">出貨日期</label>
@@ -472,16 +610,19 @@ export default function DeliveryNotesPage() {
 
           <div className="px-6 py-5">
           {/* Step 2: Order items with shipped qty */}
+          {selectedOrderId && orderItems.length === 0 && (
+            <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+              此訂單已無剩餘可出貨明細。
+            </div>
+          )}
           {orderItems.length > 0 && (
             <div className="mb-5">
-              <div className="text-xs font-semibold text-slate-600 mb-2">出貨明細（可修改實際出貨數量）</div>
+              <div className="text-xs font-semibold text-slate-600 mb-2">本次出貨明細（僅顯示剩餘可出）</div>
               <div className="detail-scroll-panel rounded-lg border border-slate-200">
                 <table className="w-full text-xs">
                   <thead><tr className="bg-slate-50 border-b border-slate-200">
                     <th className="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase shadow-sm">品名</th>
                     <th className="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase shadow-sm">物料編號</th>
-                    <th className="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase shadow-sm">訂單數量</th>
-                    <th className="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase shadow-sm">已出數量</th>
                     <th className="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase shadow-sm">剩餘可出</th>
                     <th className="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase shadow-sm">本次出貨</th>
                   </tr></thead>
@@ -490,8 +631,6 @@ export default function DeliveryNotesPage() {
                       <tr key={item.id} className="border-b border-slate-100 last:border-0">
                         <td className="px-3 py-2 text-slate-700 font-medium">{item.product_name}</td>
                         <td className="px-3 py-2 font-mono text-blue-600">{item.product_sku}</td>
-                        <td className="px-3 py-2 text-right text-slate-500">{formatQuantity(item.qty)}</td>
-                        <td className="px-3 py-2 text-right text-slate-500">{formatQuantity(item.arrived_qty)}</td>
                         <td className="px-3 py-2 text-right text-slate-700 font-semibold">{formatQuantity(item.remaining_qty)}</td>
                         <td className="px-3 py-2 text-right">
                           <DecimalInput className={`${inp} w-24 text-right`}
@@ -556,7 +695,7 @@ export default function DeliveryNotesPage() {
                   <label className="block text-[11px] text-slate-500 mb-1.5">新增訂單物料到此批次</label>
                   <select className="oms-input" value={editItemPicker} onChange={e => setEditItemPicker(e.target.value)}>
                     <option value="">-- 選擇物料 --</option>
-                    {editOrderItems.map(item => (
+                    {editOrderItems.filter(item => item.remaining_qty > 0).map(item => (
                       <option key={item.id} value={String(item.id)}>
                         {item.product_sku} / {item.product_name}（剩餘 {formatQuantity(item.remaining_qty || 0)}）
                       </option>
@@ -572,8 +711,6 @@ export default function DeliveryNotesPage() {
                     <thead><tr className="bg-slate-50 border-b border-slate-200">
                       <th className="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap shadow-sm">品名</th>
                       <th className="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap shadow-sm">物料編號</th>
-                      <th className="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap shadow-sm">訂單數量</th>
-                      <th className="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap shadow-sm">已出貨</th>
                       <th className="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap shadow-sm">可出上限</th>
                       <th className="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap shadow-sm">本批數量</th>
                       <th className="sticky top-0 z-10 bg-slate-50 px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap shadow-sm">備註</th>
@@ -607,8 +744,6 @@ export default function DeliveryNotesPage() {
                                 }))}
                               />
                             </td>
-                            <td className="px-3 py-2 text-right text-slate-500">{linkedOrder ? formatQuantity(linkedOrder.qty) : '—'}</td>
-                            <td className="px-3 py-2 text-right text-slate-500">{linkedOrder ? formatQuantity(linkedOrder.arrived_qty) : '—'}</td>
                             <td className="px-3 py-2 text-right text-slate-700 font-medium">{currentMax !== undefined ? formatQuantity(currentMax) : '—'}</td>
                             <td className="px-3 py-2 text-right">
                               <DecimalInput
@@ -684,6 +819,10 @@ export default function DeliveryNotesPage() {
                 {paged.map(order => {
                   const isOrderOpen = expandedOrders.has(order.customer_order_id)
                   const progress = ORDER_PROGRESS_MAP[order.progress_status] || ORDER_PROGRESS_MAP.pending
+                  const allNotes = order.notes || []
+                  const activeNotes = allNotes.filter(n => n.status === 'draft' || n.status === 'confirmed')
+                  const shippedNotes = allNotes.filter(n => n.status === 'shipped')
+                  const showShippedHistory = expandedShippedHistory.has(order.customer_order_id)
                   return (
                     <Fragment key={order.customer_order_id}>
                       <tr key={order.customer_order_id}
@@ -711,17 +850,11 @@ export default function DeliveryNotesPage() {
                         <td className="px-3 py-2.5 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <span className={progress.badge}>{progress.label}</span>
-                            {canWrite && (
+                            {canWrite && canCreateBatchForOrder(order) && (
                               <button
                                 onClick={e => {
                                   e.stopPropagation()
-                                  setCreating(true)
-                                  setSelectedCustomerId(order.customer_id ? String(order.customer_id) : '')
-                                  if (order.customer_id) onSelectCustomer(String(order.customer_id))
-                                  setTimeout(() => {
-                                    setSelectedOrderId(String(order.customer_order_id))
-                                    onSelectOrder(String(order.customer_order_id))
-                                  }, 0)
+                                  void openCreateForOrder(order)
                                 }}
                                 className="btn-ghost text-blue-600"
                               >
@@ -738,8 +871,8 @@ export default function DeliveryNotesPage() {
                               {(order.notes || []).length === 0 ? (
                                 <div className="px-5 py-6 text-xs text-slate-400">此訂單尚無出貨批次</div>
                               ) : (
-                                <div className="table-scroll-x">
-                                  <table className="w-full text-xs" style={{ minWidth: 980 }}>
+                                <div className="no-sticky-cols table-scroll-x">
+                                  <table className="w-full text-xs">
                                     <thead><tr className="layer-head-l2">
                                       <th className="w-8" />
                                       <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">出貨單號</th>
@@ -747,79 +880,38 @@ export default function DeliveryNotesPage() {
                                       <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">批次數量</th>
                                       <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">備註</th>
                                       <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">狀態</th>
-                                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">操作</th>
+                                      <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap min-w-[380px]">操作</th>
                                     </tr></thead>
                                     <tbody>
-                                      {(order.notes || []).map((dn) => {
-                                        const isDnOpen = expandedDns.has(dn.id)
-                                        const items = loadedItems[dn.id] || []
-                                        return (
-                                          <Fragment key={dn.id}>
-                                            <tr key={dn.id} className={`border-b border-blue-200 last:border-0 cursor-pointer transition-colors ${isDnOpen ? 'layer-row-l2-open' : 'layer-row-l2-hover'}`} onClick={() => toggleDnExpand(dn.id)}>
-                                              <td className="pl-3 py-2">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                                                  className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isDnOpen ? 'rotate-90' : ''}`}>
-                                                  <polyline points="9 18 15 12 9 6" />
-                                                </svg>
-                                              </td>
-                                              <td className="px-3 py-2 font-mono text-xs text-blue-600 whitespace-nowrap">{dn.dn_number}</td>
-                                              <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{dn.delivery_date ? String(dn.delivery_date).slice(0, 10) : '—'}</td>
-                                              <td className="px-3 py-2 text-right text-slate-700 font-medium">{formatQuantity(dn.batch_qty || 0)}</td>
-                                              <td className="px-3 py-2 text-slate-400 max-w-[220px] truncate" title={dn.remark || ''}>{dn.remark || '—'}</td>
-                                              <td className="px-3 py-2 whitespace-nowrap"><span className={STATUS_MAP[dn.status]?.badge}>{STATUS_MAP[dn.status]?.label || dn.status}</span></td>
-                                              <td className="px-3 py-2 whitespace-nowrap" onClick={e => e.stopPropagation()}>
-                                                <div className="flex gap-1 items-center">
-                                                  <StatusFlow compact steps={DN_STEPS} current={dn.status}
-                                                    actions={actionLoading === dn.id ? [] : getDNActions(dn.status)}
-                                                    onAction={(toStatus) => changeStatus(dn.id, toStatus)} />
-                                                  {actionLoading === dn.id && <span className="text-xs text-slate-400 px-1">處理中...</span>}
-                                                  <button onClick={e => { e.stopPropagation(); printDN(dn) }} className="btn-ghost" title="列印">🖨 列印</button>
-                                                  {canWrite && dn.status === 'draft' && <button onClick={e => { e.stopPropagation(); startEditDN(dn) }} className="btn-ghost text-blue-600">✏ 編輯</button>}
-                                                  {canDel && <button onClick={e => { e.stopPropagation(); del(dn.id) }} className="btn-danger">刪除</button>}
-                                                </div>
-                                              </td>
-                                            </tr>
-                                            {isDnOpen && (
-                                              <tr key={`${dn.id}-items`} className="border-b border-slate-100">
-                                                <td colSpan={7} className="px-0 py-0">
-                                                  <div className="layer-panel-l3">
-                                                  {items.length === 0 ? (
-                                                    <div className="expand-row-loading">
-                                                      <div className="w-3 h-3 border border-slate-300 border-t-slate-500 rounded-full animate-spin"/>載入中...
-                                                    </div>
-                                                  ) : (
-                                                    <div className="table-scroll-x">
-                                                      <table className="w-full text-xs" style={{ minWidth: 920 }}>
-                                                        <thead><tr className="layer-head-l3">
-                                                          <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">品名</th>
-                                                          <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">物料編號</th>
-                                                          <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">規格</th>
-                                                          <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">單位</th>
-                                                          <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">數量</th>
-                                                          <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase whitespace-nowrap">備註</th>
-                                                        </tr></thead>
-                                                        <tbody>
-                                                          {items.map((item, i) => (
-                                                            <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                                                              <td className="px-3 py-2 text-slate-700">{item.item_name}</td>
-                                                              <td className="px-3 py-2 font-mono text-xs text-blue-600 whitespace-nowrap">{item.material_code}</td>
-                                                              <td className="px-3 py-2 text-slate-400">{(item as any).spec || '—'}</td>
-                                                              <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{item.unit || 'PCS'}</td>
-                                                              <td className="px-3 py-2 text-right font-medium">{formatQuantity(item.qty)}</td>
-                                                              <td className="px-3 py-2 text-slate-400">{item.remark}</td>
-                                                            </tr>
-                                                          ))}
-                                                        </tbody>
-                                                      </table>
-                                                    </div>
-                                                  )}
-                                                  </div>
-                                                </td>
-                                              </tr>
-                                            )}
-                                          </Fragment>
-                                        )
-                                      })}
+                                      {activeNotes.length === 0 && shippedNotes.length > 0 && !showShippedHistory && (
+                                        <tr>
+                                          <td colSpan={7} className="px-5 py-4 text-xs text-slate-500">
+                                            目前無待處理批次，可點下方查看已出貨歷史。
+                                          </td>
+                                        </tr>
+                                      )}
+                                      {activeNotes.length === 0 && shippedNotes.length === 0 && (
+                                        <tr>
+                                          <td colSpan={7} className="px-5 py-4 text-xs text-slate-400">此訂單尚無出貨批次</td>
+                                        </tr>
+                                      )}
+                                      {renderDnRows(activeNotes)}
+                                      {shippedNotes.length > 0 && (
+                                        <>
+                                          <tr className="border-b border-slate-200 bg-slate-50/90">
+                                            <td colSpan={7} className="px-3 py-2">
+                                              <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); toggleShippedHistory(order.customer_order_id) }}
+                                                className="text-xs font-medium text-slate-600 hover:text-blue-600"
+                                              >
+                                                {showShippedHistory ? '▼ 收起已出貨歷史' : '▶ 查看已出貨歷史'}（{shippedNotes.length} 批）
+                                              </button>
+                                            </td>
+                                          </tr>
+                                          {showShippedHistory && renderDnRows(shippedNotes)}
+                                        </>
+                                      )}
                                     </tbody>
                                   </table>
                                 </div>

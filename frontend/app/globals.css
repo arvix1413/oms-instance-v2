@@ -78,7 +78,21 @@ input[type="number"] { -moz-appearance: textfield; }
 .overflow-x-auto.overscroll-x-contain,
 .oms-card .overflow-x-auto {
   position: relative;
+  overflow-x: auto;
   overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+.table-scroll-x::-webkit-scrollbar {
+  height: 8px;
+}
+.table-scroll-x::-webkit-scrollbar-track {
+  background: #e2e8f0;
+  border-radius: 999px;
+}
+.table-scroll-x::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 999px;
 }
 .table-scroll-x > table,
 .overflow-x-auto.overscroll-x-contain > table,

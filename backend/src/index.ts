@@ -924,7 +924,7 @@ app.get('/api/customer-orders/pending', authMiddleware, async c => {
     LEFT JOIN customers c ON co.customer_id = c.id AND c.deleted_at IS NULL
     LEFT JOIN customer_order_items ci ON ci.order_id = co.id
     LEFT JOIN bom b ON ci.bom_id = b.id
-    WHERE co.status = 'pending' AND co.deleted_at IS NULL
+    WHERE co.status IN ('pending', 'partial') AND co.deleted_at IS NULL
   `
   const params: any[] = []
   if (customerId) { sql += ' AND co.customer_id = ?'; params.push(customerId) }
