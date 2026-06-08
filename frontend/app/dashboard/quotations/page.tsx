@@ -7,7 +7,7 @@ import { apiFetch } from '@/lib/api'
 import { useSearchParams } from 'next/navigation'
 import { formatDecimal, formatInteger } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
-import { getCompany, getCompanySignatureUrl } from '@/lib/useCompany'
+import { getCompany, getCompanySignLabel, getCompanySignatureUrl } from '@/lib/useCompany'
 import { getPrintSignatureConfig } from '@/lib/printSignature'
 import { normalizeMoqTiers, resolveTierPrice } from '@/lib/moqPricing'
 import { SHARED_PRINT_ITEM_TABLE_CSS } from '@/lib/printItemTableStyles'
@@ -447,7 +447,7 @@ export default function QuotationsPage() {
 
       <div class="sign-row">
         <div class="sign-box">
-          <div class="sign-label">FAN YONG 確認 / Xác nhận</div>
+          <div class="sign-label">${getCompanySignLabel(company)}</div>
           <div class="sign-area">
             ${signUrl ? `<img src="${signUrl}" style="${signatureConfig.imgStyle}"/>` : ''}
           </div>

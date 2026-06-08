@@ -4,24 +4,11 @@ import { useEffect, useState, useRef } from 'react'
 import { apiFetch, apiFetchRaw, API } from '@/lib/api'
 import { can } from '@/lib/usePermissions'
 import { useRouter } from 'next/navigation'
-import { clearCompanyCache, type CompanySettings } from '@/lib/useCompany'
+import { clearCompanyCache, EMPTY_COMPANY_SETTINGS, type CompanySettings } from '@/lib/useCompany'
 import { getUser } from '@/lib/permissions'
 import { getPrintSignatureConfig } from '@/lib/printSignature'
 
-const DEFAULT: CompanySettings = {
-  id: 1,
-  company_name: 'FAN YONG CO., LTD',
-  company_name_local: 'CÔNG TY TNHH FAN YONG VIỆT NAM',
-  address: '152 Hà Huy Tập, P. Tân Hưng, TP. HCM',
-  phone: '0909883372 Danny Lin / 0909042239 Mỹ Linh',
-  contact_person: 'Danny Lin / Mỹ Linh Ellachen',
-  email: '',
-  tax_id: '',
-  logo_url: null,
-  signature_url: null,
-  signature_print_width: 220,
-  signature_print_height: 72,
-}
+const DEFAULT = EMPTY_COMPANY_SETTINGS
 
 export default function CompanyPage() {
   const router = useRouter()
@@ -194,8 +181,8 @@ export default function CompanyPage() {
           {/* Fields */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {[
-              { key: 'company_name', label: '公司名稱（英文）*', placeholder: 'FAN YONG CO., LTD' },
-              { key: 'company_name_local', label: '公司名稱（當地語言）', placeholder: 'CÔNG TY TNHH FAN YONG VIỆT NAM' },
+            { key: 'company_name', label: '公司名稱（英文）*', placeholder: '例如：FAN YONG CO., LTD' },
+            { key: 'company_name_local', label: '公司名稱（當地語言）', placeholder: '例如：CÔNG TY TNHH FAN YONG VIỆT NAM' },
               { key: 'address', label: '地址', placeholder: '152 Hà Huy Tập, P. Tân Hưng, TP. HCM', wide: true },
               { key: 'phone', label: '電話 / 聯絡方式', placeholder: '0909883372 Danny Lin / 0909042239 Mỹ Linh', wide: true },
               { key: 'contact_person', label: '聯絡人', placeholder: 'Danny Lin / Mỹ Linh Ellachen' },

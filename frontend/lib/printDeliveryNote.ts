@@ -1,4 +1,4 @@
-import { type CompanySettings } from './useCompany'
+import { getCompanySignLabel, resolveCompanySettings, type CompanySettings } from './useCompany'
 import { SHARED_PRINT_ITEM_TABLE_CSS } from './printItemTableStyles'
 import { formatQuantity } from './numberFormat'
 import { getPrintSignatureConfig } from './printSignature'
@@ -16,11 +16,7 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
   }
   const fmt = (v: any) => formatQuantity(num(v))
 
-  const co = company || {
-    company_name: 'FAN YONG CO., LTD',
-    company_name_local: 'CÔNG TY TNHH FAN YONG VIỆT NAM',
-    address: '', phone: '', contact_person: '', logo_url: null,
-  }
+  const co = resolveCompanySettings(company)
   const signatureConfig = getPrintSignatureConfig(company)
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://43.160.199.226')
   const logoUrl = co.logo_url ? (co.logo_url.startsWith('http') ? co.logo_url : `${API_BASE}${co.logo_url}`) : null
@@ -113,7 +109,7 @@ export function generateDeliveryNoteHTML(data: any, signatureUrl?: string, compa
 
   // Footer signatures
   parts.push('<div class="footer">')
-  parts.push('<div class="sign-box"><div class="sign-label">FAN YONG 確認 / Xác nhận</div><div class="sign-area">')
+  parts.push('<div class="sign-box"><div class="sign-label">' + getCompanySignLabel(co) + '</div><div class="sign-area">')
   parts.push('</div><div class="sign-line">' + txt(co.company_name) + '</div></div>')
   parts.push('<div class="sign-box"><div class="sign-label">客戶簽收 / Khách hàng ký</div><div class="sign-area"></div><div class="sign-line">' + txt(data.customer_name) + '</div></div>')
   parts.push('</div>')

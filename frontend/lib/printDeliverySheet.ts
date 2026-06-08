@@ -1,4 +1,4 @@
-import { type CompanySettings } from './useCompany'
+import { getCompanySignLabel, resolveCompanySettings, type CompanySettings } from './useCompany'
 import { SHARED_PRINT_ITEM_TABLE_CSS } from './printItemTableStyles'
 import { formatQuantity } from './numberFormat'
 import { getPrintSignatureConfig } from './printSignature'
@@ -16,18 +16,8 @@ export function generateDeliverySheetHTML(data: any, signatureUrl?: string, comp
   }
   const fmt = (v: any) => formatQuantity(num(v))
 
-  const co = company || {
-    company_name: 'FAN YONG CO., LTD',
-    company_name_local: 'CÔNG TY TNHH FAN YONG VIỆT NAM',
-    address: '',
-    phone: '',
-    contact_person: '',
-    email: '',
-    logo_url: null,
-    id: 1,
-    tax_id: '',
-  }
-  const signatureConfig = getPrintSignatureConfig(company)
+  const co = resolveCompanySettings(company)
+  const signatureConfig = getPrintSignatureConfig(co)
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://43.160.199.226')
   const logoUrl = co.logo_url ? (String(co.logo_url).startsWith('http') ? co.logo_url : `${API_BASE}${co.logo_url}`) : null
   const items: any[] = Array.isArray(data.items) ? data.items : []
@@ -121,7 +111,7 @@ export function generateDeliverySheetHTML(data: any, signatureUrl?: string, comp
     </table>
     <div class="footer">
       <div class="sign-box">
-        <div class="sign-label">FAN YONG 確認 / Xác nhận</div>
+        <div class="sign-label">${getCompanySignLabel(co)}</div>
         <div class="sign-area">
           ${signatureUrl ? `<img src="${signatureUrl}" style="${signatureConfig.imgStyle}" />` : ''}
         </div>

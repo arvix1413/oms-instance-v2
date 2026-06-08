@@ -6,6 +6,7 @@ import { getToken, clearToken, apiFetch } from '@/lib/api'
 import { getUser, ROLE_LABELS, type Role } from '@/lib/permissions'
 import { can } from '@/lib/usePermissions'
 import StickyTableHeaderBridge from '@/components/StickyTableHeaderBridge'
+import { getCompany, getCompanyDisplayName, getCompanyInitial, getLogoUrl, type CompanySettings } from '@/lib/useCompany'
 
 type NavItem = { href: string; label: string; icon: React.ReactNode }
 type NavGroup = { label: string; icon: React.ReactNode; children: NavItem[] }
@@ -89,6 +90,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
+  const [company, setCompany] = useState<CompanySettings | null>(null)
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(['業務流程']))
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [syncCount, setSyncCount] = useState(0)
@@ -100,7 +102,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (!getToken()) { router.replace('/login'); return }
     setUser(getUser())
+    getCompany().then(setCompany).catch(() => {})
   }, [router])
+
+  useEffect(() => {
+    const name = getCompanyDisplayName(company)
+    document.title = name ? `${name} — OMS` : 'OMS'
+  }, [company])
 
   // Auto-open group if current path matches a child
   useEffect(() => {
@@ -259,10 +267,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Logo */}
         <div className="px-5 py-4 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center text-xs font-black text-white shadow-sm">F</div>
+            {company && getLogoUrl(company) ? (
+              <div className="w-7 h-7 rounded-lg overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center">
+                <img src={getLogoUrl(company)!} alt={getCompanyDisplayName(company) || 'Logo'} className="max-w-full max-h-full object-contain" />
+              </div>
+            ) : (
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center text-xs font-black text-white shadow-sm">
+                {getCompanyInitial(company) || '·'}
+              </div>
+            )}
             <div>
-              <div className="text-sm font-bold text-slate-800 leading-tight">FAN YONG</div>
-              <div className="text-[10px] text-slate-400 leading-none">CO., LTD · OMS</div>
+              <div className="text-sm font-bold text-slate-800 leading-tight">{getCompanyDisplayName(company) || '載入中...'}</div>
+              <div className="text-[10px] text-slate-400 leading-none">{company?.company_name_local?.trim() || '訂單管理系統'}</div>
             </div>
           </div>
         </div>
@@ -386,7 +402,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {sidebarOpen ? <IconClose /> : <IconMenu />}
             {sidebarOpen ? '關閉選單' : '選單'}
           </button>
-          <div className="text-[11px] font-semibold tracking-wide text-slate-500">FAN YONG OMS</div>
+          <div className="text-[11px] font-semibold tracking-wide text-slate-500">{getCompanyDisplayName(company) || 'OMS'}</div>
         </div>
         <StickyTableHeaderBridge />
         <div className={`dashboard-content p-5 md:p-6 xl:p-7 ${softRefreshing ? 'oms-soft-refresh' : ''}`}>

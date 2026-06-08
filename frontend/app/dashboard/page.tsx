@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
+import { getCompany, getCompanyDisplayName } from '@/lib/useCompany'
 import { formatDecimal, formatInteger } from '@/lib/numberFormat'
 import Link from 'next/link'
 
@@ -18,6 +19,7 @@ const MONTHS = ['01','02','03','04','05','06','07','08','09','10','11','12']
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null)
+  const [companyName, setCompanyName] = useState('')
   const [report, setReport] = useState<ReportData | null>(null)
   const [tab, setTab] = useState<'overview' | 'report'>('overview')
   const [year, setYear] = useState(new Date().getFullYear().toString())
@@ -26,6 +28,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     apiFetch<any>('/api/stats').then(setStats).catch(() => {})
+    getCompany().then((c) => setCompanyName(getCompanyDisplayName(c))).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -70,7 +73,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-slate-800">系統總覽</h1>
-          <p className="text-sm text-slate-500 mt-0.5">FAN YONG CO., LTD · 歡迎回來</p>
+          <p className="text-sm text-slate-500 mt-0.5">{companyName ? `${companyName} · 歡迎回來` : '歡迎回來'}</p>
         </div>
         {/* Tabs */}
         <div className="flex bg-slate-100 rounded-lg p-1 gap-1">

@@ -188,7 +188,7 @@ export default function ProductionPage() {
       table{width:100%;border-collapse:collapse} th{border:1px solid #555;background:#eee;padding:6px;font-size:11px;text-align:center}
       @media print{@page{size:A4;margin:10mm} body{padding:0}}
     </style></head><body>
-    <h1>${txt(company.company_name) || 'FAN YONG CO., LTD'}</h1>
+    <h1>${txt(company.company_name)}</h1>
     <div class="sub">${txt(company.company_name_local)}</div>
     <h2 style="font-size:20px;margin:8px 0 10px">生產單</h2>
     <div style="margin-bottom:10px">單號：<b>${txt(prod.prod_number)}</b>　產品：<b>${txt(prod.product_name)}</b>　狀態：<b>${txt(STATUS_MAP[prod.status]?.label || prod.status)}</b></div>

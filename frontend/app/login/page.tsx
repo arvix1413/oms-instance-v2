@@ -1,12 +1,27 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { apiFetch, setToken } from '@/lib/api'
+import { getCompany, getCompanyDisplayName, getCompanyInitial, getLogoUrl, type CompanySettings } from '@/lib/useCompany'
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPw, setShowPw] = useState(false)
+  const [company, setCompany] = useState<CompanySettings | null>(null)
+
+  useEffect(() => {
+    getCompany().then(setCompany).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    const name = getCompanyDisplayName(company)
+    document.title = name ? `${name} — 登入` : '登入'
+  }, [company])
+
+  const companyName = getCompanyDisplayName(company)
+  const companyInitial = getCompanyInitial(company)
+  const logoUrl = company ? getLogoUrl(company) : null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,10 +44,16 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
       <div className="w-full max-w-sm px-4">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-600 mb-4 shadow-lg shadow-blue-600/25">
-            <span className="text-xl font-black text-white">F</span>
-          </div>
-          <h1 className="text-2xl font-bold text-slate-800">FAN YONG CO., LTD</h1>
+          {logoUrl ? (
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-white border border-slate-200 mb-4 shadow-sm overflow-hidden">
+              <img src={logoUrl} alt={companyName || 'Logo'} className="max-w-full max-h-full object-contain" />
+            </div>
+          ) : (
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-600 mb-4 shadow-lg shadow-blue-600/25">
+              <span className="text-xl font-black text-white">{companyInitial || '·'}</span>
+            </div>
+          )}
+          <h1 className="text-2xl font-bold text-slate-800">{companyName || '載入中...'}</h1>
           <p className="text-sm text-slate-400 mt-1">訂單管理系統</p>
         </div>
 
