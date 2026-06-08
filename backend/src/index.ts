@@ -358,8 +358,7 @@ const buildDailyPatrolReport = async (): Promise<PatrolSummary> => {
       ), 0) as shipped_qty
     FROM customer_order_items ci
     JOIN customer_orders co ON co.id = ci.order_id AND co.deleted_at IS NULL
-    WHERE ci.deleted_at IS NULL
-      AND ci.bom_id IS NOT NULL
+    WHERE ci.bom_id IS NOT NULL
     HAVING shipped_qty > 0 OR arrived_qty > 0
     LIMIT 100
   `)
@@ -411,7 +410,7 @@ const buildDailyPatrolReport = async (): Promise<PatrolSummary> => {
     SELECT COUNT(*) as cnt
     FROM customer_order_items ci
     JOIN customer_orders co ON co.id = ci.order_id AND co.deleted_at IS NULL
-    WHERE co.deleted_at IS NULL AND (ci.bom_id IS NULL OR ci.bom_id = 0)
+    WHERE ci.bom_id IS NULL OR ci.bom_id = 0
   `).catch(() => null as any)
   if (Number(itemsWithoutBom?.cnt || 0) > 0) {
     severe.push({
