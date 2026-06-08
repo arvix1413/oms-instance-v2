@@ -1,0 +1,27 @@
+name: Daily Patrol (OMS)
+
+on:
+  schedule:
+    # 每天早上 7:00（台北时间）
+    - cron: '0 7 * * *'
+      timezone: Asia/Taipei
+  workflow_dispatch:
+
+jobs:
+  patrol:
+    runs-on: ubuntu-latest
+    env:
+      PATROL_PROJECT_NAME: OMS
+      OMS_FRONTEND_URL: http://43.160.199.226
+      OMS_API_URL: http://43.160.199.226:3001
+      OMS_PATROL_EMAIL: ${{ secrets.OMS_PATROL_EMAIL }}
+      OMS_PATROL_PASSWORD: ${{ secrets.OMS_PATROL_PASSWORD }}
+      TELEGRAM_PATROL_BOT_TOKEN: ${{ secrets.TELEGRAM_PATROL_BOT_TOKEN }}
+      TELEGRAM_PATROL_CHAT_ID: ${{ secrets.TELEGRAM_PATROL_CHAT_ID }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run daily patrol
+        run: node scripts/daily-patrol.mjs

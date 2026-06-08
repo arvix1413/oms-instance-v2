@@ -7,18 +7,17 @@ OMS 是 FAN YONG CO., LTD 的订单管理系统，覆盖从客户订单、BOM、
 ## 1. Current Environment
 
 ### Branch To Environment
-- `stg` -> STG 环境，服务器 `43.133.56.234`
 - `prd` -> PRD 环境，服务器 `43.160.199.226`
 
 ### Online URLs
-- STG 前端: `http://43.133.56.234`
-- STG 后端: `http://43.133.56.234:3001`
 - PRD 前端: `http://43.160.199.226`
 - PRD 后端: `http://43.160.199.226:3001`
 
 ### Account Access
 - 请使用个人账号登录
-- 不要在 README、登录页或其他入口展示共用主账号密码
+- PRD 共享排查账号: `admin@oms.com`
+- PRD 当前密码: `Make$45617`
+- 上述共享账号仅限内部排查、回归测试、紧急部署验证
 - 如需开通或重置账号，请由管理员处理
 
 ## 2. Tech Stack
@@ -201,7 +200,7 @@ cd ../backend && npm run build
 
 ### Workflow
 - 文件: [/.github/workflows/deploy.yml](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/.github/workflows/deploy.yml)
-- 触发条件: push 到 `stg` 或 `prd`
+- 触发条件: push 到 `prd`
 - 流程:
   1. checkout
   2. 登录 Docker Hub
@@ -276,7 +275,47 @@ cd ../backend && npm run build
 ### 打印功能不是演示代码
 采购单、出货单、报价单等打印链路都是真实业务需求，不要轻易破坏。
 
-## 12. AI Handoff Checklist
+## 12. Daily Patrol (每日巡檢)
+
+OMS 每天早上 **7:00（Asia/Taipei）** 自动巡检 PRD 数据，并通过 Telegram 发送日报。报告标题带项目标识 `【ERP 每日巡檢報告 · OMS】`，与 Rubber-MES 的报告在同一 Telegram 群可区分。
+
+### Architecture
+- **GitHub Actions**: [/.github/workflows/daily-patrol.yml](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/.github/workflows/daily-patrol.yml)
+- **Runner script**: [scripts/daily-patrol.mjs](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/scripts/daily-patrol.mjs)
+- **Backend API**: `GET /api/daily-patrol-report`（需登录 token，直接查 MySQL 业务表）
+
+流程：GitHub Actions 定时触发 → 脚本登录 PRD → 调用后端巡检 API → 按客户模板格式化 → 发到 Telegram 群。
+
+### GitHub Secrets
+| Secret | 说明 |
+|--------|------|
+| `TELEGRAM_PATROL_BOT_TOKEN` | DailyPatrolBot token（可与 Rubber-MES 共用） |
+| `TELEGRAM_PATROL_CHAT_ID` | 目标 Telegram 群 chat_id |
+| `OMS_PATROL_EMAIL` | 巡检登录账号，默认 `admin@oms.com` |
+| `OMS_PATROL_PASSWORD` | 巡检登录密码 |
+
+### Manual Run
+```bash
+PATROL_PROJECT_NAME=OMS \
+OMS_PATROL_PASSWORD='...' \
+TELEGRAM_PATROL_BOT_TOKEN='...' \
+TELEGRAM_PATROL_CHAT_ID='...' \
+node scripts/daily-patrol.mjs
+```
+
+或在 GitHub Actions 页面手动触发 `Daily Patrol (OMS)` workflow。
+
+### Patrol Scope (v1)
+- 订单 vs 出货数量不一致 / 超量出货
+- 订单缺品项、品项缺 BOM
+- BOM 缺材料、材料数量为 0
+- 负库存 / 零库存提醒
+- 订单、采购单、出货单、生产单流程卡住
+
+### Related Code
+- `buildDailyPatrolReport()` in [backend/src/index.ts](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/backend/src/index.ts)
+
+## 13. AI Handoff Checklist
 
 新 AI 接手时，建议按这个顺序读：
 1. [README.md](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/README.md)

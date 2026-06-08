@@ -273,6 +273,349 @@ const softDeleteById = async (table: string, id: any, userId: any) => {
   await execute(`UPDATE ${table} SET deleted_at=?, deleted_by=? WHERE id=? AND deleted_at IS NULL`, [now8(), userId || null, id])
 }
 
+const toQty = (value: any): number => {
+  const num = Number(value)
+  if (!Number.isFinite(num)) return 0
+  return Math.round(num * 10000) / 10000
+}
+
+const toDateStr = (value: any): string => {
+  if (!value) return ''
+  const d = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(d.getTime())) return String(value).slice(0, 10)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// ── Daily Patrol (ERP 每日巡檢) ────────────────────────────────────────────────
+type PatrolIssue = {
+  type: string
+  ref: string
+  reason: string
+  impact: string
+  suggestion: string
+}
+
+type PatrolReview = {
+  type: string
+  ref: string
+  reason: string
+  suggestion: string
+}
+
+type PatrolStuck = {
+  flow: string
+  ref: string
+  status: string
+  cause: string
+  next: string
+}
+
+type PatrolConsistency = {
+  item: string
+  ok: boolean
+  detail: string
+  suggestion: string
+}
+
+type PatrolSummary = {
+  generated_at: string
+  date: string
+  time: string
+  severe: PatrolIssue[]
+  need_review: PatrolReview[]
+  stuck: PatrolStuck[]
+  consistency: PatrolConsistency[]
+  normals: string[]
+  priorities: PatrolIssue[]
+}
+
+const buildDailyPatrolReport = async (): Promise<PatrolSummary> => {
+  const now = new Date()
+  const date = toDateStr(now)
+  const time = now8()
+
+  const severe: PatrolIssue[] = []
+  const needReview: PatrolReview[] = []
+  const stuck: PatrolStuck[] = []
+  const consistency: PatrolConsistency[] = []
+
+  // 1) 訂單與出貨數量一致性（OMS 以 order_id + bom_id 對應）
+  const shippedRows = await query<any>(`
+    SELECT
+      ci.id as order_item_id,
+      ci.order_id,
+      ci.bom_id,
+      co.po_number,
+      ci.qty,
+      ci.arrived_qty,
+      COALESCE((
+        SELECT SUM(dni.qty)
+        FROM delivery_note_items dni
+        JOIN delivery_notes dn ON dn.id = dni.dn_id AND dn.deleted_at IS NULL
+        WHERE dn.status = 'shipped'
+          AND dn.customer_order_id = ci.order_id
+          AND dni.bom_id = ci.bom_id
+      ), 0) as shipped_qty
+    FROM customer_order_items ci
+    JOIN customer_orders co ON co.id = ci.order_id AND co.deleted_at IS NULL
+    WHERE ci.deleted_at IS NULL
+      AND ci.bom_id IS NOT NULL
+    HAVING shipped_qty > 0 OR arrived_qty > 0
+    LIMIT 100
+  `)
+  for (const row of shippedRows) {
+    const totalQty = toQty(row.qty)
+    const arrived = toQty(row.arrived_qty)
+    const shipped = toQty(row.shipped_qty)
+    if (Math.abs(arrived - shipped) > 0.0001) {
+      severe.push({
+        type: '訂單與出貨數量不一致',
+        ref: `訂單 ${row.order_id} / 客戶 PO ${row.po_number} / BOM ${row.bom_id}`,
+        reason: `出貨累計 ${shipped} 與訂單到貨數量 ${arrived} 不一致`,
+        impact: '可能導致訂單完成狀態錯誤，影響後續對帳與出貨判斷',
+        suggestion: '請核對出貨單與訂單明細數量，必要時由管理者調整 arrived_qty',
+      })
+    }
+    if (shipped > totalQty + 0.0001) {
+      severe.push({
+        type: '出貨數量超過訂單數量',
+        ref: `訂單 ${row.order_id} / 客戶 PO ${row.po_number} / BOM ${row.bom_id}`,
+        reason: `訂單數量 ${totalQty}，出貨累計 ${shipped}`,
+        impact: '可能出現超量出貨或重複出貨',
+        suggestion: '請檢查關聯出貨單，確認是否有重複出貨或錯誤數量',
+      })
+    }
+  }
+
+  // 2) 訂單資料完整性
+  const ordersWithoutItems = await queryOne<any>(`
+    SELECT co.id
+    FROM customer_orders co
+    LEFT JOIN customer_order_items ci ON ci.order_id = co.id
+    WHERE co.deleted_at IS NULL
+    GROUP BY co.id
+    HAVING COUNT(ci.id) = 0
+    LIMIT 1
+  `).catch(() => null as any)
+  if (ordersWithoutItems?.id) {
+    severe.push({
+      type: '訂單缺少品項',
+      ref: '部分客戶訂單',
+      reason: '存在沒有任何訂單明細的客戶訂單',
+      impact: '無法進行採購、生產與出貨',
+      suggestion: '請補齊訂單品項或刪除無效訂單',
+    })
+  }
+
+  const itemsWithoutBom = await queryOne<any>(`
+    SELECT COUNT(*) as cnt
+    FROM customer_order_items ci
+    JOIN customer_orders co ON co.id = ci.order_id AND co.deleted_at IS NULL
+    WHERE co.deleted_at IS NULL AND (ci.bom_id IS NULL OR ci.bom_id = 0)
+  `).catch(() => null as any)
+  if (Number(itemsWithoutBom?.cnt || 0) > 0) {
+    severe.push({
+      type: '訂單品項缺少 BOM',
+      ref: '部分訂單明細',
+      reason: `至少 ${itemsWithoutBom.cnt} 筆訂單明細未關聯 BOM`,
+      impact: '無法展開材料需求與出貨扣庫',
+      suggestion: '請在客戶訂單頁補齊 BOM 關聯',
+    })
+  }
+
+  // 3) BOM / 料號
+  const missingBomItems = await queryOne<any>(`
+    SELECT b.id
+    FROM bom b
+    LEFT JOIN bom_items bi ON bi.bom_id = b.id
+    WHERE b.deleted_at IS NULL
+    GROUP BY b.id
+    HAVING COUNT(bi.id) = 0
+    LIMIT 1
+  `).catch(() => null as any)
+  if (missingBomItems?.id) {
+    severe.push({
+      type: 'BOM 無任何材料',
+      ref: '部分 BOM',
+      reason: '存在至少 1 筆 BOM 沒有任何 bom_items 記錄',
+      impact: '無法正確展開材料需求，影響採購與生產',
+      suggestion: '請檢查 BOM 設定，補齊材料明細',
+    })
+  }
+
+  const bomQtyAnomalies = await queryOne<any>(`
+    SELECT COUNT(*) as cnt
+    FROM bom_items bi
+    JOIN bom b ON b.id = bi.bom_id AND b.deleted_at IS NULL
+    WHERE bi.quantity IS NULL OR bi.quantity <= 0
+  `).catch(() => null as any)
+  if (Number(bomQtyAnomalies?.cnt || 0) > 0) {
+    severe.push({
+      type: 'BOM 材料數量為 0 或空值',
+      ref: '部分 BOM 材料',
+      reason: `至少 ${bomQtyAnomalies.cnt} 筆 BOM 材料數量異常`,
+      impact: '導致材料需求低估或無法正確生成採購數量',
+      suggestion: '請修正 BOM 材料數量',
+    })
+  }
+
+  // 4) 庫存
+  const negativeStock = await queryOne<any>(`
+    SELECT COUNT(*) as cnt
+    FROM bom
+    WHERE deleted_at IS NULL AND COALESCE(current_stock, 0) < 0
+  `).catch(() => null as any)
+  if (Number(negativeStock?.cnt || 0) > 0) {
+    severe.push({
+      type: '庫存為負數',
+      ref: '部分 BOM.current_stock',
+      reason: `至少 ${negativeStock.cnt} 筆 BOM 現有庫存為負數`,
+      impact: '庫存與實際狀態不一致，可能影響出貨判斷',
+      suggestion: '請比對進貨、出貨、調整與領料紀錄並修正',
+    })
+  }
+
+  const lowStock = await queryOne<any>(`
+    SELECT COUNT(*) as cnt
+    FROM bom
+    WHERE deleted_at IS NULL AND COALESCE(current_stock, 0) <= 0
+  `).catch(() => null as any)
+  if (Number(lowStock?.cnt || 0) > 0) {
+    needReview.push({
+      type: '成品庫存為 0 或負數',
+      ref: `${lowStock.cnt} 筆 BOM`,
+      reason: '部分成品現有庫存為 0 或負數，可能影響出貨',
+      suggestion: '請在庫存頁面確認是否需要補貨或調整',
+    })
+  }
+
+  // 5) 流程卡住
+  const staleOrders = await query<any>(`
+    SELECT id, po_number, created_at
+    FROM customer_orders
+    WHERE status = 'pending'
+      AND deleted_at IS NULL
+      AND created_at < DATE_SUB(NOW(), INTERVAL 14 DAY)
+    ORDER BY created_at ASC
+    LIMIT 5
+  `)
+  for (const row of staleOrders) {
+    stuck.push({
+      flow: '客戶訂單',
+      ref: `訂單 ${row.id} / 客戶 PO ${row.po_number}`,
+      status: 'pending',
+      cause: '訂單建立已超過 14 天，仍未進入後續作業',
+      next: '請與業務確認是否仍需出貨，必要時更新狀態或取消',
+    })
+  }
+
+  const stalePo = await query<any>(`
+    SELECT id, po_number, created_at
+    FROM purchase_orders
+    WHERE status = 'draft'
+      AND deleted_at IS NULL
+      AND created_at < DATE_SUB(NOW(), INTERVAL 3 DAY)
+    ORDER BY created_at ASC
+    LIMIT 5
+  `)
+  for (const row of stalePo) {
+    stuck.push({
+      flow: '採購單',
+      ref: `PO ${row.po_number || row.id}`,
+      status: 'draft',
+      cause: '採購單草稿已超過 3 天未審核',
+      next: '請盡快審核或作廢不需要的採購單',
+    })
+  }
+
+  const staleDn = await query<any>(`
+    SELECT id, dn_number, delivery_date, status
+    FROM delivery_notes
+    WHERE status = 'confirmed'
+      AND deleted_at IS NULL
+      AND created_at < DATE_SUB(NOW(), INTERVAL 7 DAY)
+    ORDER BY created_at ASC
+    LIMIT 5
+  `)
+  for (const row of staleDn) {
+    stuck.push({
+      flow: '出貨單',
+      ref: `出貨單 ${row.dn_number}`,
+      status: row.status || 'confirmed',
+      cause: '出貨單已確認超過 7 天仍未出貨',
+      next: '請確認是否已實際出貨，必要時執行出貨或退回草稿',
+    })
+  }
+
+  const staleProduction = await query<any>(`
+    SELECT id, prod_number, status, planned_end
+    FROM production_orders
+    WHERE status = 'in_progress'
+      AND deleted_at IS NULL
+      AND planned_end IS NOT NULL
+      AND planned_end < DATE_SUB(CURDATE(), INTERVAL 3 DAY)
+    ORDER BY planned_end ASC
+    LIMIT 5
+  `)
+  for (const row of staleProduction) {
+    stuck.push({
+      flow: '生產單',
+      ref: `生產單 ${row.prod_number}`,
+      status: row.status || 'in_progress',
+      cause: '生產單已超過預計完工日 3 天仍未完工',
+      next: '請確認生產進度並更新狀態或交期',
+    })
+  }
+
+  // 6) 一致性檢查
+  consistency.push({
+    item: '訂單 vs 出貨數量',
+    ok: !severe.some((s) => s.type === '訂單與出貨數量不一致' || s.type === '出貨數量超過訂單數量'),
+    detail: severe.some((s) => s.type.startsWith('訂單與出貨') || s.type.startsWith('出貨數量超過'))
+      ? '發現訂單與出貨累計數量不一致或超量'
+      : '訂單數量與出貨累計整體合理',
+    suggestion: '如為異常，請由出貨流程重新同步訂單數量',
+  })
+
+  consistency.push({
+    item: 'BOM / 材料設定',
+    ok: !missingBomItems?.id && !(Number(bomQtyAnomalies?.cnt || 0) > 0),
+    detail: missingBomItems?.id || Number(bomQtyAnomalies?.cnt || 0) > 0
+      ? '部分 BOM 缺少材料或材料數量異常'
+      : 'BOM 與材料設定未發現明顯異常',
+    suggestion: '建議定期抽查主要產品 BOM 結構',
+  })
+
+  consistency.push({
+    item: '庫存現有量',
+    ok: !(Number(negativeStock?.cnt || 0) > 0),
+    detail: Number(negativeStock?.cnt || 0) > 0
+      ? `有 ${negativeStock.cnt} 筆 BOM.current_stock 為負數`
+      : 'BOM.current_stock 未發現負數庫存',
+    suggestion: '如有負庫存，請檢查進貨、出貨與調整紀錄',
+  })
+
+  const normals: string[] = []
+  if (!severe.length) {
+    normals.push('訂單、生產單、BOM、庫存、採購、出貨資料整體狀態：正常')
+  } else {
+    if (!Number(negativeStock?.cnt || 0)) normals.push('庫存資料：未發現負庫存')
+    if (!missingBomItems?.id && !Number(bomQtyAnomalies?.cnt || 0)) normals.push('BOM / 料號資料：主要結構正常')
+  }
+
+  return {
+    generated_at: time,
+    date,
+    time,
+    severe: severe.slice(0, 5),
+    need_review: needReview.slice(0, 10),
+    stuck: stuck.slice(0, 10),
+    consistency,
+    normals,
+    priorities: severe.slice(0, 5),
+  }
+}
+
 let ensureMaterialReferenceColumnsPromise: Promise<void> | null = null
 const ensureMaterialReferenceColumns = async () => {
   if (!ensureMaterialReferenceColumnsPromise) {
@@ -2473,6 +2816,15 @@ app.put('/api/company', authMiddleware, requirePerm('company.manage'), async c =
     await audit(u, 'UPDATE', '公司設定', 1, b.company_name)
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+
+app.get('/api/daily-patrol-report', authMiddleware, async c => {
+  try {
+    const report = await buildDailyPatrolReport()
+    return c.json(report)
+  } catch (e: any) {
+    return c.json({ error: String(e.message) }, 500)
+  }
 })
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
