@@ -6,12 +6,13 @@ OMS 是 FAN YONG CO., LTD 的订单管理系统，覆盖从客户订单、BOM、
 
 ## 1. Current Environment
 
-### Branch To Environment
-- `prd` -> PRD 环境，服务器 `43.160.199.226`
+### Environment
+- 仅保留 PRD，服务器 `43.160.199.226`
+- 发布分支: **`main`**（`git push origin main` 自动部署）
 
 ### Online URLs
-- PRD 前端: `http://43.160.199.226`
-- PRD 后端: `http://43.160.199.226:3001`
+- 前端: `http://43.160.199.226`
+- 后端: `http://43.160.199.226:3001`
 
 ### Account Access
 - 请使用个人账号登录
@@ -200,7 +201,7 @@ cd ../backend && npm run build
 
 ### Workflow
 - 文件: [/.github/workflows/deploy.yml](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/.github/workflows/deploy.yml)
-- 触发条件: push 到 `prd`
+- 触发条件: push 到 **`main`**
 - 流程:
   1. checkout
   2. 登录 Docker Hub
