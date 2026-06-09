@@ -2,8 +2,8 @@ name: Daily Patrol (OMS)
 
 on:
   schedule:
-    # 测试时段：每天早上 10:30（台北时间）
-    - cron: '30 10 * * *'
+    # 测试时段：每天早上 11:00（台北时间）
+    - cron: '0 11 * * *'
       timezone: Asia/Taipei
   workflow_dispatch:
 
