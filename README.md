@@ -278,7 +278,7 @@ cd ../backend && npm run build
 
 ## 12. Daily Patrol (每日巡檢)
 
-OMS 每天早上 **9:50（Asia/Taipei，测试时段）** 自动巡检 PRD 数据，并通过 Telegram 发送日报。报告标题带项目标识 `【ERP 每日巡檢報告 · OMS】`，与 Rubber-MES 的报告在同一 Telegram 群可区分。
+OMS 每天早上 **10:30（Asia/Taipei，测试时段）** 自动巡检 PRD 数据，并通过 Telegram 发送日报。报告标题带项目标识 `【ERP 每日巡檢報告 · OMS】`，与 Rubber-MES 的报告在同一 Telegram 群可区分。
 
 ### Architecture
 - **GitHub Actions**: [/.github/workflows/daily-patrol.yml](/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/.github/workflows/daily-patrol.yml)
