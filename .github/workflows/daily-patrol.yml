@@ -10,6 +10,7 @@ jobs:
   patrol:
     runs-on: ubuntu-latest
     env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       PATROL_PROJECT_NAME: OMS
       OMS_FRONTEND_URL: http://43.160.199.226
       OMS_API_URL: http://43.160.199.226:3001
