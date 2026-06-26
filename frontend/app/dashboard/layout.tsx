@@ -180,8 +180,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         canApprovePo ? apiFetch<Array<{ status: string }>>('/api/po') : Promise.resolve([]),
         canApproveQuotation ? apiFetch<Array<{ status: string }>>('/api/quotations') : Promise.resolve([]),
       ])
-      setPoDraftCount((poRows || []).filter((row) => row.status === 'draft').length)
-      setQuotationDraftCount((quotationRows || []).filter((row) => row.status === 'draft').length)
+      setPoDraftCount((poRows || []).filter((row) => row.status === 'pending_review').length)
+      setQuotationDraftCount((quotationRows || []).filter((row) => row.status === 'pending_review').length)
     } catch {
       setPoDraftCount(0)
       setQuotationDraftCount(0)
@@ -228,10 +228,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const renderTopReviewBadges = () => {
     const badges = [
       canApprovePo && poDraftCount > 0
-        ? { href: '/dashboard/po?status=draft', label: '採購單待審核', count: poDraftCount, tone: 'bg-[#d93d2f] text-white ring-[#ffd9cf]' }
+        ? { href: '/dashboard/po?status=pending_review', label: '採購單待審核', count: poDraftCount, tone: 'bg-[#d93d2f] text-white ring-[#ffd9cf]' }
         : null,
       canApproveQuotation && quotationDraftCount > 0
-        ? { href: '/dashboard/quotations?status=draft', label: '報價單待審核', count: quotationDraftCount, tone: 'bg-[#c46b1f] text-white ring-[#ffe2bf]' }
+        ? { href: '/dashboard/quotations?status=pending_review', label: '報價單待審核', count: quotationDraftCount, tone: 'bg-[#c46b1f] text-white ring-[#ffe2bf]' }
         : null,
     ].filter(Boolean) as Array<{ href: string; label: string; count: number; tone: string }>
     if (!badges.length) return null

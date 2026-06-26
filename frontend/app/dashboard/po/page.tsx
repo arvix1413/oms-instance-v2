@@ -29,16 +29,18 @@ type Supplier = {
 type BOM = { id: number; product_sku: string; product_name: string; spec: string; unit: string; supplier_price: number; company_price: number; currency: string; image_url?: string; material_name?: string; supplier_id?: number; moq_tiers?: MoqTier[] }
 
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
-  draft:     { label:'尚未審核', badge:'badge-gray'   },
-  approved:  { label:'已審核', badge:'badge-green'  },
-  sent:      { label:'已送出', badge:'badge-blue'   },
-  received:  { label:'已收貨', badge:'badge-purple' },
-  cancelled: { label:'已取消', badge:'badge-red'    },
+  draft:          { label:'草稿',   badge:'badge-gray'   },
+  pending_review: { label:'待審核', badge:'badge-yellow' },
+  approved:       { label:'已審核', badge:'badge-green'  },
+  sent:           { label:'已送出', badge:'badge-blue'   },
+  received:       { label:'已收貨', badge:'badge-purple' },
+  cancelled:      { label:'已取消', badge:'badge-red'    },
 }
 
 const STATUS_FILTERS = [
   { value: '', label: '全部' },
-  { value: 'draft', label: '尚未審核' },
+  { value: 'draft', label: '草稿' },
+  { value: 'pending_review', label: '待審核' },
   { value: 'approved', label: '已審核' },
   { value: 'sent', label: '已送出' },
   { value: 'received', label: '已收貨' },
@@ -751,12 +753,11 @@ export default function PoPage() {
                                 return canWrite
                               })}
                               onAction={async (toStatus) => {
-                                if (toStatus === 'approved') await approve(p.id, { stopPropagation: ()=>{} } as any)
-                                else if (toStatus === 'received') await confirmReceipt(p, { stopPropagation: ()=>{} } as any)
+                                if (toStatus === 'received') await confirmReceipt(p, { stopPropagation: ()=>{} } as any)
                                 else await changeStatus(p.id, toStatus, { stopPropagation: ()=>{} } as any)
                               }} />
                             <button onClick={e => { e.stopPropagation(); printPo(p.id, p.po_number, p.supplier_name) }} className="btn-ghost ml-1" title="列印">🖨 列印</button>
-                            {canWrite && p.status === 'draft' && (
+                            {canWrite && (p.status === 'draft' || p.status === 'pending_review') && (
                               <button onClick={e => startEdit(p, e)} className="btn-ghost text-blue-600">✏ 編輯</button>
                             )}
                             {canDel && (

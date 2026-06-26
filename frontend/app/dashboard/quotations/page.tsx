@@ -12,6 +12,7 @@ import { getPrintSignatureConfig } from '@/lib/printSignature'
 import { normalizeMoqTiers, resolveTierPrice } from '@/lib/moqPricing'
 import { SHARED_PRINT_ITEM_TABLE_CSS } from '@/lib/printItemTableStyles'
 import { SHARED_PRINT_PARTY_TABLE_CSS } from '@/lib/printPartyTableStyles'
+import { StatusFlow, QT_STEPS, getQTActions } from '@/components/StatusFlow'
 import { can } from '@/lib/usePermissions'
 
 type MoqTier = { moq: number; price: number }
@@ -47,16 +48,18 @@ const normalizeTiers = (tiers: any): MoqTier[] => {
   return ensureTierList(tiers)
 }
 const STATUS_MAP: Record<string,{label:string;badge:string}> = {
-  draft:    { label:'尚未審核', badge:'badge-gray'  },
-  approved: { label:'已審核', badge:'badge-green' },
-  sent:     { label:'已送出', badge:'badge-blue'  },
-  accepted: { label:'已接受', badge:'badge-green' },
-  rejected: { label:'已拒絕', badge:'badge-red'   },
+  draft:          { label:'草稿',   badge:'badge-gray'   },
+  pending_review: { label:'待審核', badge:'badge-yellow' },
+  approved:       { label:'已審核', badge:'badge-green'  },
+  sent:           { label:'已送出', badge:'badge-blue'   },
+  accepted:       { label:'已接受', badge:'badge-green'  },
+  rejected:       { label:'已拒絕', badge:'badge-red'    },
 }
 
 const STATUS_FILTERS = [
   { value: '', label: '全部' },
-  { value: 'draft', label: '尚未審核' },
+  { value: 'draft', label: '草稿' },
+  { value: 'pending_review', label: '待審核' },
   { value: 'approved', label: '已審核' },
   { value: 'sent', label: '已送出' },
   { value: 'accepted', label: '已接受' },
@@ -755,12 +758,18 @@ export default function QuotationsPage() {
                         <td className="px-4 py-3"><span className={sm.badge}>{sm.label}</span></td>
                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center gap-1">
-                            <button onClick={e=>{ e.stopPropagation(); printQuotation(q.id, q) }} className="btn-ghost" title="列印">🖨 列印</button>
-                            {q.status==='draft' && canWrite && <button onClick={e=>startEdit(q,e)} className="btn-ghost text-blue-600">✏ 編輯</button>}
-                            {q.status==='draft' && canApprove && <button onClick={e=>changeStatus(q.id,'approved',e)} className="btn-ghost text-emerald-600">審核</button>}
-                            {q.status==='approved' && canWrite && <button onClick={e=>changeStatus(q.id,'sent',e)} className="btn-ghost">送出</button>}
-                            {q.status==='sent' && canWrite && <button onClick={e=>changeStatus(q.id,'accepted',e)} className="btn-ghost text-emerald-600">接受</button>}
-                            {q.status==='sent' && canWrite && <button onClick={e=>changeStatus(q.id,'rejected',e)} className="btn-danger">拒絕</button>}
+                            <StatusFlow compact steps={QT_STEPS} current={q.status}
+                              actions={getQTActions(q.status).filter(a => {
+                                if (a.toStatus === 'approved') return canApprove
+                                return canWrite
+                              })}
+                              onAction={async (toStatus) => {
+                                await changeStatus(q.id, toStatus, { stopPropagation: ()=>{} } as any)
+                              }} />
+                            <button onClick={e=>{ e.stopPropagation(); printQuotation(q.id, q) }} className="btn-ghost ml-1" title="列印">🖨 列印</button>
+                            {canWrite && (q.status === 'draft' || q.status === 'pending_review') && (
+                              <button onClick={e => startEdit(q, e)} className="btn-ghost text-blue-600">✏ 編輯</button>
+                            )}
                             {canDelete && <button onClick={e=>del(q.id,e)} className="btn-danger">刪除</button>}
                           </div>
                         </td>

@@ -188,6 +188,7 @@ export default function CompanyPage() {
               { key: 'contact_person', label: '聯絡人', placeholder: 'Danny Lin / Mỹ Linh Ellachen' },
               { key: 'email', label: '電子郵件', placeholder: 'info@fanyong.com' },
               { key: 'tax_id', label: '統一編號 / 稅號', placeholder: '' },
+              { key: 'notification_email', label: '通知郵箱', placeholder: '填寫後，採購單/報價單提交審核時將發送郵件通知' },
             ].map(({ key, label, placeholder, wide }) => (
               <div key={key} className={wide ? 'lg:col-span-2' : ''}>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">{label}</label>

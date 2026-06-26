@@ -1,0 +1,590 @@
+[
+  {
+    "path": "/dashboard/bom",
+    "key": "bom",
+    "title": "材料明細",
+    "status": "bridge-active",
+    "before": {
+      "hasTable": true,
+      "mainScrollTop": 0,
+      "mainScrollHeight": 835,
+      "mainClientHeight": 520,
+      "originalHeaderTop": 153,
+      "rowCount": 10,
+      "title": "材料明細"
+    },
+    "after": {
+      "mainScrollTop": 359,
+      "originalHeaderTop": -162,
+      "hostDisplay": "block",
+      "hostHeight": 44,
+      "viewportExists": true,
+      "viewportTop": 0,
+      "cloneHeaderTop": 0
+    },
+    "screenshots": {
+      "top": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/bom-top.png",
+      "scrolled": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/bom-scrolled.png"
+    }
+  },
+  {
+    "path": "/dashboard/materials",
+    "key": "materials",
+    "title": "料號管理",
+    "status": "bridge-active",
+    "before": {
+      "hasTable": true,
+      "mainScrollTop": 0,
+      "mainScrollHeight": 823,
+      "mainClientHeight": 520,
+      "originalHeaderTop": 145,
+      "rowCount": 10,
+      "title": "料號管理"
+    },
+    "after": {
+      "mainScrollTop": 343,
+      "originalHeaderTop": -158,
+      "hostDisplay": "block",
+      "hostHeight": 40,
+      "viewportExists": true,
+      "viewportTop": 0,
+      "cloneHeaderTop": 0
+    },
+    "screenshots": {
+      "top": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/materials-top.png",
+      "scrolled": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/materials-scrolled.png"
+    }
+  },
+  {
+    "path": "/dashboard/customer-orders",
+    "key": "customer-orders",
+    "title": "客戶訂單明細",
+    "status": "bridge-active",
+    "before": {
+      "hasTable": true,
+      "mainScrollTop": 0,
+      "mainScrollHeight": 868,
+      "mainClientHeight": 520,
+      "originalHeaderTop": 195,
+      "rowCount": 10,
+      "title": "客戶訂單明細"
+    },
+    "after": {
+      "mainScrollTop": 365,
+      "originalHeaderTop": -125,
+      "hostDisplay": "block",
+      "hostHeight": 45,
+      "viewportExists": true,
+      "viewportTop": 0,
+      "cloneHeaderTop": 0
+    },
+    "screenshots": {
+      "top": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/customer-orders-top.png",
+      "scrolled": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/customer-orders-scrolled.png"
+    }
+  },
+  {
+    "path": "/dashboard/po",
+    "key": "po",
+    "title": "採購單管理",
+    "status": "bridge-active",
+    "before": {
+      "hasTable": true,
+      "mainScrollTop": 0,
+      "mainScrollHeight": 750,
+      "mainClientHeight": 520,
+      "originalHeaderTop": 195,
+      "rowCount": 8,
+      "title": "採購單管理"
+    },
+    "after": {
+      "mainScrollTop": 275,
+      "originalHeaderTop": -35,
+      "hostDisplay": "block",
+      "hostHeight": 45,
+      "viewportExists": true,
+      "viewportTop": 0,
+      "cloneHeaderTop": 0
+    },
+    "screenshots": {
+      "top": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/po-top.png",
+      "scrolled": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/po-scrolled.png"
+    }
+  },
+  {
+    "path": "/dashboard/delivery-notes",
+    "key": "delivery-notes",
+    "title": "出貨單",
+    "status": "bridge-active",
+    "before": {
+      "hasTable": true,
+      "mainScrollTop": 0,
+      "mainScrollHeight": 728,
+      "mainClientHeight": 520,
+      "originalHeaderTop": 135,
+      "rowCount": 10,
+      "title": "出貨單"
+    },
+    "after": {
+      "mainScrollTop": 253,
+      "originalHeaderTop": -73,
+      "hostDisplay": "block",
+      "hostHeight": 45,
+      "viewportExists": true,
+      "viewportTop": 0,
+      "cloneHeaderTop": 0
+    },
+    "screenshots": {
+      "top": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/delivery-notes-top.png",
+      "scrolled": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/delivery-notes-scrolled.png"
+    }
+  },
+  {
+    "path": "/dashboard/delivery-sheets",
+    "key": "delivery-sheets",
+    "title": "送貨單",
+    "status": "original-header-still-visible",
+    "before": {
+      "hasTable": true,
+      "mainScrollTop": 0,
+      "mainScrollHeight": 520,
+      "mainClientHeight": 520,
+      "originalHeaderTop": 135,
+      "rowCount": 1,
+      "title": "送貨單"
+    },
+    "after": {
+      "mainScrollTop": 0,
+      "originalHeaderTop": 135,
+      "hostDisplay": "none",
+      "hostHeight": 0,
+      "viewportExists": false,
+      "viewportTop": null,
+      "cloneHeaderTop": null
+    },
+    "screenshots": {
+      "top": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/delivery-sheets-top.png",
+      "scrolled": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/delivery-sheets-scrolled.png"
+    }
+  },
+  {
+    "path": "/dashboard/production",
+    "key": "production",
+    "title": "生產單管理",
+    "status": "original-header-still-visible",
+    "before": {
+      "hasTable": true,
+      "mainScrollTop": 0,
+      "mainScrollHeight": 520,
+      "mainClientHeight": 520,
+      "originalHeaderTop": 195,
+      "rowCount": 1,
+      "title": "生產單管理"
+    },
+    "after": {
+      "mainScrollTop": 0,
+      "originalHeaderTop": 195,
+      "hostDisplay": "none",
+      "hostHeight": 0,
+      "viewportExists": false,
+      "viewportTop": null,
+      "cloneHeaderTop": null
+    },
+    "screenshots": {
+      "top": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/production-top.png",
+      "scrolled": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/production-scrolled.png"
+    }
+  },
+  {
+    "path": "/dashboard/inventory",
+    "key": "inventory",
+    "title": "庫存查詢",
+    "status": "original-header-still-visible",
+    "before": {
+      "hasTable": true,
+      "mainScrollTop": 0,
+      "mainScrollHeight": 975,
+      "mainClientHeight": 520,
+      "originalHeaderTop": 333,
+      "rowCount": 10,
+      "title": "庫存查詢"
+    },
+    "after": {
+      "mainScrollTop": 320,
+      "originalHeaderTop": 13,
+      "hostDisplay": "none",
+      "hostHeight": 0,
+      "viewportExists": false,
+      "viewportTop": null,
+      "cloneHeaderTop": null
+    },
+    "screenshots": {
+      "top": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/inventory-top.png",
+      "scrolled": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/inventory-scrolled.png"
+    }
+  },
+  {
+    "path": "/dashboard/goods-receipts",
+    "key": "goods-receipts",
+    "title": "進貨單管理",
+    "status": "original-header-still-visible",
+    "before": {
+      "hasTable": true,
+      "mainScrollTop": 0,
+      "mainScrollHeight": 520,
+      "mainClientHeight": 520,
+      "originalHeaderTop": 153,
+      "rowCount": 1,
+      "title": "進貨單管理"
+    },
+    "after": {
+      "mainScrollTop": 0,
+      "originalHeaderTop": 153,
+      "hostDisplay": "none",
+      "hostHeight": 0,
+      "viewportExists": false,
+      "viewportTop": null,
+      "cloneHeaderTop": null
+    },
+    "screenshots": {
+      "top": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/goods-receipts-top.png",
+      "scrolled": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/goods-receipts-scrolled.png"
+    }
+  },
+  {
+    "path": "/dashboard/stock-adjustments",
+    "key": "stock-adjustments",
+    "title": "庫存調整（盤點）",
+    "status": "original-header-still-visible",
+    "before": {
+      "hasTable": true,
+      "mainScrollTop": 0,
+      "mainScrollHeight": 520,
+      "mainClientHeight": 520,
+      "originalHeaderTop": 153,
+      "rowCount": 1,
+      "title": "庫存調整（盤點）"
+    },
+    "after": {
+      "mainScrollTop": 0,
+      "originalHeaderTop": 153,
+      "hostDisplay": "none",
+      "hostHeight": 0,
+      "viewportExists": false,
+      "viewportTop": null,
+      "cloneHeaderTop": null
+    },
+    "screenshots": {
+      "top": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/stock-adjustments-top.png",
+      "scrolled": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/stock-adjustments-scrolled.png"
+    }
+  },
+  {
+    "path": "/dashboard/customers",
+    "key": "customers",
+    "title": "客戶管理",
+    "status": "bridge-active",
+    "before": {
+      "hasTable": true,
+      "mainScrollTop": 0,
+      "mainScrollHeight": 771,
+      "mainClientHeight": 520,
+      "originalHeaderTop": 153,
+      "rowCount": 10,
+      "title": "客戶管理"
+    },
+    "after": {
+      "mainScrollTop": 291,
+      "originalHeaderTop": -98,
+      "hostDisplay": "block",
+      "hostHeight": 40,
+      "viewportExists": true,
+      "viewportTop": 0,
+      "cloneHeaderTop": 0
+    },
+    "screenshots": {
+      "top": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/customers-top.png",
+      "scrolled": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/customers-scrolled.png"
+    }
+  },
+  {
+    "path": "/dashboard/suppliers",
+    "key": "suppliers",
+    "title": "供應商管理",
+    "status": "bridge-active",
+    "before": {
+      "hasTable": true,
+      "mainScrollTop": 0,
+      "mainScrollHeight": 771,
+      "mainClientHeight": 520,
+      "originalHeaderTop": 153,
+      "rowCount": 10,
+      "title": "供應商管理"
+    },
+    "after": {
+      "mainScrollTop": 291,
+      "originalHeaderTop": -98,
+      "hostDisplay": "block",
+      "hostHeight": 40,
+      "viewportExists": true,
+      "viewportTop": 0,
+      "cloneHeaderTop": 0
+    },
+    "screenshots": {
+      "top": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/suppliers-top.png",
+      "scrolled": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/suppliers-scrolled.png"
+    }
+  },
+  {
+    "path": "/dashboard/users",
+    "key": "users",
+    "title": "系統總覽",
+    "status": "no-table",
+    "before": {
+      "hasTable": false,
+      "mainScrollTop": 0,
+      "mainScrollHeight": 663,
+      "mainClientHeight": 520,
+      "originalHeaderTop": null,
+      "rowCount": 0,
+      "title": "系統總覽"
+    },
+    "after": {
+      "mainScrollTop": 143,
+      "originalHeaderTop": null,
+      "hostDisplay": "none",
+      "hostHeight": 0,
+      "viewportExists": false,
+      "viewportTop": null,
+      "cloneHeaderTop": null
+    },
+    "screenshots": {
+      "top": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/users-top.png",
+      "scrolled": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/users-scrolled.png"
+    }
+  },
+  {
+    "path": "/dashboard/products",
+    "key": "products",
+    "title": "商品管理",
+    "status": "original-header-still-visible",
+    "before": {
+      "hasTable": true,
+      "mainScrollTop": 0,
+      "mainScrollHeight": 520,
+      "mainClientHeight": 520,
+      "originalHeaderTop": 143,
+      "rowCount": 1,
+      "title": "商品管理"
+    },
+    "after": {
+      "mainScrollTop": 0,
+      "originalHeaderTop": 143,
+      "hostDisplay": "none",
+      "hostHeight": 0,
+      "viewportExists": false,
+      "viewportTop": null,
+      "cloneHeaderTop": null
+    },
+    "screenshots": {
+      "top": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/products-top.png",
+      "scrolled": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/products-scrolled.png"
+    }
+  },
+  {
+    "path": "/dashboard/stock-ledger",
+    "key": "stock-ledger",
+    "title": "庫存流水記錄",
+    "status": "bridge-active",
+    "before": {
+      "hasTable": true,
+      "mainScrollTop": 0,
+      "mainScrollHeight": 1115,
+      "mainClientHeight": 520,
+      "originalHeaderTop": 306,
+      "rowCount": 10,
+      "title": "庫存流水記錄"
+    },
+    "after": {
+      "mainScrollTop": 381,
+      "originalHeaderTop": -14,
+      "hostDisplay": "block",
+      "hostHeight": 61,
+      "viewportExists": true,
+      "viewportTop": 0,
+      "cloneHeaderTop": 0
+    },
+    "screenshots": {
+      "top": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/stock-ledger-top.png",
+      "scrolled": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/stock-ledger-scrolled.png"
+    }
+  },
+  {
+    "path": "/dashboard/audit-logs",
+    "key": "audit-logs",
+    "title": "操作日誌",
+    "status": "original-header-still-visible",
+    "before": {
+      "hasTable": true,
+      "mainScrollTop": 0,
+      "mainScrollHeight": 1102,
+      "mainClientHeight": 520,
+      "originalHeaderTop": 413,
+      "rowCount": 10,
+      "title": "操作日誌"
+    },
+    "after": {
+      "mainScrollTop": 320,
+      "originalHeaderTop": 93,
+      "hostDisplay": "none",
+      "hostHeight": 0,
+      "viewportExists": false,
+      "viewportTop": null,
+      "cloneHeaderTop": null
+    },
+    "screenshots": {
+      "top": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/audit-logs-top.png",
+      "scrolled": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/audit-logs-scrolled.png"
+    }
+  },
+  {
+    "path": "/dashboard/payables",
+    "key": "payables",
+    "title": "應付帳款管理（付款）",
+    "status": "bridge-active",
+    "before": {
+      "hasTable": true,
+      "mainScrollTop": 0,
+      "mainScrollHeight": 786,
+      "mainClientHeight": 520,
+      "originalHeaderTop": 267,
+      "rowCount": 8,
+      "title": "應付帳款管理（付款）"
+    },
+    "after": {
+      "mainScrollTop": 307,
+      "originalHeaderTop": 1,
+      "hostDisplay": "block",
+      "hostHeight": 41,
+      "viewportExists": true,
+      "viewportTop": 0,
+      "cloneHeaderTop": 0
+    },
+    "screenshots": {
+      "top": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/payables-top.png",
+      "scrolled": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/payables-scrolled.png"
+    }
+  },
+  {
+    "path": "/dashboard/receivables",
+    "key": "receivables",
+    "title": "應收帳款管理（收款）",
+    "status": "bridge-active",
+    "before": {
+      "hasTable": true,
+      "mainScrollTop": 0,
+      "mainScrollHeight": 896,
+      "mainClientHeight": 520,
+      "originalHeaderTop": 267,
+      "rowCount": 10,
+      "title": "應收帳款管理（收款）"
+    },
+    "after": {
+      "mainScrollTop": 361,
+      "originalHeaderTop": -53,
+      "hostDisplay": "block",
+      "hostHeight": 41,
+      "viewportExists": true,
+      "viewportTop": 0,
+      "cloneHeaderTop": 0
+    },
+    "screenshots": {
+      "top": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/receivables-top.png",
+      "scrolled": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/receivables-scrolled.png"
+    }
+  },
+  {
+    "path": "/dashboard/reports",
+    "key": "reports",
+    "title": "報表功能",
+    "status": "original-header-still-visible",
+    "before": {
+      "hasTable": true,
+      "mainScrollTop": 0,
+      "mainScrollHeight": 1097,
+      "mainClientHeight": 520,
+      "originalHeaderTop": 452,
+      "rowCount": 12,
+      "title": "報表功能"
+    },
+    "after": {
+      "mainScrollTop": 320,
+      "originalHeaderTop": 132,
+      "hostDisplay": "none",
+      "hostHeight": 0,
+      "viewportExists": false,
+      "viewportTop": null,
+      "cloneHeaderTop": null
+    },
+    "screenshots": {
+      "top": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/reports-top.png",
+      "scrolled": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/reports-scrolled.png"
+    }
+  },
+  {
+    "path": "/dashboard/profit-tracking",
+    "key": "profit-tracking",
+    "title": "系統總覽",
+    "status": "no-table",
+    "before": {
+      "hasTable": false,
+      "mainScrollTop": 0,
+      "mainScrollHeight": 663,
+      "mainClientHeight": 520,
+      "originalHeaderTop": null,
+      "rowCount": 0,
+      "title": "系統總覽"
+    },
+    "after": {
+      "mainScrollTop": 143,
+      "originalHeaderTop": null,
+      "hostDisplay": "none",
+      "hostHeight": 0,
+      "viewportExists": false,
+      "viewportTop": null,
+      "cloneHeaderTop": null
+    },
+    "screenshots": {
+      "top": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/profit-tracking-top.png",
+      "scrolled": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/profit-tracking-scrolled.png"
+    }
+  },
+  {
+    "path": "/dashboard/quotations",
+    "key": "quotations",
+    "title": "報價單",
+    "status": "original-header-still-visible",
+    "before": {
+      "hasTable": true,
+      "mainScrollTop": 0,
+      "mainScrollHeight": 591,
+      "mainClientHeight": 520,
+      "originalHeaderTop": 153,
+      "rowCount": 6,
+      "title": "報價單"
+    },
+    "after": {
+      "mainScrollTop": 71,
+      "originalHeaderTop": 82,
+      "hostDisplay": "none",
+      "hostHeight": 0,
+      "viewportExists": false,
+      "viewportTop": null,
+      "cloneHeaderTop": null
+    },
+    "screenshots": {
+      "top": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/quotations-top.png",
+      "scrolled": "/Users/leo_w/Workspace/codes/ern-projects/oms-instance-v2/tmp-oms-table-audit/quotations-scrolled.png"
+    }
+  }
+]
