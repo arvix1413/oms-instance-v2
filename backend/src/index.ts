@@ -1363,7 +1363,7 @@ app.patch('/api/po/:id/approve', authMiddleware, requirePerm('po.approve'), asyn
 app.patch('/api/po/:id/status', authMiddleware, async c => {
   try {
     const id = c.req.param('id'); const { status } = await c.req.json(); const user = c.get('user')
-    const validStatuses = ['pending_review', 'draft', 'approved', 'sent', 'cancelled']
+    const validStatuses = ['pending_review', 'approved', 'sent', 'cancelled']
     if (!validStatuses.includes(status)) return c.json({ error: 'Invalid status' }, 400)
     const row = await queryOne<any>('SELECT po_number,supplier_name,status,total_amount,currency FROM purchase_orders WHERE id=? AND deleted_at IS NULL', [id])
     if (!row) return c.json({ error: 'Not found' }, 404)
@@ -1372,10 +1372,6 @@ app.patch('/api/po/:id/status', authMiddleware, async c => {
       // 任何有 create 權限的人可以提交審核，只有 draft 可以提交
       if (!await hasPermission(user, 'po.create')) return c.json({ error: '無此操作權限（po.create）' }, 403)
       if (row.status !== 'draft') return c.json({ error: '只有草稿狀態的採購單才能送審' }, 400)
-    } else if (status === 'draft') {
-      // 退回草稿（撤回提交）
-      if (!await hasPermission(user, 'po.create')) return c.json({ error: '無此操作權限（po.create）' }, 403)
-      if (row.status !== 'pending_review') return c.json({ error: '只有審核中狀態的採購單才能退回草稿' }, 400)
     } else if (status === 'approved') {
       if (!await hasPermission(user, 'po.approve')) return c.json({ error: '無此操作權限（po.approve）' }, 403)
       if (row.status !== 'pending_review') return c.json({ error: '只有審核中狀態的採購單才能審核通過' }, 400)
@@ -2107,7 +2103,7 @@ app.put('/api/quotations/:id', authMiddleware, requirePerm('customer_order.creat
 app.patch('/api/quotations/:id/status', authMiddleware, async c => {
   try {
     const id = c.req.param('id'); const { status } = await c.req.json(); const user = c.get('user')
-    const validStatuses = ['pending_review', 'draft', 'approved', 'sent', 'accepted', 'rejected']
+    const validStatuses = ['pending_review', 'approved', 'sent', 'accepted', 'rejected']
     if (!validStatuses.includes(status)) return c.json({ error: 'Invalid status' }, 400)
     const row = await queryOne<any>('SELECT quotation_number,customer_name,status,total_amount,currency FROM quotations WHERE id=? AND deleted_at IS NULL', [id])
     if (!row) return c.json({ error: 'Not found' }, 404)
@@ -2116,10 +2112,6 @@ app.patch('/api/quotations/:id/status', authMiddleware, async c => {
       // 任何有 create 權限的人可以提交審核，只有 draft 可以提交
       if (!await hasPermission(user, 'customer_order.create')) return c.json({ error: '無此操作權限（customer_order.create）' }, 403)
       if (row.status !== 'draft') return c.json({ error: '只有草稿狀態的報價單才能送審' }, 400)
-    } else if (status === 'draft') {
-      // 退回草稿（撤回提交）
-      if (!await hasPermission(user, 'customer_order.create')) return c.json({ error: '無此操作權限（customer_order.create）' }, 403)
-      if (row.status !== 'pending_review') return c.json({ error: '只有審核中狀態的報價單才能退回草稿' }, 400)
     } else if (status === 'approved') {
       if (!await hasPermission(user, 'quotation.approve')) return c.json({ error: '無此操作權限（quotation.approve）' }, 403)
       if (row.status !== 'pending_review') return c.json({ error: '只有審核中狀態的報價單才能審核通過' }, 400)
