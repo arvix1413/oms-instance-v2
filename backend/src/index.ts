@@ -1371,14 +1371,14 @@ app.patch('/api/po/:id/status', authMiddleware, async c => {
     if (status === 'pending_review') {
       // 任何有 create 權限的人可以提交審核，只有 draft 可以提交
       if (!await hasPermission(user, 'po.create')) return c.json({ error: '無此操作權限（po.create）' }, 403)
-      if (row.status !== 'draft') return c.json({ error: '只有草稿狀態的採購單才能提交審核' }, 400)
+      if (row.status !== 'draft') return c.json({ error: '只有草稿狀態的採購單才能送審' }, 400)
     } else if (status === 'draft') {
       // 退回草稿（撤回提交）
       if (!await hasPermission(user, 'po.create')) return c.json({ error: '無此操作權限（po.create）' }, 403)
-      if (row.status !== 'pending_review') return c.json({ error: '只有待審核狀態的採購單才能退回草稿' }, 400)
+      if (row.status !== 'pending_review') return c.json({ error: '只有審核中狀態的採購單才能退回草稿' }, 400)
     } else if (status === 'approved') {
       if (!await hasPermission(user, 'po.approve')) return c.json({ error: '無此操作權限（po.approve）' }, 403)
-      if (row.status !== 'pending_review') return c.json({ error: '只有待審核狀態的採購單才能審核通過' }, 400)
+      if (row.status !== 'pending_review') return c.json({ error: '只有審核中狀態的採購單才能審核通過' }, 400)
     } else if (status === 'sent') {
       if (!await hasPermission(user, 'po.create')) return c.json({ error: '無此操作權限（po.create）' }, 403)
       if (row.status !== 'approved') return c.json({ error: '只有已審核的採購單才能送出' }, 400)
@@ -2115,14 +2115,14 @@ app.patch('/api/quotations/:id/status', authMiddleware, async c => {
     if (status === 'pending_review') {
       // 任何有 create 權限的人可以提交審核，只有 draft 可以提交
       if (!await hasPermission(user, 'customer_order.create')) return c.json({ error: '無此操作權限（customer_order.create）' }, 403)
-      if (row.status !== 'draft') return c.json({ error: '只有草稿狀態的報價單才能提交審核' }, 400)
+      if (row.status !== 'draft') return c.json({ error: '只有草稿狀態的報價單才能送審' }, 400)
     } else if (status === 'draft') {
       // 退回草稿（撤回提交）
       if (!await hasPermission(user, 'customer_order.create')) return c.json({ error: '無此操作權限（customer_order.create）' }, 403)
-      if (row.status !== 'pending_review') return c.json({ error: '只有待審核狀態的報價單才能退回草稿' }, 400)
+      if (row.status !== 'pending_review') return c.json({ error: '只有審核中狀態的報價單才能退回草稿' }, 400)
     } else if (status === 'approved') {
       if (!await hasPermission(user, 'quotation.approve')) return c.json({ error: '無此操作權限（quotation.approve）' }, 403)
-      if (row.status !== 'pending_review') return c.json({ error: '只有待審核狀態的報價單才能審核通過' }, 400)
+      if (row.status !== 'pending_review') return c.json({ error: '只有審核中狀態的報價單才能審核通過' }, 400)
     } else if (status === 'sent') {
       if (!await hasPermission(user, 'customer_order.create')) return c.json({ error: '無此操作權限（customer_order.create）' }, 403)
       if (row.status !== 'approved') return c.json({ error: '只有已審核的報價單才能送出' }, 400)
