@@ -2323,43 +2323,41 @@ app.patch('/api/delivery-notes/:id/status', authMiddleware, requirePerm('deliver
   try {
     const id = c.req.param('id'); const { status } = await c.req.json()
     const u = c.get('user')
-    const row = await queryOne<any>('SELECT dn_number,customer_name,status as current_status FROM delivery_notes WHERE id=? AND deleted_at IS NULL', [id])
-    if (!row) return c.json({ error: 'Not found' }, 404)
-    if (row.current_status === 'shipped') return c.json({ error: '此出貨單已出貨，不可重複操作' }, 400)
-    if (status === 'shipped' && row.current_status !== 'confirmed') return c.json({ error: '出貨前需先確認出貨單' }, 400)
+    const row = await withTransaction(async tx => {
+      const lockedDn = await tx.queryOne<any>('SELECT dn_number,customer_name,customer_order_id,status as current_status FROM delivery_notes WHERE id=? AND deleted_at IS NULL FOR UPDATE', [id])
+      if (!lockedDn) throw Object.assign(new Error('Not found'), { status: 404 })
+      if (lockedDn.current_status === 'shipped') throw Object.assign(new Error('此出貨單已出貨，不可重複操作'), { status: 400 })
+      if (status === 'shipped' && lockedDn.current_status !== 'confirmed') throw Object.assign(new Error('出貨前需先確認出貨單'), { status: 400 })
 
-    // When shipped: deduct stock from BOM
-    if (status === 'shipped') {
-      const items = await query<any>('SELECT * FROM delivery_note_items WHERE dn_id=?', [id])
-      for (const item of items) {
-        if (!item.bom_id) continue
-        const qty = parseFloat(item.qty) || 0
-        const bom = await queryOne<any>('SELECT id, product_sku, product_name, unit, current_stock FROM bom WHERE id=?', [item.bom_id])
-        const before = parseFloat(bom?.current_stock) || 0
-        const after = Math.max(0, before - qty)
-        if (bom) {
-          await execute('UPDATE bom SET current_stock=? WHERE id=?', [after, item.bom_id])
+      if (status === 'shipped') {
+        const items = await tx.query<any>('SELECT * FROM delivery_note_items WHERE dn_id=?', [id])
+        for (const item of items) {
+          if (!item.bom_id) continue
+          const qty = parseFloat(item.qty) || 0
+          const bom = await tx.queryOne<any>('SELECT id, product_sku, product_name, unit, current_stock FROM bom WHERE id=? FOR UPDATE', [item.bom_id])
+          if (!bom) throw Object.assign(new Error(`找不到出貨材料：${item.material_code || item.bom_id}`), { status: 400 })
+          const before = parseFloat(bom.current_stock) || 0
+          if (before + 0.0001 < qty) throw Object.assign(new Error(`材料 ${bom.product_sku} 庫存不足：需要 ${qty}，現有 ${before}`), { status: 400 })
+          const after = before - qty
+          await tx.execute('UPDATE bom SET current_stock=? WHERE id=?', [after, item.bom_id])
+          await tx.execute(
+            'INSERT INTO stock_ledger (material_code,material_name,transaction_type,ref_type,ref_id,ref_number,qty_change,qty_before,qty_after,unit,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+            [bom.product_sku || item.material_code, bom.product_name || '', 'DN_OUT', 'delivery_note', id, lockedDn.dn_number, -qty, before, after, bom.unit || 'PCS', `出貨 ${lockedDn.dn_number}`, u.userId, now8()]
+          )
         }
-        await execute(
-          'INSERT INTO stock_ledger (material_code,material_name,transaction_type,ref_type,ref_id,ref_number,qty_change,qty_before,qty_after,unit,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
-          [bom?.product_sku || item.material_code, bom?.product_name || '', 'DN_OUT', 'delivery_note', id, row.dn_number, -qty, before, after, bom?.unit || 'PCS', `出貨 ${row.dn_number}`, u.userId, now8()]
-        )
       }
-    }
+      await tx.execute('UPDATE delivery_notes SET status=? WHERE id=?', [status, id])
+      return lockedDn
+    })
 
-    await execute('UPDATE delivery_notes SET status=? WHERE id=?', [status, id])
-
-    if (status === 'shipped') {
-      const dn = await queryOne<any>('SELECT customer_order_id FROM delivery_notes WHERE id=? AND deleted_at IS NULL', [id])
-      if (dn?.customer_order_id) {
-        await syncCustomerOrderArrivedFromShippedDns(Number(dn.customer_order_id))
-        await audit(u, 'AUTO_UPDATE', '客戶訂單', dn.customer_order_id, '出貨後依 order_item_id 自動回寫數量')
+    if (status === 'shipped' && row.customer_order_id) {
+      await syncCustomerOrderArrivedFromShippedDns(Number(row.customer_order_id))
+      await audit(u, 'AUTO_UPDATE', '客戶訂單', row.customer_order_id, '出貨後依 order_item_id 自動回寫數量')
       }
-    }
 
     await audit(u, 'STATUS_CHANGE', '出貨單', id, `${row.dn_number} → ${status}`)
     return c.json({ ok: true })
-  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+  } catch (e: any) { return c.json({ error: String(e.message) }, e.status || 500) }
 })
 app.delete('/api/delivery-notes/:id', authMiddleware, requirePerm('delivery.delete'), async c => {
   const id = c.req.param('id')
@@ -2915,34 +2913,38 @@ app.patch('/api/production/:id/status', authMiddleware, requirePerm('production.
     const id = c.req.param('id'); const { status, produced_qty } = await c.req.json(); const u = c.get('user')
     const validStatuses = ['confirmed', 'shortage', 'ready', 'in_progress', 'completed', 'cancelled']
     if (!validStatuses.includes(status)) return c.json({ error: 'Invalid status' }, 400)
-    const prod = await queryOne<any>('SELECT * FROM production_orders WHERE id=? AND deleted_at IS NULL', [id])
-    if (!prod) return c.json({ error: 'Not found' }, 404)
-    if (prod.status === 'completed') return c.json({ error: '已完工的生產單不能再變更狀態' }, 400)
-    const updates: any = { status }
-    if (status === 'in_progress' && !prod.actual_start) updates.actual_start = now8().slice(0,10)
-    if (status === 'completed') {
-      updates.actual_end = now8().slice(0,10)
-      if (produced_qty) updates.produced_qty = produced_qty
-      // Issue materials from stock only on completion
-      const mats = await query<any>('SELECT * FROM production_materials WHERE prod_id=?', [id])
-      for (const mat of mats) {
-        const qty = parseFloat(mat.issued_qty) > 0 ? parseFloat(mat.issued_qty) : parseFloat(mat.planned_qty) || 0
-        const bom = await queryOne<any>('SELECT current_stock FROM bom WHERE product_sku=?', [mat.material_code])
-        const before = parseFloat(bom?.current_stock) || 0
-        const after = Math.max(0, before - qty)
-        await execute('UPDATE bom SET current_stock=? WHERE product_sku=?', [after, mat.material_code])
-        await execute('UPDATE production_materials SET issued_qty=? WHERE id=?', [qty, mat.id])
-        await execute(
-          'INSERT INTO stock_ledger (material_code,material_name,transaction_type,ref_type,ref_id,ref_number,qty_change,qty_before,qty_after,unit,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
-          [mat.material_code,mat.material_name,'PROD_OUT','production',id,prod.prod_number,-qty,before,after,mat.unit||'PCS',`生產領料 ${prod.prod_number}`,u.userId,now8()]
-        )
+    const prod = await withTransaction(async tx => {
+      const lockedProd = await tx.queryOne<any>('SELECT * FROM production_orders WHERE id=? AND deleted_at IS NULL FOR UPDATE', [id])
+      if (!lockedProd) throw Object.assign(new Error('Not found'), { status: 404 })
+      if (lockedProd.status === 'completed') throw Object.assign(new Error('已完工的生產單不能再變更狀態'), { status: 400 })
+      const updates: any = { status }
+      if (status === 'in_progress' && !lockedProd.actual_start) updates.actual_start = now8().slice(0,10)
+      if (status === 'completed') {
+        updates.actual_end = now8().slice(0,10)
+        if (produced_qty !== undefined && produced_qty !== null) updates.produced_qty = produced_qty
+        const mats = await tx.query<any>('SELECT * FROM production_materials WHERE prod_id=?', [id])
+        for (const mat of mats) {
+          const qty = parseFloat(mat.issued_qty) > 0 ? parseFloat(mat.issued_qty) : parseFloat(mat.planned_qty) || 0
+          const bom = await tx.queryOne<any>('SELECT id, current_stock FROM bom WHERE product_sku=? FOR UPDATE', [mat.material_code])
+          if (!bom) throw Object.assign(new Error(`找不到生產材料：${mat.material_code}`), { status: 400 })
+          const before = parseFloat(bom.current_stock) || 0
+          if (before + 0.0001 < qty) throw Object.assign(new Error(`材料 ${mat.material_code} 庫存不足：需要 ${qty}，現有 ${before}`), { status: 400 })
+          const after = before - qty
+          await tx.execute('UPDATE bom SET current_stock=? WHERE id=?', [after, bom.id])
+          await tx.execute('UPDATE production_materials SET issued_qty=? WHERE id=?', [qty, mat.id])
+          await tx.execute(
+            'INSERT INTO stock_ledger (material_code,material_name,transaction_type,ref_type,ref_id,ref_number,qty_change,qty_before,qty_after,unit,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+            [mat.material_code,mat.material_name,'PROD_OUT','production',id,lockedProd.prod_number,-qty,before,after,mat.unit||'PCS',`生產領料 ${lockedProd.prod_number}`,u.userId,now8()]
+          )
+        }
       }
-    }
-    const setClause = Object.keys(updates).map(k => `${k}=?`).join(',')
-    await execute(`UPDATE production_orders SET ${setClause} WHERE id=?`, [...Object.values(updates), id])
+      const setClause = Object.keys(updates).map(k => `${k}=?`).join(',')
+      await tx.execute(`UPDATE production_orders SET ${setClause} WHERE id=?`, [...Object.values(updates), id])
+      return lockedProd
+    })
     await audit(u, 'STATUS_CHANGE', '生產單', id, `${prod.prod_number} → ${status}`)
     return c.json({ ok: true })
-  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+  } catch (e: any) { return c.json({ error: String(e.message) }, e.status || 500) }
 })
 app.delete('/api/production/:id', authMiddleware, requirePerm('production.delete'), async c => {
   const id = c.req.param('id')
