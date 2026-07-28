@@ -43,6 +43,7 @@ type ProfitOrderSummary = {
   revenue: number
   cogs: number
   gross_profit: number
+  cost_rate: number
   operating_cost: number
   sales_tax: number
   income_tax: number
@@ -575,19 +576,19 @@ export default function CustomerOrdersPage() {
                                 <div className="px-4 py-3 border-b border-blue-200 bg-blue-100/60">
                                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[11px]">
                                     <div><span className="text-slate-400">營收</span><div className="font-semibold text-slate-700">{money(profit.revenue)}</div></div>
-                                    <div><span className="text-slate-400">成本</span><div className="font-semibold text-slate-700">{money(profit.cogs)}</div></div>
+                                    <div><span className="text-slate-400">採購金額</span><div className="font-semibold text-slate-700">{money(profit.cogs)}</div></div>
                                     <div><span className="text-slate-400">毛利</span><div className="font-semibold text-slate-700">{money(profit.gross_profit)}</div></div>
                                     <div><span className="text-slate-400">營運成本</span><div className="font-semibold text-slate-700">{money(profit.operating_cost)}</div></div>
                                     <div><span className="text-slate-400">VAT</span><div className="font-semibold text-slate-700">{money(profit.sales_tax)}</div></div>
-                                    <div><span className="text-slate-400">CIT</span><div className="font-semibold text-slate-700">{money(profit.income_tax)}</div></div>
+                                    <div><span className="text-slate-400">成本率</span><div className={`font-semibold ${(profit.cost_rate || 0) <= 100 ? 'text-emerald-600' : 'text-red-500'}`}>{Number(profit.cost_rate || 0).toFixed(2)}%</div></div>
                                     <div><span className="text-slate-400">手動調整</span><div className="font-semibold text-slate-700">{money(profit.manual_adjustment)}</div></div>
                                     <div><span className="text-slate-400">淨利率</span><div className={`font-semibold ${(profit.net_margin || 0) >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{Number(profit.net_margin || 0).toFixed(2)}%</div></div>
                                   </div>
                                   <div className="mt-2 text-[11px] text-slate-500">
-                                    淨利 = 毛利 - 營運成本 - VAT - CIT + 手動調整
+                                    成本率 = 採購金額 ÷ 訂單營收 × 100%；淨利仍包含系統設定的稅費與手動調整
                                   </div>
                                   <div className="mt-1 text-[10px] text-slate-400">
-                                    VAT/CIT 以毛利計；營運成本以稅後毛利計
+                                    採購金額依材料的供應商單價計算，訂單營收依本筆訂單實際售價計算
                                   </div>
                                 </div>
                               )}

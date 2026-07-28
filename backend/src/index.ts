@@ -1720,7 +1720,7 @@ app.get('/api/profit-tracking/orders', authMiddleware, requireManager, async c =
     const itemSums = await query<any>(`
       SELECT ci.order_id,
              COALESCE(SUM(ci.qty * ci.unit_price), 0) as revenue,
-             COALESCE(SUM(ci.qty * COALESCE(b.company_price, b.supplier_price, 0)), 0) as cogs
+             COALESCE(SUM(ci.qty * COALESCE(b.supplier_price, 0)), 0) as cogs
       FROM customer_order_items ci
       LEFT JOIN bom b ON b.id = ci.bom_id
       WHERE ci.order_id IN (${idPlaceholders})
@@ -1752,6 +1752,7 @@ app.get('/api/profit-tracking/orders', authMiddleware, requireManager, async c =
       const income_tax = toAmount(entry.income_tax)
       const manual_adjustment = toAmount(entry.manual_adjustment)
       const gross_profit = toAmount(revenue - cogs)
+      const cost_rate = calcMargin(cogs, revenue)
       const net_profit = toAmount(gross_profit - operating_cost - sales_tax - income_tax + manual_adjustment)
       const net_margin = calcMargin(net_profit, revenue)
       return {
@@ -1759,6 +1760,7 @@ app.get('/api/profit-tracking/orders', authMiddleware, requireManager, async c =
         revenue,
         cogs,
         gross_profit,
+        cost_rate,
         operating_cost,
         sales_tax,
         income_tax,
@@ -1790,7 +1792,7 @@ app.get('/api/profit-tracking/orders/:id', authMiddleware, requireManager, async
     const items = await query<any>(`
       SELECT ci.id, ci.bom_id, ci.qty, ci.unit_price, ci.remark,
              b.product_sku, b.product_name, b.spec, b.unit,
-             COALESCE(b.company_price, b.supplier_price, 0) as standard_cost
+             COALESCE(b.supplier_price, 0) as standard_cost
       FROM customer_order_items ci
       LEFT JOIN bom b ON b.id = ci.bom_id
       WHERE ci.order_id=?
@@ -1856,6 +1858,7 @@ app.get('/api/profit-tracking/orders/:id', authMiddleware, requireManager, async
         revenue,
         cogs,
         gross_profit,
+        cost_rate: calcMargin(cogs, revenue),
         operating_cost: entryTotals.operating_cost,
         sales_tax: entryTotals.sales_tax,
         income_tax: entryTotals.income_tax,
@@ -1913,7 +1916,7 @@ app.post('/api/profit-tracking/orders/:id/apply-rates', authMiddleware, requireM
     const row = await queryOne<any>(`
       SELECT
         COALESCE(SUM(ci.qty * ci.unit_price), 0) as revenue,
-        COALESCE(SUM(ci.qty * COALESCE(b.company_price, b.supplier_price, 0)), 0) as cogs
+        COALESCE(SUM(ci.qty * COALESCE(b.supplier_price, 0)), 0) as cogs
       FROM customer_order_items ci
       LEFT JOIN bom b ON b.id = ci.bom_id
       WHERE ci.order_id=?
