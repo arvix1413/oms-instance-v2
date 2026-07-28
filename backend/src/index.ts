@@ -1,7 +1,7 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { query, queryOne, execute } from './db'
+import { query, queryOne, execute, withTransaction } from './db'
 import { hashPw, signJwt, verifyJwt, now8 } from './auth'
 import { sendNotificationEmail, buildPendingApprovalEmail } from './mailer'
 import fs from 'fs'
@@ -1426,29 +1426,30 @@ app.delete('/api/po/:id', authMiddleware, requirePerm('po.delete'), async c => {
 app.patch('/api/po/:id/receive', authMiddleware, requirePerm('po.approve'), async c => {
   try {
     const id = c.req.param('id'); const u = c.get('user')
-    const po = await queryOne<any>('SELECT * FROM purchase_orders WHERE id=? AND deleted_at IS NULL', [id])
-    if (!po) return c.json({ error: 'Not found' }, 404)
-    if (po.status === 'received') return c.json({ error: '此採購單已收貨，不可重複操作' }, 400)
-    if (!['approved', 'sent'].includes(po.status)) return c.json({ error: '只有已審核或已送出的採購單才能收貨' }, 400)
-    const items = await query<any>('SELECT * FROM po_items WHERE po_id=?', [id])
-    for (const item of items) {
-      const qty = parseFloat(item.quantity) || 0
-      const bom = await queryOne<any>('SELECT id, current_stock FROM bom WHERE product_sku=?', [item.material_code])
-      const before = parseFloat(bom?.current_stock) || 0
-      const after = before + qty
-      if (bom) {
-        await execute('UPDATE bom SET current_stock=? WHERE product_sku=?', [after, item.material_code])
+    const po = await withTransaction(async tx => {
+      const lockedPo = await tx.queryOne<any>('SELECT * FROM purchase_orders WHERE id=? AND deleted_at IS NULL FOR UPDATE', [id])
+      if (!lockedPo) throw Object.assign(new Error('Not found'), { status: 404 })
+      if (lockedPo.status === 'received') throw Object.assign(new Error('此採購單已收貨，不可重複操作'), { status: 400 })
+      if (!['approved', 'sent'].includes(lockedPo.status)) throw Object.assign(new Error('只有已審核或已送出的採購單才能收貨'), { status: 400 })
+      const items = await tx.query<any>('SELECT * FROM po_items WHERE po_id=?', [id])
+      for (const item of items) {
+        const qty = parseFloat(item.quantity) || 0
+        const bom = await tx.queryOne<any>('SELECT id, current_stock FROM bom WHERE product_sku=? FOR UPDATE', [item.material_code])
+        const before = parseFloat(bom?.current_stock) || 0
+        const after = before + qty
+        if (bom) await tx.execute('UPDATE bom SET current_stock=? WHERE id=?', [after, bom.id])
+        await tx.execute(
+          'INSERT INTO stock_ledger (material_code,material_name,transaction_type,ref_type,ref_id,ref_number,qty_change,qty_before,qty_after,unit,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          [item.material_code, item.material_name, 'GR_IN', 'purchase_order', id, lockedPo.po_number, qty, before, after, item.unit||'PCS', `採購收貨 ${lockedPo.po_number}`, u.userId, now8()]
+        )
+        await tx.execute('UPDATE po_items SET received_qty=? WHERE id=?', [qty, item.id])
       }
-      await execute(
-        'INSERT INTO stock_ledger (material_code,material_name,transaction_type,ref_type,ref_id,ref_number,qty_change,qty_before,qty_after,unit,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
-        [item.material_code, item.material_name, 'GR_IN', 'purchase_order', id, po.po_number, qty, before, after, item.unit||'PCS', `採購收貨 ${po.po_number}`, u.userId, now8()]
-      )
-      await execute('UPDATE po_items SET received_qty=? WHERE id=?', [qty, item.id])
-    }
-    await execute('UPDATE purchase_orders SET status=? WHERE id=?', ['received', id])
+      await tx.execute('UPDATE purchase_orders SET status=? WHERE id=?', ['received', id])
+      return lockedPo
+    })
     await audit(u, 'RECEIVE', '採購單', id, `${po.po_number} 收貨完成，庫存已更新`)
     return c.json({ ok: true })
-  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+  } catch (e: any) { return c.json({ error: String(e.message) }, e.status || 500) }
 })
 
 // ── Customer Orders ───────────────────────────────────────────────────────────
@@ -2794,32 +2795,29 @@ app.post('/api/goods-receipts', authMiddleware, requirePerm('po.create'), async 
 app.patch('/api/goods-receipts/:id/confirm', authMiddleware, requirePerm('po.approve'), async c => {
   try {
     const id = c.req.param('id'); const u = c.get('user')
-    const gr = await queryOne<any>('SELECT * FROM goods_receipts WHERE id=? AND deleted_at IS NULL', [id])
-    if (!gr) return c.json({ error: 'Not found' }, 404)
-    if (gr.status === 'confirmed') return c.json({ error: 'Already confirmed' }, 400)
-    const items = await query<any>('SELECT * FROM goods_receipt_items WHERE gr_id=?', [id])
-    // Update stock for each item
-    for (const item of items) {
-      const bom = item.bom_id ? await queryOne<any>('SELECT id, product_sku, product_name, unit, current_stock FROM bom WHERE id=?', [item.bom_id]) : null
-      const before = parseFloat(bom?.current_stock) || 0
-      const after = before + parseFloat(item.received_qty)
-      if (bom) {
-        await execute('UPDATE bom SET current_stock=? WHERE id=?', [after, item.bom_id])
+    const gr = await withTransaction(async tx => {
+      const lockedGr = await tx.queryOne<any>('SELECT * FROM goods_receipts WHERE id=? AND deleted_at IS NULL FOR UPDATE', [id])
+      if (!lockedGr) throw Object.assign(new Error('Not found'), { status: 404 })
+      if (lockedGr.status === 'confirmed') throw Object.assign(new Error('Already confirmed'), { status: 400 })
+      const items = await tx.query<any>('SELECT * FROM goods_receipt_items WHERE gr_id=?', [id])
+      for (const item of items) {
+        const bom = item.bom_id ? await tx.queryOne<any>('SELECT id, product_sku, product_name, unit, current_stock FROM bom WHERE id=? FOR UPDATE', [item.bom_id]) : null
+        const before = parseFloat(bom?.current_stock) || 0
+        const qty = parseFloat(item.received_qty) || 0
+        const after = before + qty
+        if (bom) await tx.execute('UPDATE bom SET current_stock=? WHERE id=?', [after, item.bom_id])
+        await tx.execute(
+          'INSERT INTO stock_ledger (material_code,material_name,transaction_type,ref_type,ref_id,ref_number,qty_change,qty_before,qty_after,unit,batch_no,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          [bom?.product_sku || item.material_code,bom?.product_name || item.material_name,'GR_IN','goods_receipt',id,lockedGr.gr_number,qty,before,after,bom?.unit || item.unit || 'PCS',item.batch_no||'',`進貨確認 ${lockedGr.gr_number}`,u.userId,now8()]
+        )
+        if (item.po_item_id) await tx.execute('UPDATE po_items SET received_qty = received_qty + ? WHERE id=?', [qty, item.po_item_id])
       }
-      // Write stock ledger
-      await execute(
-        'INSERT INTO stock_ledger (material_code,material_name,transaction_type,ref_type,ref_id,ref_number,qty_change,qty_before,qty_after,unit,batch_no,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-        [bom?.product_sku || item.material_code,bom?.product_name || item.material_name,'GR_IN','goods_receipt',id,gr.gr_number,item.received_qty,before,after,bom?.unit || item.unit || 'PCS',item.batch_no||'',`進貨確認 ${gr.gr_number}`,u.userId,now8()]
-      )
-      // Update po_item received_qty if linked
-      if (item.po_item_id) {
-        await execute('UPDATE po_items SET received_qty = received_qty + ? WHERE id=?', [item.received_qty, item.po_item_id])
-      }
-    }
-    await execute('UPDATE goods_receipts SET status=? WHERE id=?', ['confirmed', id])
+      await tx.execute('UPDATE goods_receipts SET status=? WHERE id=?', ['confirmed', id])
+      return lockedGr
+    })
     await audit(u, 'CONFIRM', '進貨單', id, gr.gr_number)
     return c.json({ ok: true })
-  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+  } catch (e: any) { return c.json({ error: String(e.message) }, e.status || 500) }
 })
 app.delete('/api/goods-receipts/:id', authMiddleware, requirePerm('po.delete'), async c => {
   const id = c.req.param('id')
@@ -3007,26 +3005,31 @@ app.post('/api/stock-adjustments', authMiddleware, requirePerm('stock.adjust'), 
 app.patch('/api/stock-adjustments/:id/approve', authMiddleware, requirePerm('stock.adjust'), async c => {
   try {
     const id = c.req.param('id'); const u = c.get('user')
-    const adj = await queryOne<any>('SELECT * FROM stock_adjustments WHERE id=? AND deleted_at IS NULL', [id])
-    if (!adj) return c.json({ error: 'Not found' }, 404)
-    if (adj.status === 'approved') return c.json({ error: 'Already approved' }, 400)
-    const items = await query<any>('SELECT * FROM stock_adjustment_items WHERE adj_id=?', [id])
-    for (const item of items) {
-      if (item.diff_qty === 0) continue
-      const bom = await queryOne<any>('SELECT current_stock FROM bom WHERE product_sku=?', [item.material_code])
-      const before = parseFloat(bom?.current_stock) || 0
-      const after = item.actual_qty
-      await execute('UPDATE bom SET current_stock=? WHERE product_sku=?', [after, item.material_code])
-      const txType = item.diff_qty > 0 ? 'ADJ_IN' : 'ADJ_OUT'
-      await execute(
-        'INSERT INTO stock_ledger (material_code,material_name,transaction_type,ref_type,ref_id,ref_number,qty_change,qty_before,qty_after,unit,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
-        [item.material_code,item.material_name,txType,'adjustment',id,adj.adj_number,item.diff_qty,before,after,item.unit||'PCS',`庫存調整 ${adj.adj_number}`,u.userId,now8()]
-      )
-    }
-    await execute('UPDATE stock_adjustments SET status=?,approved_by=?,approved_at=? WHERE id=?', ['approved',u.userId,now8(),id])
+    const adj = await withTransaction(async tx => {
+      const lockedAdj = await tx.queryOne<any>('SELECT * FROM stock_adjustments WHERE id=? AND deleted_at IS NULL FOR UPDATE', [id])
+      if (!lockedAdj) throw Object.assign(new Error('Not found'), { status: 404 })
+      if (lockedAdj.status === 'approved') throw Object.assign(new Error('Already approved'), { status: 400 })
+      const items = await tx.query<any>('SELECT * FROM stock_adjustment_items WHERE adj_id=?', [id])
+      for (const item of items) {
+        const bom = await tx.queryOne<any>('SELECT id, current_stock FROM bom WHERE product_sku=? FOR UPDATE', [item.material_code])
+        if (!bom) throw Object.assign(new Error(`找不到材料：${item.material_code}`), { status: 400 })
+        const before = parseFloat(bom.current_stock) || 0
+        const after = parseFloat(item.actual_qty) || 0
+        const diff = after - before
+        if (Math.abs(diff) < 0.0001) continue
+        await tx.execute('UPDATE bom SET current_stock=? WHERE id=?', [after, bom.id])
+        const txType = diff > 0 ? 'ADJ_IN' : 'ADJ_OUT'
+        await tx.execute(
+          'INSERT INTO stock_ledger (material_code,material_name,transaction_type,ref_type,ref_id,ref_number,qty_change,qty_before,qty_after,unit,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          [item.material_code,item.material_name,txType,'adjustment',id,lockedAdj.adj_number,diff,before,after,item.unit||'PCS',`庫存調整 ${lockedAdj.adj_number}`,u.userId,now8()]
+        )
+      }
+      await tx.execute('UPDATE stock_adjustments SET status=?,approved_by=?,approved_at=? WHERE id=?', ['approved',u.userId,now8(),id])
+      return lockedAdj
+    })
     await audit(u, 'APPROVE', '庫存調整', id, adj.adj_number)
     return c.json({ ok: true })
-  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+  } catch (e: any) { return c.json({ error: String(e.message) }, e.status || 500) }
 })
 app.delete('/api/stock-adjustments/:id', authMiddleware, requirePerm('stock.adjust'), async c => {
   const id = c.req.param('id')
