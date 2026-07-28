@@ -16,7 +16,7 @@ type Bom = {
   currency:string; category:string; version:string; status:string; created_at:string
   cert_code:string; brand:string; image_url:string; moq_tiers?: MoqTier[]
 }
-const emptyTier = (): MoqTier => ({ moq: 0, price: 0 })
+const emptyTier = (): MoqTier => ({ moq: 0, supplier_price: 0, price: 0 })
 const emptyTiers = (count = 1): MoqTier[] => Array.from({ length: Math.min(5, Math.max(1, count)) }, emptyTier)
 const ensureTierList = (tiers: any): MoqTier[] => {
   const normalized = normalizeMoqTiers(tiers)
@@ -73,6 +73,11 @@ export default function BomPage() {
       toast('請填寫有效的公司售價（不可為空）', 'error')
       return
     }
+    const activeTiers = normalizeMoqTiers(editing.moq_tiers)
+    if (activeTiers.some(tier => tier.moq <= 0 || (tier.supplier_price || 0) <= 0 || tier.price <= 0)) {
+      toast('每組 MOQ 階梯都必須填寫數量、供應商單價與公司售價', 'error')
+      return
+    }
     try {
       if (editing.id) {
         await apiFetch(`/api/bom/${editing.id}`, { method:'PUT', body:JSON.stringify(editing) })
@@ -101,11 +106,11 @@ export default function BomPage() {
     setEditing(p => ({ ...p, supplier_id: supplierId ? Number(supplierId) : null, supplier_name: sup?.name||'', currency: sup?.currency||'VND' }))
   }
   const formatTiers = (tiers?: MoqTier[]) =>
-    normalizeMoqTiers(tiers).map((tier) => `${formatInteger(tier.moq)}/${formatDecimal(tier.price)}`).join(' | ')
-  const updateTier = (tierIdx:number, field:'moq'|'price', val:number) => {
+    normalizeMoqTiers(tiers).map((tier) => `${formatInteger(tier.moq)} / ${formatDecimal(tier.supplier_price || 0)} / ${formatDecimal(tier.price)}`).join(' | ')
+  const updateTier = (tierIdx:number, field:'moq'|'supplier_price'|'price', val:number) => {
     setEditing(p => {
       const tiers = Array.isArray(p?.moq_tiers) && p.moq_tiers.length ? [...p.moq_tiers] : emptyTiers()
-      tiers[tierIdx] = { ...(tiers[tierIdx] || { moq: 0, price: 0 }), [field]: Math.max(0, Number(val) || 0) }
+      tiers[tierIdx] = { ...(tiers[tierIdx] || emptyTier()), [field]: Math.max(0, Number(val) || 0) }
       return { ...p, moq_tiers: tiers }
     })
   }
@@ -223,12 +228,15 @@ export default function BomPage() {
               </div>
               <div className="col-span-2">
                 <div className="mb-1.5 flex items-center justify-between gap-3">
-                  <label className="block text-[11px] text-slate-500">MOQ 階梯價格（數量 / 單價）</label>
+                  <label className="block text-[11px] text-slate-500">MOQ 階梯價格</label>
                   <button type="button" className="btn-ghost text-blue-600 shrink-0" onClick={addTier} disabled={(editing.moq_tiers || []).length >= 5}>+ 新增 MOQ</button>
                 </div>
-                <div className="rounded-xl border border-slate-200 p-3 space-y-1.5 bg-slate-50/50">
+                <div className="rounded-xl border border-slate-200 p-3 space-y-1.5 bg-slate-50/50 overflow-x-auto">
+                  <div className="grid grid-cols-[26px_minmax(90px,1fr)_minmax(120px,1fr)_minmax(120px,1fr)_100px_32px] gap-2 items-center min-w-[650px] px-0.5 text-[10px] font-medium text-slate-500">
+                    <span></span><span>MOQ 數量</span><span>供應商單價</span><span>公司售價</span><span className="text-right">成本率</span><span></span>
+                  </div>
                   {(editing.moq_tiers || emptyTiers()).map((tier, i) => (
-                    <div key={i} className="grid grid-cols-[26px_1fr_1fr_auto] gap-2 items-center">
+                    <div key={i} className="grid grid-cols-[26px_minmax(90px,1fr)_minmax(120px,1fr)_minmax(120px,1fr)_100px_32px] gap-2 items-center min-w-[650px]">
                       <span className="text-[10px] text-slate-400 text-center">#{i + 1}</span>
                       <DecimalInput
                         className={inp}
@@ -239,10 +247,19 @@ export default function BomPage() {
                       />
                       <DecimalInput
                         className={inp}
-                        placeholder="單價"
+                        placeholder="供應商單價"
+                        value={tier.supplier_price}
+                        onValueChange={value=>updateTier(i, 'supplier_price', value ?? 0)}
+                      />
+                      <DecimalInput
+                        className={inp}
+                        placeholder="公司售價"
                         value={tier.price}
                         onValueChange={value=>updateTier(i, 'price', value ?? 0)}
                       />
+                      <div className="h-10 rounded-lg border border-slate-200 bg-white px-3 flex items-center justify-end text-sm tabular-nums text-slate-600" title="供應商單價 ÷ 公司售價 × 100%">
+                        {tier.price > 0 ? `${(((tier.supplier_price || 0) / tier.price) * 100).toFixed(2)}%` : '—'}
+                      </div>
                       <button
                         type="button"
                         className="text-xs text-slate-400 transition hover:text-red-600 disabled:cursor-not-allowed disabled:text-slate-300"
@@ -254,7 +271,7 @@ export default function BomPage() {
                     </div>
                   ))}
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1">同一物料編號可設定 1 到 5 組 MOQ 對應價格</p>
+                <p className="text-[10px] text-slate-400 mt-1">欄位依序為 MOQ、供應商單價、公司售價、成本率；成本率＝供應商單價 ÷ 公司售價 × 100%</p>
               </div>
               <div>
                 <label className="block text-[11px] text-slate-500 mb-1.5">認證機構代碼</label>

@@ -98,15 +98,16 @@ const pctAmount = (base: number, ratePct: number): number => toAmount(base * (ra
 
 const AUTO_RATE_PREFIX = '【自動比例】'
 
-type MoqTier = { moq: number; price: number }
+type MoqTier = { moq: number; supplier_price: number; price: number }
 const normalizeMoqTiers = (raw: any): MoqTier[] => {
   const src = Array.isArray(raw) ? raw : []
   return src
     .map((row: any) => ({
       moq: Math.max(0, Number(row?.moq) || 0),
+      supplier_price: Math.max(0, Number(row?.supplier_price) || 0),
       price: Math.max(0, Number(row?.price) || 0),
     }))
-    .filter((row: MoqTier) => row.moq > 0 || row.price > 0)
+    .filter((row: MoqTier) => row.moq > 0 || row.supplier_price > 0 || row.price > 0)
     .sort((a: MoqTier, b: MoqTier) => a.moq - b.moq)
 }
 const parseMoqTiersFromDb = (raw: any): MoqTier[] => {

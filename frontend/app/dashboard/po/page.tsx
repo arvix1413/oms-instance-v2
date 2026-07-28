@@ -11,7 +11,7 @@ import { SearchableSelect } from '@/components/SearchableSelect'
 import { can } from '@/lib/usePermissions'
 import { getCompany, getCompanySignatureUrl } from '@/lib/useCompany'
 import { getPrintSignatureConfig } from '@/lib/printSignature'
-import { resolveTierPrice, type MoqTier } from '@/lib/moqPricing'
+import { resolveTierSupplierPrice, type MoqTier } from '@/lib/moqPricing'
 import { SHARED_PRINT_ITEM_TABLE_CSS } from '@/lib/printItemTableStyles'
 import { SHARED_PRINT_PARTY_TABLE_CSS } from '@/lib/printPartyTableStyles'
 
@@ -158,10 +158,10 @@ export default function PoPage() {
         material_name: bom.product_name,
         spec: bom.spec || '',
         unit: bom.unit || 'PCS',
-        unit_price: resolveTierPrice(bom.moq_tiers, item.quantity || 0, bom.supplier_price || 0),
+        unit_price: resolveTierSupplierPrice(bom.moq_tiers, item.quantity || 0, bom.supplier_price || 0),
         currency: form.currency,
         image_url: bom.image_url || '',
-        total_price: (item.quantity || 0) * resolveTierPrice(bom.moq_tiers, item.quantity || 0, bom.supplier_price || 0),
+        total_price: (item.quantity || 0) * resolveTierSupplierPrice(bom.moq_tiers, item.quantity || 0, bom.supplier_price || 0),
       })
     }))
   }
@@ -243,7 +243,7 @@ export default function PoPage() {
         const u = { ...item, [field]: val }
         if (field === 'quantity' && u.bom_id) {
           const bom = boms.find((b) => b.id === u.bom_id)
-          if (bom) u.unit_price = resolveTierPrice(bom.moq_tiers, Number(u.quantity) || 0, bom.supplier_price || 0)
+          if (bom) u.unit_price = resolveTierSupplierPrice(bom.moq_tiers, Number(u.quantity) || 0, bom.supplier_price || 0)
         }
         if (field === 'quantity' || field === 'unit_price') u.total_price = (Number(u.quantity) || 0) * (Number(u.unit_price) || 0)
         return u

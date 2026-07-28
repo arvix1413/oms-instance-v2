@@ -1,14 +1,29 @@
-export type MoqTier = { moq: number; price: number }
+export type MoqTier = { moq: number; supplier_price?: number; price: number }
 
 export function normalizeMoqTiers(raw: any): MoqTier[] {
   const src = Array.isArray(raw) ? raw : []
   return src
     .map((row: any) => ({
       moq: Math.max(0, Number(row?.moq) || 0),
+      supplier_price: Math.max(0, Number(row?.supplier_price) || 0),
       price: Math.max(0, Number(row?.price) || 0),
     }))
-    .filter((row: MoqTier) => row.moq > 0 || row.price > 0)
+    .filter((row: MoqTier) => row.moq > 0 || (row.supplier_price || 0) > 0 || row.price > 0)
     .sort((a: MoqTier, b: MoqTier) => a.moq - b.moq)
+}
+
+export function resolveTierSupplierPrice(
+  tiers: MoqTier[] | undefined,
+  qty: number,
+  fallbackPrice = 0
+): number {
+  const list = normalizeMoqTiers(tiers)
+  const targetQty = Math.max(0, Number(qty) || 0)
+  let price = Number(fallbackPrice) || 0
+  for (const tier of list) {
+    if (tier.moq <= targetQty && (tier.supplier_price || 0) > 0) price = tier.supplier_price || 0
+  }
+  return price
 }
 
 export function resolveTierPrice(
