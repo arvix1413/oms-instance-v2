@@ -2337,8 +2337,7 @@ app.patch('/api/delivery-notes/:id/status', authMiddleware, requirePerm('deliver
           const bom = await tx.queryOne<any>('SELECT id, product_sku, product_name, unit, current_stock FROM bom WHERE id=? FOR UPDATE', [item.bom_id])
           if (!bom) throw Object.assign(new Error(`找不到出貨材料：${item.material_code || item.bom_id}`), { status: 400 })
           const before = parseFloat(bom.current_stock) || 0
-          if (before + 0.0001 < qty) throw Object.assign(new Error(`材料 ${bom.product_sku} 庫存不足：需要 ${qty}，現有 ${before}`), { status: 400 })
-          const after = before - qty
+          const after = Math.max(0, before - qty)
           await tx.execute('UPDATE bom SET current_stock=? WHERE id=?', [after, item.bom_id])
           await tx.execute(
             'INSERT INTO stock_ledger (material_code,material_name,transaction_type,ref_type,ref_id,ref_number,qty_change,qty_before,qty_after,unit,remark,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
@@ -2928,8 +2927,7 @@ app.patch('/api/production/:id/status', authMiddleware, requirePerm('production.
           const bom = await tx.queryOne<any>('SELECT id, current_stock FROM bom WHERE product_sku=? FOR UPDATE', [mat.material_code])
           if (!bom) throw Object.assign(new Error(`找不到生產材料：${mat.material_code}`), { status: 400 })
           const before = parseFloat(bom.current_stock) || 0
-          if (before + 0.0001 < qty) throw Object.assign(new Error(`材料 ${mat.material_code} 庫存不足：需要 ${qty}，現有 ${before}`), { status: 400 })
-          const after = before - qty
+          const after = Math.max(0, before - qty)
           await tx.execute('UPDATE bom SET current_stock=? WHERE id=?', [after, bom.id])
           await tx.execute('UPDATE production_materials SET issued_qty=? WHERE id=?', [qty, mat.id])
           await tx.execute(
