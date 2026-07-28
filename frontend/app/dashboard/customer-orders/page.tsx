@@ -42,6 +42,7 @@ type ProfitOrderSummary = {
   id: number
   revenue: number
   cogs: number
+  average_cost: number
   gross_profit: number
   cost_rate: number
   operating_cost: number
@@ -576,7 +577,7 @@ export default function CustomerOrdersPage() {
                                 <div className="px-4 py-3 border-b border-blue-200 bg-blue-100/60">
                                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[11px]">
                                     <div><span className="text-slate-400">營收</span><div className="font-semibold text-slate-700">{money(profit.revenue)}</div></div>
-                                    <div><span className="text-slate-400">採購金額</span><div className="font-semibold text-slate-700">{money(profit.cogs)}</div></div>
+                                    <div><span className="text-slate-400">平均成本</span><div className="font-semibold text-slate-700">{money(profit.average_cost)}</div></div>
                                     <div><span className="text-slate-400">毛利</span><div className="font-semibold text-slate-700">{money(profit.gross_profit)}</div></div>
                                     <div><span className="text-slate-400">營運成本</span><div className="font-semibold text-slate-700">{money(profit.operating_cost)}</div></div>
                                     <div><span className="text-slate-400">VAT</span><div className="font-semibold text-slate-700">{money(profit.sales_tax)}</div></div>
@@ -585,10 +586,10 @@ export default function CustomerOrdersPage() {
                                     <div><span className="text-slate-400">淨利率</span><div className={`font-semibold ${(profit.net_margin || 0) >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{Number(profit.net_margin || 0).toFixed(2)}%</div></div>
                                   </div>
                                   <div className="mt-2 text-[11px] text-slate-500">
-                                    成本率 = 採購金額 ÷ 訂單營收 × 100%；淨利仍包含系統設定的稅費與手動調整
+                                    成本率 = 訂單成本總額 ÷ 訂單營收 × 100%；淨利仍包含系統設定的稅費與手動調整
                                   </div>
                                   <div className="mt-1 text-[10px] text-slate-400">
-                                    採購金額依材料的供應商單價計算，訂單營收依本筆訂單實際售價計算
+                                    平均成本依材料歷史採購數量加權計算；沒有採購記錄時使用材料供應商單價
                                   </div>
                                 </div>
                               )}

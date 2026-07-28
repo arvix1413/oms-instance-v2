@@ -1720,7 +1720,13 @@ app.get('/api/profit-tracking/orders', authMiddleware, requireManager, async c =
     const itemSums = await query<any>(`
       SELECT ci.order_id,
              COALESCE(SUM(ci.qty * ci.unit_price), 0) as revenue,
-             COALESCE(SUM(ci.qty * COALESCE(b.supplier_price, 0)), 0) as cogs
+             COALESCE(SUM(ci.qty), 0) as total_qty,
+             COALESCE(SUM(ci.qty * COALESCE((
+               SELECT SUM(pi.quantity * pi.unit_price) / NULLIF(SUM(pi.quantity), 0)
+               FROM po_items pi
+               JOIN purchase_orders po ON po.id = pi.po_id AND po.deleted_at IS NULL
+               WHERE pi.bom_id = ci.bom_id AND po.status <> 'cancelled'
+             ), b.supplier_price, 0)), 0) as cogs
       FROM customer_order_items ci
       LEFT JOIN bom b ON b.id = ci.bom_id
       WHERE ci.order_id IN (${idPlaceholders})
@@ -1747,6 +1753,8 @@ app.get('/api/profit-tracking/orders', authMiddleware, requireManager, async c =
       const entry = entryMap.get(Number(o.id)) || {}
       const revenue = toAmount(item.revenue)
       const cogs = toAmount(item.cogs)
+      const total_qty = toAmount(item.total_qty)
+      const average_cost = total_qty > 0 ? toAmount(cogs / total_qty) : 0
       const operating_cost = toAmount(entry.operating_cost)
       const sales_tax = toAmount(entry.sales_tax)
       const income_tax = toAmount(entry.income_tax)
@@ -1759,6 +1767,7 @@ app.get('/api/profit-tracking/orders', authMiddleware, requireManager, async c =
         ...o,
         revenue,
         cogs,
+        average_cost,
         gross_profit,
         cost_rate,
         operating_cost,
@@ -1792,7 +1801,12 @@ app.get('/api/profit-tracking/orders/:id', authMiddleware, requireManager, async
     const items = await query<any>(`
       SELECT ci.id, ci.bom_id, ci.qty, ci.unit_price, ci.remark,
              b.product_sku, b.product_name, b.spec, b.unit,
-             COALESCE(b.supplier_price, 0) as standard_cost
+             COALESCE((
+               SELECT SUM(pi.quantity * pi.unit_price) / NULLIF(SUM(pi.quantity), 0)
+               FROM po_items pi
+               JOIN purchase_orders po ON po.id = pi.po_id AND po.deleted_at IS NULL
+               WHERE pi.bom_id = ci.bom_id AND po.status <> 'cancelled'
+             ), b.supplier_price, 0) as standard_cost
       FROM customer_order_items ci
       LEFT JOIN bom b ON b.id = ci.bom_id
       WHERE ci.order_id=?
@@ -1820,6 +1834,8 @@ app.get('/api/profit-tracking/orders/:id', authMiddleware, requireManager, async
     })
     revenue = toAmount(revenue)
     cogs = toAmount(cogs)
+    const total_qty = itemRows.reduce((sum: number, item: any) => sum + toAmount(item.qty), 0)
+    const average_cost = total_qty > 0 ? toAmount(cogs / total_qty) : 0
     const gross_profit = toAmount(revenue - cogs)
 
     const entryTotals = { operating_cost: 0, sales_tax: 0, income_tax: 0, manual_adjustment: 0 }
@@ -1857,6 +1873,7 @@ app.get('/api/profit-tracking/orders/:id', authMiddleware, requireManager, async
       summary: {
         revenue,
         cogs,
+        average_cost,
         gross_profit,
         cost_rate: calcMargin(cogs, revenue),
         operating_cost: entryTotals.operating_cost,
@@ -1916,7 +1933,12 @@ app.post('/api/profit-tracking/orders/:id/apply-rates', authMiddleware, requireM
     const row = await queryOne<any>(`
       SELECT
         COALESCE(SUM(ci.qty * ci.unit_price), 0) as revenue,
-        COALESCE(SUM(ci.qty * COALESCE(b.supplier_price, 0)), 0) as cogs
+        COALESCE(SUM(ci.qty * COALESCE((
+          SELECT SUM(pi.quantity * pi.unit_price) / NULLIF(SUM(pi.quantity), 0)
+          FROM po_items pi
+          JOIN purchase_orders po ON po.id = pi.po_id AND po.deleted_at IS NULL
+          WHERE pi.bom_id = ci.bom_id AND po.status <> 'cancelled'
+        ), b.supplier_price, 0)), 0) as cogs
       FROM customer_order_items ci
       LEFT JOIN bom b ON b.id = ci.bom_id
       WHERE ci.order_id=?
