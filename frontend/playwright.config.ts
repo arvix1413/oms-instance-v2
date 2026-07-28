@@ -1,7 +1,8 @@
 import { defineConfig } from '@playwright/test'
 
 export default defineConfig({
-  testMatch: ['e2e.spec.ts', 'e2e-*.spec.ts', 'test-*.spec.ts', 'debug-*.spec.ts'],
+  testDir: './tests',
+  testMatch: ['**/*.spec.ts'],
   use: {
     headless: true,
     viewport: { width: 1280, height: 800 },

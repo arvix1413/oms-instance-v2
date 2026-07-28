@@ -21,7 +21,7 @@ const CHAT_ID = process.env.TELEGRAM_PATROL_CHAT_ID || process.env.TELEGRAM_CHAT
 const reportTitle = () => `【ERP 每日巡檢報告 · ${PROJECT}】`
 
 async function fetchJson(url, opts = {}) {
-  const res = await fetch(url, opts)
+  const res = await fetch(url, { ...opts, signal: opts.signal || AbortSignal.timeout(15_000) })
   const text = await res.text()
   let data = null
   try {
@@ -38,26 +38,41 @@ async function buildPatrolText() {
   const date = now.toLocaleDateString('zh-TW', { timeZone: tz })
   const time = now.toLocaleTimeString('zh-TW', { timeZone: tz, hour12: false })
 
+  const frontend = await fetchJson(FRONTEND)
+  if (!frontend.ok) {
+    return {
+      healthy: false,
+      text: [
+        reportTitle(),
+        `巡檢日期：${date}`,
+        `巡檢時間：${time}`,
+        '',
+        '前端網站目前無法連線或回應非 2xx 狀態，請盡快檢查 OMS PRD 網站與反向代理。',
+        `前端：${FRONTEND}（HTTP ${frontend.status}）`,
+      ].join('\n'),
+    }
+  }
+
   const root = await fetchJson(`${API}/`)
   if (!root.ok) {
-    return [
+    return { healthy: false, text: [
       reportTitle(),
       `巡檢日期：${date}`,
       `巡檢時間：${time}`,
       '',
       '後端服務目前無法連線或回應非 2xx 狀態，請盡快檢查 OMS PRD 服務狀態。',
       `API：${API}（HTTP ${root.status}）`,
-    ].join('\n')
+    ].join('\n') }
   }
 
   if (!PASSWORD) {
-    return [
+    return { healthy: false, text: [
       reportTitle(),
       `巡檢日期：${date}`,
       `巡檢時間：${time}`,
       '',
       '無法取得每日巡檢報告（未設定 OMS_PATROL_PASSWORD），請在 GitHub Secrets / 環境變數補齊登入資料。',
-    ].join('\n')
+    ].join('\n') }
   }
 
   const login = await fetchJson(`${API}/api/auth/login`, {
@@ -67,28 +82,28 @@ async function buildPatrolText() {
   })
   const token = login?.data?.token
   if (!login.ok || !token) {
-    return [
+    return { healthy: false, text: [
       reportTitle(),
       `巡檢日期：${date}`,
       `巡檢時間：${time}`,
       '',
       '無法取得每日巡檢報告（登入失敗），請檢查 OMS_PATROL_EMAIL / OMS_PATROL_PASSWORD。',
       `登入 HTTP 狀態：${login.status}`,
-    ].join('\n')
+    ].join('\n') }
   }
 
   const patrol = await fetchJson(`${API}/api/daily-patrol-report`, {
     headers: { Authorization: `Bearer ${token}` },
   })
   if (!patrol.ok) {
-    return [
+    return { healthy: false, text: [
       reportTitle(),
       `巡檢日期：${date}`,
       `巡檢時間：${time}`,
       '',
       '無法取得每日巡檢報告（/api/daily-patrol-report 呼叫失敗），請檢查後端日檢邏輯與資料庫狀態。',
       `HTTP 狀態：${patrol.status}`,
-    ].join('\n')
+    ].join('\n') }
   }
 
   const r = patrol.data || {}
@@ -100,14 +115,14 @@ async function buildPatrolText() {
   const priorities = Array.isArray(r.priorities) ? r.priorities : []
 
   if (!severe.length && !needReview.length && !stuck.length && !consistency.some((c) => c && c.ok === false)) {
-    return [
+    return { healthy: true, text: [
       reportTitle(),
       `巡檢日期：${date}`,
       `巡檢時間：${time}`,
       '',
       '目前未發現嚴重異常。',
       '訂單、生產單、BOM、庫存、採購、出貨資料狀態正常。',
-    ].join('\n')
+    ].join('\n') }
   }
 
   const lines = []
@@ -200,7 +215,7 @@ async function buildPatrolText() {
     }
   }
 
-  return lines.join('\n')
+  return { healthy: false, text: lines.join('\n') }
 }
 
 async function sendTelegram(text) {
@@ -213,6 +228,7 @@ async function sendTelegram(text) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chat_id: CHAT_ID, text }),
+    signal: AbortSignal.timeout(15_000),
   })
   const data = await res.json()
   if (!data.ok) {
@@ -222,13 +238,14 @@ async function sendTelegram(text) {
 }
 
 async function main() {
-  const text = await buildPatrolText()
+  const { text, healthy } = await buildPatrolText()
   console.log(text)
   console.log('')
   const tg = await sendTelegram(text)
   if (tg?.result?.message_id) {
     console.log(`[Telegram] sent message_id=${tg.result.message_id}`)
   }
+  if (!healthy) process.exitCode = 1
 }
 
 main().catch((e) => {

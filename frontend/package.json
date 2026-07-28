@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "test:e2e": "playwright test",
     "start": "next start",
     "pages:build": "npx @cloudflare/next-on-pages",
     "deploy": "npm run pages:build && wrangler pages deploy .vercel/output/static --project-name oms-frontend"
@@ -16,6 +17,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.54.1",
     "@cloudflare/next-on-pages": "^1",
     "@types/node": "^20",
     "@types/react": "^18",

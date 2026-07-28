@@ -603,7 +603,7 @@ const buildDailyPatrolReport = async (): Promise<PatrolSummary> => {
     GROUP BY co.id
     HAVING COUNT(ci.id) = 0
     LIMIT 1
-  `).catch(() => null as any)
+  `)
   if (ordersWithoutItems?.id) {
     severe.push({
       type: '訂單缺少品項',
@@ -619,7 +619,7 @@ const buildDailyPatrolReport = async (): Promise<PatrolSummary> => {
     FROM customer_order_items ci
     JOIN customer_orders co ON co.id = ci.order_id AND co.deleted_at IS NULL
     WHERE ci.bom_id IS NULL OR ci.bom_id = 0
-  `).catch(() => null as any)
+  `)
   if (Number(itemsWithoutBom?.cnt || 0) > 0) {
     severe.push({
       type: '訂單品項缺少 BOM',
@@ -639,7 +639,7 @@ const buildDailyPatrolReport = async (): Promise<PatrolSummary> => {
     GROUP BY b.id
     HAVING COUNT(bi.id) = 0
     LIMIT 1
-  `).catch(() => null as any)
+  `)
   if (missingBomItems?.id) {
     severe.push({
       type: 'BOM 無任何材料',
@@ -655,7 +655,7 @@ const buildDailyPatrolReport = async (): Promise<PatrolSummary> => {
     FROM bom_items bi
     JOIN bom b ON b.id = bi.bom_id AND b.deleted_at IS NULL
     WHERE bi.quantity IS NULL OR bi.quantity <= 0
-  `).catch(() => null as any)
+  `)
   if (Number(bomQtyAnomalies?.cnt || 0) > 0) {
     severe.push({
       type: 'BOM 材料數量為 0 或空值',
@@ -671,7 +671,7 @@ const buildDailyPatrolReport = async (): Promise<PatrolSummary> => {
     SELECT COUNT(*) as cnt
     FROM bom
     WHERE deleted_at IS NULL AND COALESCE(current_stock, 0) < 0
-  `).catch(() => null as any)
+  `)
   if (Number(negativeStock?.cnt || 0) > 0) {
     severe.push({
       type: '庫存為負數',
@@ -686,7 +686,7 @@ const buildDailyPatrolReport = async (): Promise<PatrolSummary> => {
     SELECT COUNT(*) as cnt
     FROM bom
     WHERE deleted_at IS NULL AND COALESCE(current_stock, 0) <= 0
-  `).catch(() => null as any)
+  `)
   if (Number(lowStock?.cnt || 0) > 0) {
     needReview.push({
       type: '成品庫存為 0 或負數',
@@ -3063,11 +3063,12 @@ app.put('/api/company', authMiddleware, requirePerm('company.manage'), async c =
     const signaturePrintWidth = Math.max(120, Math.min(320, Number(b.signature_print_width) || 220))
     const signaturePrintHeight = Math.max(48, Math.min(140, Number(b.signature_print_height) || 72))
     // Upsert
-    await execute(`INSERT INTO company_settings (id,company_name,company_name_local,address,phone,contact_person,email,tax_id,logo_url,signature_url,signature_print_width,signature_print_height)
-      VALUES (1,?,?,?,?,?,?,?,?,?,?,?)
-      ON DUPLICATE KEY UPDATE company_name=?,company_name_local=?,address=?,phone=?,contact_person=?,email=?,tax_id=?,logo_url=?,signature_url=?,signature_print_width=?,signature_print_height=?`,
-      [b.company_name,b.company_name_local||'',b.address||'',b.phone||'',b.contact_person||'',b.email||'',b.tax_id||'',b.logo_url||null,nextSignatureUrl,signaturePrintWidth,signaturePrintHeight,
-       b.company_name,b.company_name_local||'',b.address||'',b.phone||'',b.contact_person||'',b.email||'',b.tax_id||'',b.logo_url||null,nextSignatureUrl,signaturePrintWidth,signaturePrintHeight])
+    const notificationEmail = String(b.notification_email || '').trim() || null
+    await execute(`INSERT INTO company_settings (id,company_name,company_name_local,address,phone,contact_person,email,tax_id,logo_url,signature_url,signature_print_width,signature_print_height,notification_email)
+      VALUES (1,?,?,?,?,?,?,?,?,?,?,?,?)
+      ON DUPLICATE KEY UPDATE company_name=?,company_name_local=?,address=?,phone=?,contact_person=?,email=?,tax_id=?,logo_url=?,signature_url=?,signature_print_width=?,signature_print_height=?,notification_email=?`,
+      [b.company_name,b.company_name_local||'',b.address||'',b.phone||'',b.contact_person||'',b.email||'',b.tax_id||'',b.logo_url||null,nextSignatureUrl,signaturePrintWidth,signaturePrintHeight,notificationEmail,
+       b.company_name,b.company_name_local||'',b.address||'',b.phone||'',b.contact_person||'',b.email||'',b.tax_id||'',b.logo_url||null,nextSignatureUrl,signaturePrintWidth,signaturePrintHeight,notificationEmail])
     await audit(u, 'UPDATE', '公司設定', 1, b.company_name)
     return c.json({ ok: true })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
