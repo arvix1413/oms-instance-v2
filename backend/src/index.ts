@@ -1725,7 +1725,8 @@ app.get('/api/profit-tracking/orders', authMiddleware, requireManager, async c =
                SELECT SUM(pi.quantity * pi.unit_price) / NULLIF(SUM(pi.quantity), 0)
                FROM po_items pi
                JOIN purchase_orders po ON po.id = pi.po_id AND po.deleted_at IS NULL
-               WHERE pi.bom_id = ci.bom_id AND po.status <> 'cancelled'
+               WHERE (pi.bom_id = ci.bom_id OR (pi.bom_id IS NULL AND TRIM(pi.material_code) = TRIM(b.product_sku)))
+                 AND po.status <> 'cancelled'
              ), b.supplier_price, 0)), 0) as cogs
       FROM customer_order_items ci
       LEFT JOIN bom b ON b.id = ci.bom_id
@@ -1805,7 +1806,8 @@ app.get('/api/profit-tracking/orders/:id', authMiddleware, requireManager, async
                SELECT SUM(pi.quantity * pi.unit_price) / NULLIF(SUM(pi.quantity), 0)
                FROM po_items pi
                JOIN purchase_orders po ON po.id = pi.po_id AND po.deleted_at IS NULL
-               WHERE pi.bom_id = ci.bom_id AND po.status <> 'cancelled'
+               WHERE (pi.bom_id = ci.bom_id OR (pi.bom_id IS NULL AND TRIM(pi.material_code) = TRIM(b.product_sku)))
+                 AND po.status <> 'cancelled'
              ), b.supplier_price, 0) as standard_cost
       FROM customer_order_items ci
       LEFT JOIN bom b ON b.id = ci.bom_id
@@ -1937,7 +1939,8 @@ app.post('/api/profit-tracking/orders/:id/apply-rates', authMiddleware, requireM
           SELECT SUM(pi.quantity * pi.unit_price) / NULLIF(SUM(pi.quantity), 0)
           FROM po_items pi
           JOIN purchase_orders po ON po.id = pi.po_id AND po.deleted_at IS NULL
-          WHERE pi.bom_id = ci.bom_id AND po.status <> 'cancelled'
+          WHERE (pi.bom_id = ci.bom_id OR (pi.bom_id IS NULL AND TRIM(pi.material_code) = TRIM(b.product_sku)))
+            AND po.status <> 'cancelled'
         ), b.supplier_price, 0)), 0) as cogs
       FROM customer_order_items ci
       LEFT JOIN bom b ON b.id = ci.bom_id
