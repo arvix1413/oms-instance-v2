@@ -66,7 +66,18 @@ jobs:
           username: ${{ env.TARGET_USER }}
           password: ${{ env.TARGET_PASSWORD }}
           port: ${{ env.TARGET_PORT }}
-          script: IMAGE_TAG=${{ env.DEPLOY_ENV }} /opt/oms/deploy.sh
+          script: |
+            # Keep enough free disk space for MySQL commits and the next image pull.
+            # Active images are never removed; only images not referenced by any container are removed.
+            docker image prune --all --force || true
+            docker builder prune --all --force || true
+            available_kb=$(df -Pk / | awk 'NR==2 {print $4}')
+            if [ "${available_kb:-0}" -lt 2097152 ]; then
+              echo "Insufficient disk space after Docker cleanup: ${available_kb:-0} KB available"
+              exit 1
+            fi
+            IMAGE_TAG=${{ env.DEPLOY_ENV }} /opt/oms/deploy.sh
+            docker image prune --all --force || true
 
       - name: Post-deploy health check
         run: |
