@@ -1,0 +1,73 @@
+name: Disk Capacity Alert
+
+on:
+  schedule:
+    # 每 6 小時（台北 02/08/14/20）
+    - cron: '0 2,8,14,20 * * *'
+  workflow_dispatch:
+    inputs:
+      force_notify:
+        description: '即使空間正常也發 Telegram 狀態'
+        type: boolean
+        default: true
+
+jobs:
+  disk-alert:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      TARGET_HOST: 43.160.199.226
+      TARGET_PORT: ${{ secrets.OMS_PRD_SERVER_PORT || secrets.SERVER_PORT }}
+      TARGET_USER: ${{ secrets.OMS_PRD_SERVER_USER || secrets.SERVER_USER }}
+      TARGET_PASSWORD: ${{ secrets.OMS_PRD_SERVER_PASSWORD || secrets.SERVER_PASSWORD }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      TELEGRAM_PATROL_BOT_TOKEN: ${{ secrets.TELEGRAM_PATROL_BOT_TOKEN }}
+      TELEGRAM_PATROL_CHAT_ID: ${{ secrets.TELEGRAM_PATROL_CHAT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Collect disk metrics via SSH
+        id: collect
+        env:
+          SSHPASS: ${{ env.TARGET_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TARGET_USER}" ] || [ -z "${TARGET_PASSWORD}" ]; then
+            echo "Missing SERVER_USER / SERVER_PASSWORD secrets"
+            exit 1
+          fi
+          PORT="${TARGET_PORT:-22}"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq sshpass
+
+          METRICS=$(sshpass -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            -p "${PORT}" "${TARGET_USER}@${TARGET_HOST}" bash <<'EOS'
+          set -euo pipefail
+          line=$(df -Pk / | awk 'NR==2 {print}')
+          avail_kb=$(echo "$line" | awk '{print $4}')
+          use_pct=$(echo "$line" | awk '{gsub(/%/,"",$5); print $5}')
+          size=$(df -h / | awk 'NR==2 {print $2}')
+          used=$(df -h / | awk 'NR==2 {print $3}')
+          avail=$(df -h / | awk 'NR==2 {print $4}')
+          docker_df=$(docker system df 2>/dev/null | awk 'NR<=5 {print}' || true)
+          printf 'DISK_USE_PCT=%s\n' "$use_pct"
+          printf 'DISK_AVAIL_KB=%s\n' "$avail_kb"
+          printf 'DISK_SIZE=%s\n' "$size"
+          printf 'DISK_USED=%s\n' "$used"
+          printf 'DISK_AVAIL=%s\n' "$avail"
+          echo 'DISK_DOCKER_DF<<EOF'
+          printf '%s\n' "$docker_df"
+          echo 'EOF'
+          EOS
+          )
+
+          echo "$METRICS"
+          echo "$METRICS" >> "$GITHUB_ENV"
+
+      - name: Evaluate and notify Telegram
+        env:
+          DISK_HOST: ${{ env.TARGET_HOST }}
+          DISK_FORCE_NOTIFY: ${{ github.event_name == 'workflow_dispatch' && inputs.force_notify && '1' || '0' }}
+        run: node scripts/disk-alert.mjs
