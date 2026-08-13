@@ -84,6 +84,7 @@ export default function PoPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const canWrite = canPermission('po.create')
   const canApprove = canPermission('po.approve')
+  const canReceive = canPermission('po.receive')
   const canDel = canPermission('po.delete')
 
   const loadPoItems = async (id: number) => {
@@ -750,7 +751,7 @@ export default function PoPage() {
                             <StatusFlow compact steps={PO_STEPS} current={p.status}
                               actions={getPOActions(p.status).filter(a => {
                                 if (a.toStatus === 'approved') return canApprove
-                                if (a.toStatus === 'received') return canApprove
+                                if (a.toStatus === 'received') return canReceive
                                 return canWrite
                               })}
                               onAction={async (toStatus) => {

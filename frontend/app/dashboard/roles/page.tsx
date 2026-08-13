@@ -30,7 +30,7 @@ const PERM_GROUPS = [
   },
   {
     label: '採購單',
-    perms: ['po.create', 'po.approve', 'po.delete'],
+    perms: ['po.create', 'po.receive', 'po.delete'],
   },
   {
     label: '生產單',
@@ -45,12 +45,12 @@ const PERM_GROUPS = [
     perms: ['customer.manage', 'supplier.manage'],
   },
   {
-    label: '倉庫管理',
-    perms: ['stock.adjust'],
+    label: '倉庫／日誌',
+    perms: ['stock.adjust', 'audit.view'],
   },
   {
-    label: '系統管理（主管固定）',
-    perms: ['company.manage', 'user.manage', 'audit.view'],
+    label: '主管專屬（採購／報價審核與系統管理）',
+    perms: ['po.approve', 'quotation.approve', 'company.manage', 'user.manage'],
     adminOnly: true,
   },
 ]
@@ -131,7 +131,7 @@ export default function RolesPage() {
             </div>
             <div className="text-xs text-slate-400">
               {role === 'manager' && '主管預設擁有全部權限，無需額外賦權'}
-              {role === 'employee' && '可設定：基本新增/檢視操作'}
+              {role === 'employee' && '日常操作自主；採購／報價審核僅主管'}
             </div>
           </div>
         ))}

@@ -4,12 +4,81 @@ import { cors } from 'hono/cors'
 import { query, queryOne, execute, withTransaction } from './db'
 import { hashPw, signJwt, verifyJwt, now8 } from './auth'
 import { sendNotificationEmail, buildPendingApprovalEmail } from './mailer'
+import {
+  ALL_PERMISSIONS,
+  MANAGER_ONLY_PERMISSIONS,
+  defaultEmployeeAllowed,
+} from './permissions'
 import fs from 'fs'
 import path from 'path'
 
 type Variables = { user: any }
 const app = new Hono<{ Variables: Variables }>()
 const normalizeUserRole = (role: any): 'manager' | 'employee' => (role === 'manager' ? 'manager' : 'employee')
+
+/** Sync employee role: all ops except PO/quotation approve and company/user admin. */
+let employeePolicyApplied = false
+let ensureEmployeePermissionsPromise: Promise<void> | null = null
+
+const ensureAppMetaTable = async () => {
+  await execute(`CREATE TABLE IF NOT EXISTS app_meta (
+    meta_key VARCHAR(64) PRIMARY KEY,
+    meta_value VARCHAR(255) NOT NULL,
+    updated_at DATETIME NOT NULL
+  )`)
+}
+
+const ensureEmployeePermissions = async (force = false) => {
+  if (employeePolicyApplied && !force) return
+  if (!ensureEmployeePermissionsPromise) {
+    ensureEmployeePermissionsPromise = (async () => {
+      if (force) {
+        for (const item of ALL_PERMISSIONS) {
+          const allowed = defaultEmployeeAllowed(item.key) ? 1 : 0
+          await execute(
+            'INSERT INTO role_permissions (role,permission,allowed) VALUES (?,?,?) ON DUPLICATE KEY UPDATE allowed=?',
+            ['employee', item.key, allowed, allowed],
+          )
+        }
+      } else {
+        for (const item of ALL_PERMISSIONS) {
+          const allowed = defaultEmployeeAllowed(item.key) ? 1 : 0
+          if (MANAGER_ONLY_PERMISSIONS.has(item.key)) {
+            await execute(
+              'INSERT INTO role_permissions (role,permission,allowed) VALUES (?,?,0) ON DUPLICATE KEY UPDATE allowed=0',
+              ['employee', item.key],
+            )
+            continue
+          }
+          await execute(
+            'INSERT INTO role_permissions (role,permission,allowed) VALUES (?,?,?) ON DUPLICATE KEY UPDATE permission=permission',
+            ['employee', item.key, allowed],
+          )
+        }
+      }
+      employeePolicyApplied = true
+    })().finally(() => {
+      ensureEmployeePermissionsPromise = null
+    })
+  }
+  await ensureEmployeePermissionsPromise
+}
+
+/** Apply employee permission redesign once per policy version; later boots only seed/lock. */
+const EMPLOYEE_PERM_POLICY = 'employee_ops_v1'
+const bootstrapEmployeePermissionPolicy = async () => {
+  await ensureAppMetaTable()
+  const row = await queryOne<any>('SELECT meta_value FROM app_meta WHERE meta_key=?', ['employee_perm_policy'])
+  if (row?.meta_value === EMPLOYEE_PERM_POLICY) {
+    await ensureEmployeePermissions(false)
+    return
+  }
+  await ensureEmployeePermissions(true)
+  await execute(
+    'INSERT INTO app_meta (meta_key, meta_value, updated_at) VALUES (?,?,?) ON DUPLICATE KEY UPDATE meta_value=?, updated_at=?',
+    ['employee_perm_policy', EMPLOYEE_PERM_POLICY, now8(), EMPLOYEE_PERM_POLICY, now8()],
+  )
+}
 
 app.use('/api/*', cors({
   origin: '*',
@@ -969,29 +1038,6 @@ async function audit(user: any, action: string, resource: string, resourceId: an
 
 app.get('/', c => c.json({ name: 'OMS Backend', version: '2.0.0' }))
 
-// ── All Permissions (defined early, used in login + role-permissions) ─────────
-const ALL_PERMISSIONS = [
-  { key: 'customer_order.create', label: '新增客戶訂單' },
-  { key: 'customer_order.delete', label: '刪除客戶訂單' },
-  { key: 'quotation.approve', label: '審核報價單' },
-  { key: 'bom.create', label: '新增BOM' },
-  { key: 'bom.edit', label: '編輯BOM' },
-  { key: 'bom.delete', label: '刪除BOM' },
-  { key: 'po.create', label: '新增採購單' },
-  { key: 'po.approve', label: '審核採購單' },
-  { key: 'po.delete', label: '刪除採購單' },
-  { key: 'production.create', label: '新增生產單' },
-  { key: 'production.delete', label: '刪除生產單' },
-  { key: 'delivery.create', label: '新增出貨單' },
-  { key: 'delivery.delete', label: '刪除出貨單' },
-  { key: 'customer.manage', label: '管理客戶' },
-  { key: 'supplier.manage', label: '管理供應商' },
-  { key: 'stock.adjust', label: '庫存調整' },
-  { key: 'company.manage', label: '公司設定' },
-  { key: 'user.manage', label: '使用者管理' },
-  { key: 'audit.view', label: '檢視操作日誌' },
-]
-
 // ── Auth ─────────────────────────────────────────────────────────────────────
 app.post('/api/auth/login', async c => {
   try {
@@ -1007,6 +1053,7 @@ app.post('/api/auth/login', async c => {
     if (normalizedRole === 'manager') {
       permissions = ALL_PERMISSIONS.map((p: any) => p.key)
     } else {
+      await ensureEmployeePermissions()
       const rows = await query<any>('SELECT permission FROM role_permissions WHERE role=? AND allowed=1', ['employee'])
       permissions = rows.map((r: any) => r.permission)
     }
@@ -1423,7 +1470,7 @@ app.delete('/api/po/:id', authMiddleware, requirePerm('po.delete'), async c => {
 })
 
 // 採購單收貨：更新材料庫存
-app.patch('/api/po/:id/receive', authMiddleware, requirePerm('po.approve'), async c => {
+app.patch('/api/po/:id/receive', authMiddleware, requirePerm('po.receive'), async c => {
   try {
     const id = c.req.param('id'); const u = c.get('user')
     const po = await withTransaction(async tx => {
@@ -2607,8 +2654,23 @@ app.put('/api/role-permissions', authMiddleware, requirePerm('user.manage'), asy
   try {
     const { role, permission, allowed } = await c.req.json()
     if (role !== 'employee') return c.json({ error: 'Only employee role can be modified' }, 400)
+    if (MANAGER_ONLY_PERMISSIONS.has(String(permission || ''))) {
+      return c.json({ error: '採購／報價審核與公司設定／使用者管理為主管專屬，不可指派給員工' }, 400)
+    }
     await execute('INSERT INTO role_permissions (role,permission,allowed) VALUES (?,?,?) ON DUPLICATE KEY UPDATE allowed=?', ['employee',permission,allowed?1:0,allowed?1:0])
     return c.json({ ok: true })
+  } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
+})
+
+app.post('/api/role-permissions/reset-employee', authMiddleware, requirePerm('user.manage'), async c => {
+  try {
+    const u = c.get('user')
+    await ensureEmployeePermissions(true)
+    await audit(u, 'UPDATE', '權限設定', 'employee', '重置員工權限：除採購／報價審核與公司／使用者管理外全部開啟')
+    const rows = await query<any>('SELECT role,permission,allowed FROM role_permissions WHERE role=?', ['employee'])
+    const map: any = { employee: {} }
+    rows.forEach((r: any) => { map.employee[r.permission] = r.allowed === 1 })
+    return c.json({ ok: true, permissions: map, allPermissions: ALL_PERMISSIONS })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
 
@@ -2817,7 +2879,7 @@ app.post('/api/goods-receipts', authMiddleware, requirePerm('po.create'), async 
     return c.json({ id: grId, gr_number: grNum }, 201)
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
-app.patch('/api/goods-receipts/:id/confirm', authMiddleware, requirePerm('po.approve'), async c => {
+app.patch('/api/goods-receipts/:id/confirm', authMiddleware, requirePerm('po.receive'), async c => {
   try {
     const id = c.req.param('id'); const u = c.get('user')
     const gr = await withTransaction(async tx => {
@@ -3176,6 +3238,9 @@ const port = parseInt(process.env.PORT || '3001')
 console.log(`OMS Backend starting on port ${port}`)
 serve({ fetch: app.fetch, port }, info => {
   console.log(`✓ Server running at http://localhost:${info.port}`)
+  void bootstrapEmployeePermissionPolicy().catch((e) => {
+    console.warn('[employee perm policy]', e)
+  })
   ensureMaterialReferenceColumns()
     .then(() => syncAllCustomerOrdersArrivedFromShippedDns())
     .then(() => console.log('✓ Shipped qty backfill/sync completed'))
