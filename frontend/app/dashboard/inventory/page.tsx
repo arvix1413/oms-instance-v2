@@ -22,13 +22,15 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [stockFilter, setStockFilter] = useState<'all' | 'low' | 'ok'>('all')
-  const [lastRefresh, setLastRefresh] = useState(new Date())
+  // Set this after hydration; rendering a server-side Date directly causes
+  // the displayed time to differ from the browser's first render.
+  const [lastRefresh, setLastRefresh] = useState<string | null>(null)
 
   const load = () => {
     setLoading(true)
     apiFetch<Inv[]>('/api/inventory/bom').then(setItems).finally(() => {
       setLoading(false)
-      setLastRefresh(new Date())
+      setLastRefresh(new Date().toLocaleTimeString())
     })
   }
   useEffect(() => { load() }, [])
@@ -58,7 +60,7 @@ export default function InventoryPage() {
         <div>
           <h1 className="text-xl font-bold text-slate-800">庫存查詢</h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            BOM 成品庫存 · 最後更新：{lastRefresh.toLocaleTimeString()}
+            BOM 成品庫存 · {lastRefresh ? `最後更新：${lastRefresh}` : '載入中...'}
           </p>
         </div>
         <button onClick={load} className="btn-ghost border border-slate-200 flex items-center gap-2">
