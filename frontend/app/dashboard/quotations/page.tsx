@@ -13,7 +13,7 @@ import { normalizeMoqTiers, resolveTierPrice } from '@/lib/moqPricing'
 import { SHARED_PRINT_ITEM_TABLE_CSS } from '@/lib/printItemTableStyles'
 import { SHARED_PRINT_PARTY_TABLE_CSS } from '@/lib/printPartyTableStyles'
 import { StatusFlow, QT_STEPS, getQTActions } from '@/components/StatusFlow'
-import { can } from '@/lib/usePermissions'
+import { usePermissions } from '@/lib/usePermissions'
 
 type MoqTier = { moq: number; price: number }
 type QItem = { bom_id?:number|null; item_name:string; material_code:string; spec:string; unit:string; qty:number; unit_price:number; total_price:number; remark:string; moq_tiers:MoqTier[]; image_url?:string }
@@ -87,6 +87,7 @@ function StatusFilterSync({ onChange }: { onChange: (value: string) => void }) {
 
 export default function QuotationsPage() {
   const { toast, confirm: confirmDialog } = useDialog()
+  const { can: canPermission } = usePermissions()
 
   const [items, setItems] = useState<Q[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -100,9 +101,9 @@ export default function QuotationsPage() {
   const [mounted, setMounted] = useState(false)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const canWrite = can('customer_order.create')
-  const canApprove = can('quotation.approve')
-  const canDelete = can('customer_order.delete')
+  const canWrite = canPermission('customer_order.create')
+  const canApprove = canPermission('quotation.approve')
+  const canDelete = canPermission('customer_order.delete')
 
   const loadQuotationItems = async (id: number) => {
     const d = await apiFetch<Q>(`/api/quotations/${id}`)

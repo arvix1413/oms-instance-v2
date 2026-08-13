@@ -2,11 +2,12 @@
 import { useDialog } from '@/components/Dialog'
 import { useState } from 'react'
 import { apiFetch } from '@/lib/api'
-import { getUser, ROLE_LABELS, ROLE_COLORS, type Role } from '@/lib/permissions'
+import { ROLE_LABELS, ROLE_COLORS, type Role } from '@/lib/permissions'
+import { usePermissions } from '@/lib/usePermissions'
 
 export default function ProfilePage() {
   const { toast } = useDialog()
-  const me = getUser()
+  const { user: me } = usePermissions()
   const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
   const [saving, setSaving] = useState(false)
   const [showCurrent, setShowCurrent] = useState(false)

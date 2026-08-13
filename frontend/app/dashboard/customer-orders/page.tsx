@@ -8,8 +8,7 @@ import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, CO_STEPS } from '@/components/StatusFlow'
 import { generateOrderHTML } from '@/lib/printOrder'
 import { SearchableSelect } from '@/components/SearchableSelect'
-import { getUser } from '@/lib/permissions'
-import { can } from '@/lib/usePermissions'
+import { usePermissions } from '@/lib/usePermissions'
 import { getCompany } from '@/lib/useCompany'
 import FieldLockHint from '@/components/FieldLockHint'
 
@@ -68,7 +67,7 @@ function ChevronIcon({ open }: { open: boolean }) {
 
 export default function CustomerOrdersPage() {
   const { toast, confirm: confirmDialog } = useDialog()
-  const user = getUser()
+  const { can: canPermission, user, ready: permissionsReady } = usePermissions()
   const canViewProfit = user?.role === 'manager'
 
   const [orders, setOrders] = useState<Order[]>([])
@@ -88,8 +87,8 @@ export default function CustomerOrdersPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const canWrite = can('customer_order.create')
-  const canDel = can('customer_order.delete')
+  const canWrite = canPermission('customer_order.create')
+  const canDel = canPermission('customer_order.delete')
 
   const loadOrderItems = async (id: number) => {
     const data = await apiFetch<Order>(`/api/customer-orders/${id}`)
@@ -139,10 +138,13 @@ export default function CustomerOrdersPage() {
       .finally(()=>setLoading(false))
   }
   useEffect(()=>{
+    if (!permissionsReady) return
     load()
     apiFetch<BOM[]>('/api/bom').then(setBoms).catch(()=>{})
     apiFetch<Customer[]>('/api/customers').then(setCustomers).catch(()=>{})
-  },[])
+  // Permission-dependent data must load after the browser session is ready.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[permissionsReady, canViewProfit])
 
   const toggleExpand = async (id: number) => {
     const next = new Set(expanded)

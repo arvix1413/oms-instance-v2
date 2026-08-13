@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { formatQuantity } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
-import { can } from '@/lib/usePermissions'
+import { usePermissions } from '@/lib/usePermissions'
 import { getCompany, getCompanySignatureUrl } from '@/lib/useCompany'
 
 type DSItem = { bom_id?:number|null; item_name:string; material_code:string; qty:number; remark:string; po_ref?: string; spec?: string; unit?: string }
@@ -23,6 +23,7 @@ const STATUS_MAP: Record<string,{label:string;badge:string}> = {
 
 export default function DeliverySheetsPage() {
   const { toast, confirm: confirmDialog } = useDialog()
+  const { can: canPermission } = usePermissions()
 
   const [sheets, setSheets] = useState<DS[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -33,8 +34,8 @@ export default function DeliverySheetsPage() {
   const [search, setSearch] = useState('')
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [loadedItems, setLoadedItems] = useState<Record<number, DSItem[]>>({})
-  const canWrite = can('delivery.create')
-  const canDel = can('delivery.delete')
+  const canWrite = canPermission('delivery.create')
+  const canDel = canPermission('delivery.delete')
 
   const [selectedCustomerId, setSelectedCustomerId] = useState('')
   const [poSearch, setPoSearch] = useState('')

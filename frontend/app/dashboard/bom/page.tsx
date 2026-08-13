@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { apiFetch, apiFetchRaw } from '@/lib/api'
 import { formatDecimal, formatInteger } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
-import { can } from '@/lib/usePermissions'
+import { usePermissions } from '@/lib/usePermissions'
 import { UNIT_OPTIONS, normalizeUnit } from '@/lib/units'
 import { normalizeMoqTiers, type MoqTier } from '@/lib/moqPricing'
 
@@ -32,6 +32,7 @@ type Supplier = { id:number; name:string; currency:string }
 
 export default function BomPage() {
   const { toast, confirm: confirmDialog } = useDialog()
+  const { can: canPermission } = usePermissions()
   const [boms, setBoms] = useState<Bom[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [editing, setEditing] = useState<Partial<Bom>|null>(null)
@@ -39,9 +40,9 @@ export default function BomPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [catFilter, setCatFilter] = useState('')
-  const canWrite = can('bom.create')
-  const canEdit = can('bom.edit')
-  const canDel = can('bom.delete')
+  const canWrite = canPermission('bom.create')
+  const canEdit = canPermission('bom.edit')
+  const canDel = canPermission('bom.delete')
 
   const load = () => apiFetch<Bom[]>('/api/bom').then(setBoms).finally(()=>setLoading(false))
   useEffect(()=>{

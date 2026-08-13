@@ -2,8 +2,8 @@
 import { useDialog } from '@/components/Dialog'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
-import { ROLE_LABELS, ROLE_COLORS, getUser, type Role } from '@/lib/permissions'
-import { can } from '@/lib/usePermissions'
+import { ROLE_LABELS, ROLE_COLORS, type Role } from '@/lib/permissions'
+import { usePermissions } from '@/lib/usePermissions'
 import { useRouter } from 'next/navigation'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { validate } from '@/lib/validate'
@@ -16,6 +16,7 @@ const DISPLAY_ROLES: Role[] = ['manager', 'employee']
 export default function UsersPage() {
   const router = useRouter()
   const { toast, confirm: confirmDialog } = useDialog()
+  const { can: canPermission, user: me, ready: permissionsReady } = usePermissions()
 
   const [users, setUsers] = useState<User[]>([])
   const [editing, setEditing] = useState<(Partial<User> & { password?: string }) | null>(null)
@@ -24,13 +25,13 @@ export default function UsersPage() {
   const [search, setSearch] = useState('')
 
   useEffect(() => {
-    const me = getUser()
-    if (!me || !can('user.manage')) {
+    if (!permissionsReady) return
+    if (!me || !canPermission('user.manage')) {
       router.replace('/dashboard')
       return
     }
     load()
-  }, [router])
+  }, [router, permissionsReady, me, canPermission])
 
   const load = () => apiFetch<User[]>('/api/users').then(setUsers).finally(() => setLoading(false))
 
@@ -85,7 +86,6 @@ export default function UsersPage() {
 
   const inp = 'oms-input'
   const lockedInp = `${inp} bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed`
-  const me = getUser()
   const filtered = users.filter(u => !search || u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()))
   const { page, setPage, totalPages, paged, total } = usePagination(filtered, 10)
 

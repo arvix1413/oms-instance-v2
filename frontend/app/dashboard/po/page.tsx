@@ -8,7 +8,7 @@ import { formatDecimal, formatQuantity } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, PO_STEPS, getPOActions } from '@/components/StatusFlow'
 import { SearchableSelect } from '@/components/SearchableSelect'
-import { can } from '@/lib/usePermissions'
+import { usePermissions } from '@/lib/usePermissions'
 import { getCompany, getCompanySignatureUrl } from '@/lib/useCompany'
 import { getPrintSignatureConfig } from '@/lib/printSignature'
 import { resolveTierSupplierPrice, type MoqTier } from '@/lib/moqPricing'
@@ -69,6 +69,7 @@ function StatusFilterSync({ onChange }: { onChange: (value: string) => void }) {
 
 export default function PoPage() {
   const { toast, confirm: confirmDialog } = useDialog()
+  const { can: canPermission } = usePermissions()
 
   const [pos, setPos] = useState<Po[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
@@ -81,9 +82,9 @@ export default function PoPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const canWrite = can('po.create')
-  const canApprove = can('po.approve')
-  const canDel = can('po.delete')
+  const canWrite = canPermission('po.create')
+  const canApprove = canPermission('po.approve')
+  const canDel = canPermission('po.delete')
 
   const loadPoItems = async (id: number) => {
     const data = await apiFetch<Po>(`/api/po/${id}`)

@@ -1,5 +1,6 @@
 'use client'
-import { normalizeRole } from './permissions'
+import { useCallback, useEffect, useState } from 'react'
+import { getUser, normalizeRole } from './permissions'
 
 function getCurrentRole(): string | null {
   if (typeof window === 'undefined') return null
@@ -28,10 +29,30 @@ export function can(permission: string): boolean {
 
 // Hook-style helper for use in components
 export function usePermissions() {
-  const perms = getPermissions()
-  const role = getCurrentRole()
+  // Keep the server render and the first browser render identical. Reading
+  // localStorage during render makes permission-gated navigation and table
+  // columns differ during hydration.
+  const [ready, setReady] = useState(false)
+  const [perms, setPerms] = useState<string[]>([])
+  const [user, setUser] = useState<ReturnType<typeof getUser>>(null)
+
+  useEffect(() => {
+    setUser(getUser())
+    setPerms(getPermissions())
+    setReady(true)
+  }, [])
+
+  const role = user?.role || null
+  const canPermission = useCallback((permission: string) => {
+    if (!ready) return false
+    return role === 'manager' ? true : perms.includes(permission)
+  }, [perms, ready, role])
+
   return {
-    can: (permission: string) => role === 'manager' ? true : perms.includes(permission),
+    can: canPermission,
     perms,
+    role,
+    user,
+    ready,
   }
 }

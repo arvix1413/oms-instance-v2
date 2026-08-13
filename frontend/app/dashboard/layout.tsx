@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { getToken, clearToken, apiFetch } from '@/lib/api'
-import { getUser, ROLE_LABELS, type Role } from '@/lib/permissions'
-import { can } from '@/lib/usePermissions'
+import { ROLE_LABELS, type Role } from '@/lib/permissions'
+import { usePermissions } from '@/lib/usePermissions'
 import StickyTableHeaderBridge from '@/components/StickyTableHeaderBridge'
 import { getCompany, getCompanyDisplayName, getCompanyInitial, getLogoUrl, type CompanySettings } from '@/lib/useCompany'
 
@@ -89,7 +89,6 @@ const ROLE_DOT: Record<string, string> = {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [user, setUser] = useState<any>(null)
   const [company, setCompany] = useState<CompanySettings | null>(null)
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(['業務流程']))
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -98,10 +97,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [poDraftCount, setPoDraftCount] = useState(0)
   const [quotationDraftCount, setQuotationDraftCount] = useState(0)
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { can: canPermission, user } = usePermissions()
 
   useEffect(() => {
     if (!getToken()) { router.replace('/login'); return }
-    setUser(getUser())
     getCompany().then(setCompany).catch(() => {})
   }, [router])
 
@@ -151,9 +150,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     window.location.href = '/login'
   }
   const role = user?.role as Role
-  const isAdmin = can('user.manage')
-  const canApprovePo = can('po.approve')
-  const canApproveQuotation = can('quotation.approve')
+  const isAdmin = canPermission('user.manage')
+  const canApprovePo = canPermission('po.approve')
+  const canApproveQuotation = canPermission('quotation.approve')
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(href + '/')

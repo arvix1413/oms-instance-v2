@@ -7,7 +7,7 @@ import { apiFetch } from '@/lib/api'
 import { formatQuantity } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, DN_STEPS, getDNActions } from '@/components/StatusFlow'
-import { can } from '@/lib/usePermissions'
+import { usePermissions } from '@/lib/usePermissions'
 import { getCompany } from '@/lib/useCompany'
 
 type DNItem = { bom_id?:number|null; item_name:string; material_code:string; qty:number; shipped_qty:number; remark:string; po_ref?: string; spec?: string; unit?: string }
@@ -50,6 +50,7 @@ function canCreateBatchForOrder(order: OrderDeliveryRow) {
 
 export default function DeliveryNotesPage() {
   const { toast, confirm: confirmDialog } = useDialog()
+  const { can: canPermission } = usePermissions()
 
   const [orderRows, setOrderRows] = useState<OrderDeliveryRow[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -66,8 +67,8 @@ export default function DeliveryNotesPage() {
   const [expandedDns, setExpandedDns] = useState<Set<number>>(new Set())
   const [expandedShippedHistory, setExpandedShippedHistory] = useState<Set<number>>(new Set())
   const [loadedItems, setLoadedItems] = useState<Record<number, DNItem[]>>({})
-  const canWrite = can('delivery.create')
-  const canDel = can('delivery.delete')
+  const canWrite = canPermission('delivery.create')
+  const canDel = canPermission('delivery.delete')
 
   // Create form state
   const [selectedCustomerId, setSelectedCustomerId] = useState('')

@@ -29,6 +29,22 @@ input[type="number"] { -moz-appearance: textfield; }
 /* Card */
 .oms-card { @apply bg-white border border-slate-200 rounded-2xl shadow-sm shadow-slate-200/50; }
 
+/* Direct list tables need their own horizontal scroll area on small screens.
+   Several pages intentionally keep the first two columns readable while the
+   operation column remains wider than a phone viewport. */
+@media (max-width: 1023px) {
+  .oms-card.overflow-hidden:has(> table) {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
+  }
+
+  .oms-card.overflow-hidden:has(> table) > table {
+    min-width: max-content;
+  }
+}
+
 /* Input */
 .oms-input { @apply w-full min-h-9 bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed; }
 .bom-locked-field { @apply bg-white border-slate-300 text-slate-800 cursor-not-allowed; }

@@ -6,7 +6,7 @@ import { apiFetch } from '@/lib/api'
 import { formatQuantity } from '@/lib/numberFormat'
 import { usePagination, Pagination } from '@/lib/usePagination'
 import { StatusFlow, PROD_STEPS, getProdActions } from '@/components/StatusFlow'
-import { can } from '@/lib/usePermissions'
+import { usePermissions } from '@/lib/usePermissions'
 import { getCompany } from '@/lib/useCompany'
 import FieldLockHint from '@/components/FieldLockHint'
 
@@ -37,6 +37,7 @@ const STATUS_MAP: Record<string, { label: string; badge: string }> = {
 
 export default function ProductionPage() {
   const { toast, confirm: confirmDialog } = useDialog()
+  const { can: canPermission } = usePermissions()
   const [prods, setProds] = useState<Prod[]>([])
   const [boms, setBoms] = useState<BOM[]>([])
   const [orders, setOrders] = useState<CustomerOrder[]>([])
@@ -48,8 +49,8 @@ export default function ProductionPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [loadedProds, setLoadedProds] = useState<Record<number, Prod>>({})
-  const canWrite = can('production.create')
-  const canDel = can('production.delete')
+  const canWrite = canPermission('production.create')
+  const canDel = canPermission('production.delete')
 
   // Create form
   const [step, setStep] = useState<1 | 2>(1)

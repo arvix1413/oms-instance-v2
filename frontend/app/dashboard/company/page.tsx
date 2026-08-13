@@ -2,10 +2,9 @@
 import { useDialog } from '@/components/Dialog'
 import { useEffect, useState, useRef } from 'react'
 import { apiFetch, apiFetchRaw, API } from '@/lib/api'
-import { can } from '@/lib/usePermissions'
+import { usePermissions } from '@/lib/usePermissions'
 import { useRouter } from 'next/navigation'
 import { clearCompanyCache, EMPTY_COMPANY_SETTINGS, type CompanySettings } from '@/lib/useCompany'
-import { getUser } from '@/lib/permissions'
 import { getPrintSignatureConfig } from '@/lib/printSignature'
 
 const DEFAULT = EMPTY_COMPANY_SETTINGS
@@ -13,7 +12,7 @@ const DEFAULT = EMPTY_COMPANY_SETTINGS
 export default function CompanyPage() {
   const router = useRouter()
   const { toast } = useDialog()
-  const me = getUser()
+  const { can: canPermission, user: me, ready: permissionsReady } = usePermissions()
   const canManageSignature = me?.role === 'manager'
   const [form, setForm] = useState<CompanySettings>(DEFAULT)
   const [loading, setLoading] = useState(true)
@@ -24,12 +23,13 @@ export default function CompanyPage() {
   const signatureFileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (!can('company.manage')) { router.replace('/dashboard'); return }
+    if (!permissionsReady) return
+    if (!canPermission('company.manage')) { router.replace('/dashboard'); return }
     apiFetch<CompanySettings>('/api/company')
       .then(d => setForm({ ...DEFAULT, ...d }))
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [router])
+  }, [router, permissionsReady, canPermission])
 
   const uploadLogo = async (file: File) => {
     if (!file.type.startsWith('image/')) { toast('請上傳圖片', 'error'); return }
