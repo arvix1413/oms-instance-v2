@@ -1,5 +1,6 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
+import { apiFetch } from './api'
 import { getUser, normalizeRole } from './permissions'
 
 function getCurrentRole(): string | null {
@@ -12,12 +13,16 @@ function getCurrentRole(): string | null {
   }
 }
 
-// Get permissions array from localStorage (set at login)
+// Get permissions array from localStorage (set at login / refreshed on dashboard)
 export function getPermissions(): string[] {
   if (typeof window === 'undefined') return []
   try {
     return JSON.parse(localStorage.getItem('oms_permissions') || '[]')
   } catch { return [] }
+}
+
+function persistPermissions(permissions: string[]) {
+  localStorage.setItem('oms_permissions', JSON.stringify(permissions))
 }
 
 // Check if current user has a specific permission
@@ -40,6 +45,26 @@ export function usePermissions() {
     setUser(getUser())
     setPerms(getPermissions())
     setReady(true)
+
+    // Refresh from server so permission policy changes apply without re-login
+    let cancelled = false
+    ;(async () => {
+      try {
+        const data = await apiFetch<{ user: any; permissions?: string[] }>('/api/auth/me')
+        if (cancelled) return
+        if (data.user) {
+          localStorage.setItem('oms_user', JSON.stringify(data.user))
+          setUser(getUser())
+        }
+        if (Array.isArray(data.permissions)) {
+          persistPermissions(data.permissions)
+          setPerms(data.permissions)
+        }
+      } catch {
+        // keep cached permissions if refresh fails
+      }
+    })()
+    return () => { cancelled = true }
   }, [])
 
   const role = user?.role || null

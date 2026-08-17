@@ -1038,6 +1038,13 @@ async function audit(user: any, action: string, resource: string, resourceId: an
 
 app.get('/', c => c.json({ name: 'OMS Backend', version: '2.0.0' }))
 
+async function loadPermissionsForRole(role: 'manager' | 'employee'): Promise<string[]> {
+  if (role === 'manager') return ALL_PERMISSIONS.map(p => p.key)
+  await ensureEmployeePermissions()
+  const rows = await query<any>('SELECT permission FROM role_permissions WHERE role=? AND allowed=1', ['employee'])
+  return rows.map((r: any) => r.permission)
+}
+
 // ── Auth ─────────────────────────────────────────────────────────────────────
 app.post('/api/auth/login', async c => {
   try {
@@ -1048,15 +1055,7 @@ app.post('/api/auth/login', async c => {
     if (hashPw(password) !== user.password_hash) return c.json({ error: 'Invalid credentials' }, 401)
     const normalizedRole = normalizeUserRole(user.role)
     const token = await signJwt({ userId: user.id, email: user.email, name: user.name, role: normalizedRole })
-    // Load role permissions
-    let permissions: string[] = []
-    if (normalizedRole === 'manager') {
-      permissions = ALL_PERMISSIONS.map((p: any) => p.key)
-    } else {
-      await ensureEmployeePermissions()
-      const rows = await query<any>('SELECT permission FROM role_permissions WHERE role=? AND allowed=1', ['employee'])
-      permissions = rows.map((r: any) => r.permission)
-    }
+    const permissions = await loadPermissionsForRole(normalizedRole)
     return c.json({ token, user: { id: user.id, email: user.email, name: user.name, role: normalizedRole }, permissions })
   } catch (e: any) { return c.json({ error: String(e.message) }, 500) }
 })
@@ -1065,7 +1064,9 @@ app.get('/api/auth/me', authMiddleware, async c => {
   const u = c.get('user')
   const user = await queryOne<any>('SELECT id,email,name,role FROM users WHERE id=? AND deleted_at IS NULL', [u.userId])
   if (!user) return c.json({ error: 'Not found' }, 404)
-  return c.json({ user: { ...user, role: normalizeUserRole(user.role) } })
+  const normalizedRole = normalizeUserRole(user.role)
+  const permissions = await loadPermissionsForRole(normalizedRole)
+  return c.json({ user: { ...user, role: normalizedRole }, permissions })
 })
 
 // Change own password
